@@ -1,41 +1,135 @@
 # PVllg
 
-Django 4.2 (Python 3.9) API + React (Vite) UI + Oracle MySQL HeatWave, deployed to an OCI VM by GitHub Actions.
+A web app with a Django API (Python 3.9), a React UI, and a MySQL HeatWave database, deployed to an Oracle Cloud VM.
 
-**Live:** http://207.211.189.5
+**Live:** http://207.211.189.5 (sign up for an account to see anything)
 
-**New to the project (human or AI agent)? Start with [AGENTS.md](AGENTS.md):** conventions, constraints, brand colors and workflow.
+Writing code? Read [AGENTS.md](AGENTS.md) for conventions and project rules.
 
+---
+
+## Quick start
+
+You'll end up with the app running at http://localhost:5173 on your machine, using a local SQLite database.
+No passwords or cloud access needed.
+
+### 1. Install the tools
+
+| Tool | Check it | If it's missing (macOS) |
+| --- | --- | --- |
+| Git | `git --version` | `xcode-select --install` |
+| Python **3.9** | `python3 --version` (or `python3.9 --version`) | `brew install pyenv && pyenv install 3.9` |
+| Node **18 or newer** | `node --version` | `brew install node` (or the LTS installer from [nodejs.org](https://nodejs.org)) |
+
+No Homebrew? Install it from [brew.sh](https://brew.sh). It has to be Python 3.9, not 3.10+: the server runs 3.9.
+
+### 2. Get the code
+
+```bash
+git clone https://github.com/lynnsamuelson/PVllg.git
+cd PVllg
 ```
-backend/    Django project (config/) + example "api" app (health check, Notes CRUD)
-frontend/   React + Vite; calls same-origin /api/*  (folder guide: frontend/src/README.md)
-deploy/     Apache vhost, gunicorn systemd unit, remote-deploy.sh (runs on the VM)
-scripts/    add-teammate-key.sh, db-tunnel.sh
-.github/workflows/ci-deploy.yml
-```
 
-## Local development
-
-Backend (Python 3.9):
+### 3. Start the backend (terminal 1)
 
 ```bash
 cd backend
-python3.9 -m venv .venv && source .venv/bin/activate   # or python3, if it is 3.9
+python3 -m venv .venv          # use python3.9 if python3 isn't 3.9
+source .venv/bin/activate      # your prompt now starts with (.venv)
 pip install -r requirements.txt
-cp .env.example .env          # SQLite by default; see below for HeatWave
-python manage.py migrate
-python manage.py runserver    # http://127.0.0.1:8000/api/health/
+cp .env.example .env
+python manage.py migrate       # creates the local database and sample data
+python manage.py runserver
 ```
 
-Frontend (Node 18+):
+Leave it running.
+
+### 4. Start the frontend (terminal 2)
+
+Open a **second** terminal window in the `PVllg` folder:
 
 ```bash
 cd frontend
 npm install
-npm run dev                   # http://localhost:5173 (proxies /api to :8000)
+npm run dev
 ```
 
+Leave this running too.
+
+### 5. Open the app
+
+1. Go to **http://localhost:5173/status**. You should see `ok — sqlite`. That means React, Django and the database are connected.
+2. Go to **http://localhost:5173/signup** and create an account. It only exists on your machine, so any email and password will do.
+3. You're in. The home page lists the sample resources.
+
+### Coming back later
+
+Steps 1, 2 and the installs only happen once. Next time, start the two servers:
+
+```bash
+# terminal 1
+cd backend && source .venv/bin/activate && python manage.py runserver
+
+# terminal 2
+cd frontend && npm run dev
+```
+
+After you pull new code, run `pip install -r requirements.txt` and `python manage.py migrate` in the backend, and
+`npm install` in the frontend, in case something changed.
+
+### Before you open a PR
+
+```bash
+# terminal 1 (in backend/, venv active)
+python manage.py test
+
+# terminal 2 (in frontend/)
+npm run build
+```
+
+CI runs these same checks on every PR. See [AGENTS.md](AGENTS.md#git-and-pr-workflow) for the branch and PR workflow.
+
+---
+
+## Troubleshooting
+
+| Problem | Fix |
+| --- | --- |
+| `python3.9: command not found` | Run `python3 --version`. If it says 3.9, use `python3`. Otherwise install 3.9 (step 1). |
+| `node: command not found` / `npm: command not found` | Install Node (step 1), then open a new terminal. |
+| `ModuleNotFoundError: No module named 'django'` | The venv isn't active. Run `source .venv/bin/activate` in `backend/`. |
+| `/status` shows an error, or pages won't load data | The backend isn't running. Check terminal 1. |
+| You keep getting sent to the login page | Expected: everything needs login. Sign up at http://localhost:5173/signup. |
+| `Error: That port is already in use` | Another copy is still running. Stop it with Ctrl+C in its terminal, or run `lsof -i :8000` to find it. |
+| Opening http://127.0.0.1:8000 shows a bare page or 404 | That's only the API. Use http://localhost:5173. |
+
+Want the Django admin locally? Run `python manage.py createsuperuser` in `backend/`, then open http://localhost:5173/admin/.
+
+---
+
+## How it fits together
+
+```
+backend/    Django project
+  config/     settings (all from env vars), URLs
+  accounts/   signup, login, logout
+  resources/  Resource model and API
+  api/        /api/health/ and the Notes demo
+frontend/   React + Vite (folder guide: frontend/src/README.md)
+deploy/     Apache config, gunicorn service, remote-deploy.sh (runs on the VM)
+scripts/    add-teammate-key.sh, db-tunnel.sh
+.github/workflows/ci-deploy.yml
+```
+
+In development, Vite serves the React app on port 5173 and forwards `/api` and `/admin` to Django on port 8000.
+Production does the same thing with Apache in front of gunicorn, so the code never needs to know which one it's in.
+
+The database is SQLite unless `DB_HOST` is set in `backend/.env`.
+
 ### Using the real HeatWave database locally
+
+Only do this if you need production data. It's the **shared database the live site uses**, so be careful with
+migrations. You'll need VM access (below) and the database credentials from a teammate.
 
 HeatWave only has a private IP, so tunnel through the VM:
 
@@ -43,12 +137,19 @@ HeatWave only has a private IP, so tunnel through the VM:
 DB_PRIVATE_IP=<heatwave-private-ip> ./scripts/db-tunnel.sh
 ```
 
-Then in `backend/.env` set `DB_HOST=127.0.0.1`, `DB_PORT=3307`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
-Note that this is the **shared** database the live site uses, so be careful with migrations.
+Then in `backend/.env` set `DB_HOST=127.0.0.1`, `DB_PORT=3307`, `DB_NAME`, `DB_USER` and `DB_PASSWORD`.
+
+---
 
 ## Deployment
 
-Every push to `main` runs tests, builds React, and deploys to the VM. PRs only run tests.
+1. Open a PR into `main` (direct pushes are blocked). CI runs the backend tests and the frontend build.
+2. Merge the PR. This starts a deploy that **waits for approval**.
+3. An approver opens the run under Actions → **Review deployments** → `production` → **Approve**.
+   Approvers are set in Settings → Environments → production.
+4. The pipeline copies the code to the VM, runs migrations, restarts the app, and checks `/api/health/`.
+
+Only one deploy runs at a time, so an unapproved deploy holds up the ones behind it.
 
 On the VM:
 
