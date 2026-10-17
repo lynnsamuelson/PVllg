@@ -55,6 +55,17 @@ export const logout = () => post("/auth/logout/");
 export const listResources = () => request("/resources/");
 export const getResource = (id) => request(`/resources/${id}/`);
 
+// KAN-16: resources ranked for a profile. profile = { zip, stage, ages[], roles[], needs[] };
+// options = { category, q, radius }. Each result adds distance_miles (null if not local), matches_needs, reason.
+export function getResourceMatches(profile, options = {}) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries({ ...profile, ...options })) {
+    const text = Array.isArray(value) ? value.join(",") : value;
+    if (text !== undefined && text !== null && text !== "") params.set(key, text);
+  }
+  return request(`/resources/matches/?${params}`);
+}
+
 // Demo endpoints (used by the /status page)
 export const getHealth = () => request("/health/");
 export const listNotes = () => request("/notes/");

@@ -42,7 +42,8 @@ Live site: http://207.211.189.5 · Repo: https://github.com/lynnsamuelson/PVllg
 backend/
   config/            settings.py (all config via env vars), urls.py, wsgi.py, log.py (logging wrapper)
   accounts/          signup/login/logout/me + CSRF; SessionAuthentication401
-  resources/         Resource model, read-only API, admin, seed migration
+  resources/         Resource model, read-only API, admin, starter-resource migration;
+                     matching.py ranks resources for a profile (GET /api/resources/matches/, KAN-16)
   api/               /api/health/ (public) and the Notes demo
   requirements.txt   what the VM installs
   requirements-dev.txt  + test tools (coverage); use this locally and in CI
