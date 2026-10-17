@@ -114,5 +114,21 @@ button {
   padding: 0.4rem 0.75rem;
   font-size: 0.9rem;
 }
+.form-error {
+  background: #ffebe9;
+  color: #82071e;
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  margin: 0;
+}
+.field-error {
+  color: #cf222e;
+  font-size: 0.85rem;
+  margin: 0;
+  padding-left: 1rem;
+}
+.stack small {
+  opacity: 0.75;
+}
 .ok { color: #1a7f37; }
 .bad { color: #cf222e; }
