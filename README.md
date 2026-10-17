@@ -6,7 +6,7 @@ Django 4.2 (Python 3.9) API + React (Vite) UI + Oracle MySQL HeatWave, deployed 
 
 ```
 backend/    Django project (config/) + example "api" app (health check, Notes CRUD)
-frontend/   React + Vite; calls same-origin /api/*
+frontend/   React + Vite; calls same-origin /api/*  (folder guide: frontend/src/README.md)
 deploy/     Apache vhost, gunicorn systemd unit, remote-deploy.sh (runs on the VM)
 scripts/    add-teammate-key.sh, db-tunnel.sh
 .github/workflows/ci-deploy.yml
