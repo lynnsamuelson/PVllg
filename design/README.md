@@ -1,7 +1,8 @@
 # Design: screen map
 
-`PVill-all-screens.pdf` has the 25 mockups. Colors, tokens, components and contrast rules are in the Design section of
-`AGENTS.md`; this file only maps each screen to the Jira tickets that build it, plus the rules each screen must keep.
+The [PVill Figma file](https://www.figma.com/design/ro8GztAZLeYwu4b7aG086X/Pvill) is the source to build from; its
+frames use the numbers below. `PVill-all-screens.pdf` has the original 25 mockups, for anything not in Figma yet.
+Colors, tokens, components and contrast rules are in the Design section of `AGENTS.md`; this file only maps each screen to the Jira tickets that build it, plus the rules each screen must keep.
 
 The "Ticket N" chips printed under each screen in the PDF use an older numbering. **Use the KAN keys below.**
 
@@ -32,12 +33,12 @@ The "Ticket N" chips printed under each screen in the PDF use an older numbering
 | 23 | Reach out: demo preview | KAN-21 | Bottom sheet, "Demo only". Never says "Request sent". |
 | 24 | Report a problem | KAN-22 | Bottom sheet over the item page. |
 | 25 | Edit profile and switch roles | KAN-24 | At least one of Get/Give stays on. Bottom bar matches the switches. |
+| 26 | Sign in (Figma only, frame "PVill · Getting started · Sign in") | KAN-5 | "Welcome back". Show toggle on the password field, "Forgot password?" link, green Sign in button, outline "Create an account" under "New to PVill?". |
 
-## Not in the PDF yet
+## Not in Figma yet
 
 Being designed in KAN-4. Until then, build them from the shared components so they match:
 
-- Sign in screen
 - Wrong or old code message (8)
 - Search loading, no results and could-not-load states (12)
 - My claims empty state and Past tab (15); My items empty state (21)
