@@ -1,0 +1,3 @@
+# Local dev and CI only; the VM installs requirements.txt.
+-r requirements.txt
+coverage>=7.4,<8

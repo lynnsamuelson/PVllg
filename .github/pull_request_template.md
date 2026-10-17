@@ -12,3 +12,4 @@
 - [ ] New endpoints are in `LockdownTests` and have logged-out 401 and logged-in tests
 - [ ] Model changes have a committed, non-destructive migration
 - [ ] No secrets, `.env` values or keys
+- [ ] Docs are up to date: `README.md`, `AGENTS.md` and `frontend/src/README.md` reflect this change, or it needs no doc changes

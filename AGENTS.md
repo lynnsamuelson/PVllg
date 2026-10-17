@@ -40,11 +40,13 @@ Live site: http://207.211.189.5 · Repo: https://github.com/lynnsamuelson/PVllg
 
 ```
 backend/
-  config/            settings.py (all config via env vars), urls.py, wsgi.py
+  config/            settings.py (all config via env vars), urls.py, wsgi.py, log.py (logging wrapper)
   accounts/          signup/login/logout/me + CSRF; SessionAuthentication401
   resources/         Resource model, read-only API, admin, seed migration
   api/               /api/health/ (public) and the Notes demo
-  requirements.txt
+  requirements.txt   what the VM installs
+  requirements-dev.txt  + test tools (coverage); use this locally and in CI
+  .coveragerc        coverage settings and the fail_under floor
 frontend/
   src/               see frontend/src/README.md for the full folder guide
     App.jsx          route table
@@ -53,7 +55,10 @@ frontend/
     components/      shared UI (Layout, NavBar, ProtectedRoute, FieldError, Placeholder)
     context/         AuthContext (current user, login/signup/logout)
     api/client.js    the ONLY place that calls fetch(); handles CSRF + 401
+    logger.js        the ONLY place that calls console; use log.info/warn/error
+    **/*.test.js(x)  Vitest unit tests, next to the file they test
     styles/index.css global styles + brand color tokens
+  e2e/               Playwright browser tests (playwright.config.js starts Django + Vite itself)
 deploy/              Apache vhost, systemd unit, remote-deploy.sh (runs on the VM)
 scripts/             add-teammate-key.sh, db-tunnel.sh
 ```
@@ -66,25 +71,34 @@ scripts/             add-teammate-key.sh, db-tunnel.sh
 
 ```bash
 python3.9 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 cp .env.example .env              # SQLite by default
 python manage.py migrate
 python manage.py runserver        # http://127.0.0.1:8000
-python manage.py test             # run before every PR
+python manage.py test             # quick test run
+coverage run manage.py test && coverage report   # what CI runs; fails below fail_under
 python manage.py makemigrations   # commit the generated files
 ```
 
-**Frontend** (from `frontend/`, Node 18+):
+**Frontend** (from `frontend/`, Node 20+):
 
 ```bash
 npm install
 npm run dev                       # http://localhost:5173, proxies /api and /admin to :8000
 npm run build                     # must succeed before every PR
+npm test                          # Vitest unit tests
+npm run coverage                  # unit tests + coverage; fails below the thresholds in vite.config.js
+npx playwright install chromium   # once, before the first e2e run
+npm run e2e                       # Playwright; starts its own Django (:8001) + Vite (:5174) on a throwaway SQLite
 ```
 
-**What CI runs.** The required checks `backend` and `frontend` must pass to merge:
-- `backend`: `python manage.py check`, `python manage.py makemigrations --check --dry-run`, `python manage.py test`
-- `frontend`: `npm ci` then `npm run build`
+**What CI runs.** The required checks `backend`, `frontend` and `pr-hygiene` must pass to merge:
+- `backend`: `python manage.py check`, `python manage.py makemigrations --check --dry-run`,
+  `coverage run manage.py test`, `coverage report` (also written to the job summary)
+- `frontend`: `npm ci`, `npm run coverage`, `npm run build`
+- `e2e`: `npm run e2e` in Chromium; the HTML report is uploaded when it fails. Not required yet, and it doesn't
+  gate deploys. Make it required once it has proven stable.
+- `pr-hygiene`: branch name, and a filled-in PR description including the docs checkbox (see Git and PR workflow)
 
 If you change a model, commit its migration, or `makemigrations --check` fails the build.
 
@@ -107,6 +121,12 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   must call `enforce_csrf(request)` (see `accounts/views.py`), because DRF skips CSRF for anonymous users.
 - **Settings come from env vars only** (`config/settings.py`). Add new settings with a safe local default.
 - **Write tests** for every endpoint: at minimum, logged out → 401 and logged in → expected data.
+- **Logging:** `from config.log import get_logger; logger = get_logger(__name__)`. Never import `logging` (or
+  another logging library) directly, so the library can be swapped in one place. Output goes to stdout, which is
+  `journalctl -u hackathon-api` on the VM; the level comes from `DJANGO_LOG_LEVEL` (default `INFO`). Log user ids,
+  not passwords, tokens or request bodies. When a test triggers a log line, wrap it in `self.assertLogs(...)` so
+  test output stays clean.
+- **Coverage** can't drop below `fail_under` in `.coveragerc`. When you raise coverage, raise the floor too.
 - **Migrations run against the shared production database on deploy.** Avoid destructive changes (dropping or
   renaming columns that hold data) without a plan. Seed data goes in a data migration with a reverse function.
 
@@ -123,6 +143,15 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
 - Every page that fetches data needs loading, empty and error states.
 - Pages awaiting design show `<Placeholder>`. Remove it once the real design is in.
 - Plain CSS in `styles/index.css`, using the color tokens below. Don't add a CSS framework without asking the team.
+- **Logging:** `import { log } from "../logger.js"` and use `log.debug/info/warn/error`, never `console` directly.
+  Error reporting (e.g. Sentry) gets wired into `logger.js` later. `ErrorBoundary` (in `main.jsx`) logs render
+  crashes.
+- **Unit tests** (Vitest + Testing Library) go next to the file as `<name>.test.js(x)`. Use them for logic:
+  `api/client.js`, context, hooks, components with behavior. Coverage can't drop below the thresholds in
+  `vite.config.js`.
+- **Browser tests** (Playwright) go in `frontend/e2e/`, one spec per user flow. Use them for whole flows across
+  pages, and use unique emails per test (the e2e database is reused between tests). Prefer `getByRole` and
+  `getByLabel` over CSS selectors.
 
 ---
 
@@ -158,12 +187,17 @@ hex values.
 
 1. Branch from `main` as `<type>/<firstname>-<thing>`, all lowercase, where type is `feature`, `fix`, `docs` or
    `chore`. Example: `feature/sydney-resource-filters`. The `pr-hygiene` check fails other names.
-2. Keep PRs focused. Run `/pre-pr` (or backend tests and the frontend build) locally first.
-3. Open a PR into `main` and fill in `.github/pull_request_template.md`. **Summary** and **QA steps** must not be
+2. Keep PRs focused. Run `/pre-pr` (or the commands in "What CI runs") locally first.
+3. **Update the docs in the same PR.** If your change affects anything `README.md`, `AGENTS.md` or
+   `frontend/src/README.md` describes (setup steps, commands, env vars, folders, conventions, CI, deploy), update
+   them before you push. Then tick the docs box in the PR checklist. `pr-hygiene` fails until it's ticked, and
+   ticking it is your confirmation that the docs either changed or didn't need to. Claude Code also gets a
+   reminder before every `git commit` (a `PreToolUse` hook in `.claude/settings.json`).
+4. Open a PR into `main` and fill in `.github/pull_request_template.md`. **Summary** and **QA steps** must not be
    empty: QA steps are numbered steps a teammate can follow, with the expected result of each. The `backend`,
    `frontend` and `pr-hygiene` checks run automatically and must pass.
-4. Merging to `main` starts a deploy that **pauses for approval** (Actions → the run → *Review deployments*).
-5. After approval, the pipeline deploys and checks `http://<VM>/api/health/`.
+5. Merging to `main` starts a deploy that **pauses for approval** (Actions → the run → *Review deployments*).
+6. After approval, the pipeline deploys and checks `http://<VM>/api/health/`.
 
 ---
 
@@ -206,6 +240,7 @@ Apache and systemd config, restarts the app, and checks health.
 
 - Forgot password / password reset (needs an email service; the page is a placeholder)
 - Rate limiting on login
+- Error reporting service such as Sentry (hook it into `config/log.py` and `frontend/src/logger.js`)
 - Profile editing
 - Final visual design (pages carry the `Placeholder` banner)
 - HTTPS / custom domain (the site is plain HTTP on the VM IP)
