@@ -175,10 +175,16 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
 
 ## Design
 
-The mockups are in `design/PVill-all-screens.pdf` (25 phone screens, numbered "Mock Up 1" to "Mock Up 25"; Jira
-tickets refer to these numbers). `design/README.md` maps each screen to its Jira ticket and lists the rules each
-screen must keep. **Before building or restyling a page, open its mockup and match it.** The mockups are layout
-references, not pixel-final: Figma (KAN-4) may refine them, but colors, components and wording come from here.
+The designs are in the [PVill Figma file](https://www.figma.com/design/ro8GztAZLeYwu4b7aG086X/Pvill) (KAN-4), with
+frames named `NN · Area · Screen` to match the mockup numbers. Build from Figma; `design/PVill-all-screens.pdf` (25
+phone screens, numbered "Mock Up 1" to "Mock Up 25") is the fallback for anything not in Figma yet. Jira tickets refer
+to these numbers. `design/README.md` maps each screen to its Jira ticket and lists the rules each screen must keep.
+**Before building or restyling a page, open its design and match it.** Where Figma and this file disagree, this file
+wins until it is updated.
+
+**Figma is drawn 1.3× larger.** Its frames are 390px wide; our tokens were measured on the 300px-wide PDF. Divide any
+px value you read in Figma by 1.3 to find the token (Figma 24.7 → `--text-title` 19px, 16.9 → `--text-body` 13px,
+15.6 button radius → `--radius-button` 12px, 20.8 side padding → `--space-side` 16px).
 
 **Tokens.** Use the variables in `frontend/src/styles/index.css`, never raw hex (white included: `--color-white`),
 px radii or font sizes. Don't make up sizes with `calc()` on a token either; if no token fits, add one to `:root` and
@@ -202,10 +208,13 @@ list it here.
 Spacing and shape: `--space-side` 16px screen padding, `--space-card-gap` 9px between cards, `--radius-button` 12px,
 `--radius-card` 14px, `--radius-pill` for chips and badges. Type: titles bold `--text-title`, body `--text-body`,
 small `--text-small`, labels bold `--text-label`, choice-card titles bold `--text-card-title`, the PVill name on
-Welcome `--text-display`. Font is Arial until the team picks one (`--font-brand`).
+Welcome `--text-display`. Figma uses Arimo, which has the same letter widths as Arial; `--font-brand` stays Arial
+until Arimo is loaded.
 
 **Components** (build each once in `components/`, then reuse; don't restyle per page):
 
+- **Brand header:** leaf mark (84px in Figma) with "PVill" in bold under it, centered near the top of most screens.
+  Welcome uses a larger mark (140px in Figma) and `--text-display`.
 - **Primary button:** full width, green fill, white bold text. One per screen, for the main action.
 - **Outline button:** white fill, plum border and text. For the second choice (Sign in, Send a new code, Back to
   details).
@@ -218,8 +227,10 @@ Welcome `--text-display`. Font is Arial until the team picks one (`--font-brand`
 - **Note box:** peach-tint fill, no border, small plum text. Used for privacy, demo and rule notes.
 - **Badges:** pill, small bold, always plum text. Verified and Approved (sage tint, green border), Person (person
   tint), Pending and Waiting (white, line border), Demo / Demo only / Example data (peach tint). The mockups show
-  green text on Verified/Approved; design agreed to plum instead because green on sage tint fails contrast.
-- **Text field:** white, rose outline, button radius. Bold label above, small muted hint below.
+  green text on Verified/Approved, and so does Figma; design agreed to plum instead because green on sage tint fails
+  contrast. Keep plum.
+- **Text field:** white, rose outline, slightly smaller radius than buttons (13px in Figma, the same as note boxes).
+  Bold label above, small muted hint below.
 - **Progress bar:** green fill on line-color track, with `STEP n OF 4` in small caps above.
 - **Tabs:** text tabs with a green underline on the active one (Items/Resources, Active/Past).
 - **Bottom navigation:** signed-in screens only. Person: Home, Search, Claims, Give, Profile (Give only with Give
