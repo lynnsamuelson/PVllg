@@ -196,8 +196,9 @@ small `--text-small`, labels bold `--text-label`. Font is Arial until the team p
 - **Toggle:** green when on.
 - **Card:** white, `--color-line` border, card radius. Selected card: sage-tint fill, green 2px outline.
 - **Note box:** peach-tint fill, no border, small plum text. Used for privacy, demo and rule notes.
-- **Badges:** pill, small bold. Verified (sage tint, green text), Person (person tint, plum), Pending and Waiting
-  (white, line border), Approved (sage tint, green), Demo / Demo only / Example data (peach tint, plum).
+- **Badges:** pill, small bold, always plum text. Verified and Approved (sage tint, green border), Person (person
+  tint), Pending and Waiting (white, line border), Demo / Demo only / Example data (peach tint). The mockups show
+  green text on Verified/Approved; design agreed to plum instead because green on sage tint fails contrast.
 - **Text field:** white, rose outline, button radius. Bold label above, small muted hint below.
 - **Progress bar:** green fill on line-color track, with `STEP n OF 4` in small caps above.
 - **Tabs:** text tabs with a green underline on the active one (Items/Resources, Active/Past).
@@ -224,7 +225,7 @@ approval (KAN-11).
 | Plum on peach | 5.2 | ✅ any text |
 | White on green | 5.0 | ✅ any text (primary buttons) |
 | Green on ivory | 4.7 | ✅ any text (links, active tab) |
-| Green on sage tint | 4.1 | ⚠️ large or bold 14px+ only. The mockups' small Verified/Approved badge text fails; use plum text or check with design |
+| Green on sage tint | 4.1 | ⚠️ large or bold 14px+ text only; fine for borders (Verified/Approved badge outline) |
 | Rose on ivory | 3.6 | ✅ input outlines only, not text |
 | Sage on ivory | 2.5 | ❌ decoration only |
 | Peach on ivory | 1.8 | ❌ never for text |
