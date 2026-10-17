@@ -1,15 +1,50 @@
 // All API calls go to same-origin /api (Vite proxy in dev, Apache in prod).
+// Django sets a csrftoken cookie (via /api/auth/csrf/); writes must echo it in X-CSRFToken.
+
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+// Error with the API's per-field messages attached, e.g. err.fields.email = ["..."].
+export class ApiError extends Error {
+  constructor(message, fields = {}) {
+    super(message);
+    this.fields = fields;
+  }
+}
+
+function toApiError(data, fallback) {
+  if (!data || typeof data !== "object") return new ApiError(fallback);
+  const { detail, non_field_errors, ...fields } = data;
+  const message = detail || non_field_errors?.[0] || Object.values(fields).flat()[0] || fallback;
+  return new ApiError(message, fields);
+}
+
 async function request(path, options = {}) {
-  const resp = await fetch(`/api${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  const data = resp.status === 204 ? null : await resp.json();
-  if (!resp.ok) throw new Error(data?.error || data?.detail || resp.statusText);
+  const method = (options.method || "GET").toUpperCase();
+  const headers = { "Content-Type": "application/json", ...options.headers };
+  if (method !== "GET") {
+    if (!getCookie("csrftoken")) await fetch("/api/auth/csrf/", { credentials: "same-origin" });
+    headers["X-CSRFToken"] = getCookie("csrftoken");
+  }
+  const resp = await fetch(`/api${path}`, { ...options, method, headers, credentials: "same-origin" });
+  const data = resp.status === 204 ? null : await resp.json().catch(() => null);
+  if (!resp.ok) throw toApiError(data, resp.statusText || "Request failed");
   return data;
 }
 
+const post = (path, body) => request(path, { method: "POST", body: body && JSON.stringify(body) });
+
+// Auth
+export const ensureCsrf = () => request("/auth/csrf/");
+export const getCurrentUser = () => request("/auth/me/").then((d) => d.user);
+export const signup = (name, email, password) => post("/auth/signup/", { name, email, password }).then((d) => d.user);
+export const login = (email, password) => post("/auth/login/", { email, password }).then((d) => d.user);
+export const logout = () => post("/auth/logout/");
+
+// Demo endpoints (used by the /status page)
 export const getHealth = () => request("/health/");
 export const listNotes = () => request("/notes/");
-export const createNote = (note) => request("/notes/", { method: "POST", body: JSON.stringify(note) });
+export const createNote = (note) => post("/notes/", note);
 export const deleteNote = (id) => request(`/notes/${id}/`, { method: "DELETE" });

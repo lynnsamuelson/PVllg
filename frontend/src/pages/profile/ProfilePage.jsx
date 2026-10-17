@@ -9,14 +9,14 @@ export default function ProfilePage() {
   return (
     <section>
       <h1>Your profile</h1>
-      <Placeholder>profile fields and editing awaiting design.</Placeholder>
+      <Placeholder>profile editing awaiting design.</Placeholder>
       <dl className="card details">
         <dt>Name</dt>
         <dd>{user.name}</dd>
         <dt>Email</dt>
         <dd>{user.email}</dd>
         <dt>Member since</dt>
-        <dd>{user.joined}</dd>
+        <dd>{new Date(user.joined).toLocaleDateString()}</dd>
       </dl>
       <p>
         <Link to={ROUTES.home}>← Back to resources</Link>

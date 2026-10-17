@@ -6,8 +6,8 @@ export default function NavBar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const onLogout = () => {
-    logout();
+  const onLogout = async () => {
+    await logout();
     navigate(ROUTES.login);
   };
 
