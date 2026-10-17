@@ -4,12 +4,32 @@
   color-scheme: light dark;
   --border: #8884;
 
-  /* Brand palette — see AGENTS.md "Design" for roles and accessible text pairings. */
-  --color-plum: #593b50; /* primary */
-  --color-peach: #e8b394; /* primary accent */
-  --color-sage: #8aaa72; /* secondary */
-  --color-green: #387c60; /* secondary */
+  /* Design tokens from design/PVill-all-screens.pdf. See AGENTS.md "Design" for roles and contrast rules. */
+  --color-plum: #593b50; /* Deep Plum: text, headings, selected chips */
+  --color-plum-muted: #745264; /* Muted Plum: secondary text */
+  --color-rose: #b46f7c; /* Dusty Rose: input outlines */
+  --color-peach: #e8b394; /* Soft Peach: logo arch, decoration only, never text */
+  --color-green: #387c60; /* Forest Green: primary buttons, selected outlines, active tab */
+  --color-sage: #8aaa72; /* Sage Green: logo, success accents, never text */
+  --color-ivory: #fff7f2; /* Warm Ivory: screen background */
+  --color-sage-tint: #e5ebdd; /* selected card fill, Verified badge */
+  --color-peach-tint: #f7e7dc; /* note boxes */
+  --color-person-tint: #f1e4ea; /* Person badge */
+  --color-line: #ebd9d0; /* card borders, dividers */
   --color-text-dark: #1f1a1e; /* readable on peach and sage */
+
+  --space-side: 16px; /* screen side padding */
+  --space-card-gap: 9px;
+  --radius-button: 12px;
+  --radius-card: 14px;
+  --radius-pill: 999px; /* chips and badges */
+
+  /* Type sizes as drawn on the 300px-wide mockups; KAN-4 (Figma) may revise. */
+  --font-brand: Arial, sans-serif; /* placeholder until the team picks a font */
+  --text-title: 19px; /* bold */
+  --text-body: 13px;
+  --text-small: 11.5px;
+  --text-label: 12px; /* bold */
 }
 body {
   margin: 0;

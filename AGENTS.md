@@ -47,6 +47,7 @@ backend/
   requirements.txt   what the VM installs
   requirements-dev.txt  + test tools (coverage); use this locally and in CI
   .coveragerc        coverage settings and the fail_under floor
+design/              PVill-all-screens.pdf (the 25 mockups) + README.md (screen → ticket map)
 frontend/
   src/               see frontend/src/README.md for the full folder guide
     App.jsx          route table
@@ -57,7 +58,7 @@ frontend/
     api/client.js    the ONLY place that calls fetch(); handles CSRF + 401
     logger.js        the ONLY place that calls console; use log.info/warn/error
     **/*.test.js(x)  Vitest unit tests, next to the file they test
-    styles/index.css global styles + brand color tokens
+    styles/index.css global styles + design tokens (colors, spacing, radii, type)
   e2e/               Playwright browser tests (playwright.config.js starts Django + Vite itself)
 deploy/              Apache vhost, systemd unit, remote-deploy.sh (runs on the VM)
 scripts/             add-teammate-key.sh, db-tunnel.sh
@@ -142,7 +143,8 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
 - Show API validation errors with `<FieldError messages={err.fields.<field>} />`.
 - Every page that fetches data needs loading, empty and error states.
 - Pages awaiting design show `<Placeholder>`. Remove it once the real design is in.
-- Plain CSS in `styles/index.css`, using the color tokens below. Don't add a CSS framework without asking the team.
+- Plain CSS in `styles/index.css`, using the design tokens (see Design below). Don't add a CSS framework without
+  asking the team.
 - **Logging:** `import { log } from "../logger.js"` and use `log.debug/info/warn/error`, never `console` directly.
   Error reporting (e.g. Sentry) gets wired into `logger.js` later. `ErrorBoundary` (in `main.jsx`) logs render
   crashes.
@@ -155,13 +157,81 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
 
 ---
 
-## Design: brand colors
+## Design
 
-Design is still being finalized. Use these tokens (defined in `frontend/src/styles/index.css`) rather than raw
-hex values.
+The mockups are in `design/PVill-all-screens.pdf` (25 phone screens, numbered "Mock Up 1" to "Mock Up 25"; Jira
+tickets refer to these numbers). `design/README.md` maps each screen to its Jira ticket and lists the rules each
+screen must keep. **Before building or restyling a page, open its mockup and match it.** The mockups are layout
+references, not pixel-final: Figma (KAN-4) may refine them, but colors, components and wording come from here.
+
+**Tokens.** Use the variables in `frontend/src/styles/index.css`, never raw hex, px radii or font sizes.
 
 | Token | Hex | Role |
 | --- | --- | --- |
+| `--color-plum` | `#593B50` | Deep Plum. Text, headings, selected chips, outline-button border |
+| `--color-plum-muted` | `#745264` | Muted Plum. Secondary text, hints |
+| `--color-rose` | `#B46F7C` | Dusty Rose. Text-field outlines |
+| `--color-green` | `#387C60` | Forest Green. **Primary buttons**, selected card outline, active tab, progress bar |
+| `--color-sage` | `#8AAA72` | Sage Green. Logo, success accents. Never text |
+| `--color-peach` | `#E8B394` | Soft Peach. Logo arch, bottom-sheet top edge. Decoration only, never text |
+| `--color-ivory` | `#FFF7F2` | Warm Ivory. Screen background |
+| `--color-sage-tint` | `#E5EBDD` | Selected card fill, Verified badge, ticket chips |
+| `--color-peach-tint` | `#F7E7DC` | Note boxes, Demo badge |
+| `--color-person-tint` | `#F1E4EA` | Person badge |
+| `--color-line` | `#EBD9D0` | Card borders, dividers |
+
+Spacing and shape: `--space-side` 16px screen padding, `--space-card-gap` 9px between cards, `--radius-button` 12px,
+`--radius-card` 14px, `--radius-pill` for chips and badges. Type: titles bold `--text-title`, body `--text-body`,
+small `--text-small`, labels bold `--text-label`. Font is Arial until the team picks one (`--font-brand`).
+
+**Components** (build each once in `components/`, then reuse; don't restyle per page):
+
+- **Primary button:** full width, green fill, white bold text. One per screen, for the main action.
+- **Outline button:** white fill, plum border and text. For the second choice (Sign in, Send a new code, Back to
+  details).
+- **Small button:** same two styles, content width (Approve/Decline, Edit, Mark picked up).
+- **Text link:** muted plum, small (Report a problem). Back links read `← Back` / `← Results` / `← My claims`.
+- **Choice chip:** pill. Unselected: rose outline, plum text. Selected: plum fill, white text.
+- **Checkbox row:** green filled box with white check when on.
+- **Toggle:** green when on.
+- **Card:** white, `--color-line` border, card radius. Selected card: sage-tint fill, green 2px outline.
+- **Note box:** peach-tint fill, no border, small plum text. Used for privacy, demo and rule notes.
+- **Badges:** pill, small bold, always plum text. Verified and Approved (sage tint, green border), Person (person
+  tint), Pending and Waiting (white, line border), Demo / Demo only / Example data (peach tint). The mockups show
+  green text on Verified/Approved; design agreed to plum instead because green on sage tint fails contrast.
+- **Text field:** white, rose outline, button radius. Bold label above, small muted hint below.
+- **Progress bar:** green fill on line-color track, with `STEP n OF 4` in small caps above.
+- **Tabs:** text tabs with a green underline on the active one (Items/Resources, Active/Past).
+- **Bottom navigation:** signed-in screens only. Person: Home, Search, Claims, Give, Profile (Give only with Give
+  support on). Organization: Items, Claims, Impact, Profile. Active tab is bold green.
+- **Bottom sheet:** white, rounded top with a peach edge, page behind it fades (Reach out, Report a problem).
+
+**Layout.** Mobile-first: one column, max width about 390px, ivory background, side padding 16px. No
+desktop-specific layouts in this build.
+
+**Words.** Copy in the mockups and tickets is final unless a ticket says otherwise. Keep it plain and short. Never
+say "You qualify" (use "May be a good fit"), never "Request sent" in demo steps, and label made-up data
+("Example data", "Demo"). Distances are rounded ("about 3 miles"); a person's exact address never appears before
+approval (KAN-11).
+
+**Accessible pairings** (WCAG AA needs at least 4.5 for normal text, 3 for large text and UI outlines):
+
+| Combination | Ratio | Use? |
+| --- | --- | --- |
+| Plum on ivory / white | 9.2 / 9.7 | ✅ any text |
+| White on plum | 9.7 | ✅ any text (selected chips) |
+| Plum on peach tint, sage tint, person tint | 7.9–8.0 | ✅ any text (notes, badges) |
+| Muted plum on ivory / white | 6.3 / 6.7 | ✅ any text |
+| Plum on peach | 5.2 | ✅ any text |
+| White on green | 5.0 | ✅ any text (primary buttons) |
+| Green on ivory | 4.7 | ✅ any text (links, active tab) |
+| Green on sage tint | 4.1 | ⚠️ large or bold 14px+ text only; fine for borders (Verified/Approved badge outline) |
+| Rose on ivory | 3.6 | ✅ input outlines only, not text |
+| Sage on ivory | 2.5 | ❌ decoration only |
+| Peach on ivory | 1.8 | ❌ never for text |
+| White on sage or peach | 1.9–2.6 | ❌ never |
+
+--- | --- | --- |
 | `--color-plum` | `#593B50` | **Primary.** Nav, headings, primary buttons |
 | `--color-peach` | `#E8B394` | **Primary accent.** Highlights, active states, accent backgrounds |
 | `--color-sage` | `#8AAA72` | **Secondary.** Tags, borders, decorative accents |
