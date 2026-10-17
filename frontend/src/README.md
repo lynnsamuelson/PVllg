@@ -8,17 +8,24 @@ src/
 ├── logger.js             Logging wrapper: use log.info/warn/error, never console directly
 │
 ├── pages/                One folder per area; one file per page
-│   ├── auth/             LoginPage, SignupPage (real), ForgotPasswordPage (placeholder)  (public)
+│   ├── welcome/          WelcomePage (Mock Up 1)                         (public)
+│   ├── auth/             AccountTypePage (Mock Up 2), SignupPage, LoginPage, ForgotPasswordPage (placeholder)  (public)
 │   ├── home/             HomePage: lists resources                       (login required)
 │   ├── resources/        ResourceDetailPage: one resource                (login required)
 │   ├── profile/          ProfilePage                                     (login required)
 │   ├── status/           StatusPage: dev check of API + database         (public, not in nav)
+│   ├── ComingSoonPage.jsx  Stand-in for tabs whose ticket isn't built yet (login required)
 │   └── NotFoundPage.jsx  Shown for unknown URLs
 │
 ├── components/           Pieces shared across pages
-│   ├── Layout.jsx        Nav bar + page area wrapper
-│   ├── NavBar.jsx        Top navigation (changes when logged in/out)
-│   ├── ProtectedRoute.jsx  Redirects logged-out users to /login
+│   ├── Layout.jsx        Page area + bottom bar once signed in
+│   ├── BottomNav.jsx     Signed-in tabs: person (Home, Search, Claims, Give, Profile) or organization (Items, Claims, Impact, Profile)
+│   ├── Button.jsx        Primary / outline / small button; a <Link> when given `to`
+│   ├── TextField.jsx     Label + input + hint + API errors
+│   ├── ChoiceCard.jsx    Selectable card, one pick per group
+│   ├── NoteBox.jsx       Peach-tint note
+│   ├── Logo.jsx          PVill mark
+│   ├── ProtectedRoute.jsx  Redirects logged-out users to /welcome
 │   ├── FieldError.jsx    Shows API validation messages under a form field
 │   ├── Placeholder.jsx   Yellow "placeholder" banner — delete when pages are designed
 │   └── ErrorBoundary.jsx Logs render crashes and shows a fallback instead of a blank page
@@ -38,20 +45,20 @@ Unit tests sit next to the file they test as `<name>.test.js(x)`. Browser tests 
 ## Page map
 
 ```
-/login ──► / (Home: resource list) ──► /resources/:id ──► back to /
-  │  ▲          │
-  │  │          └──► /profile ──► back to /
-  ▼  │
-/signup   /forgot-password ──► back to /login
+/welcome ──► Get started ──► /signup/type ──► /signup?type=person ──► /profile/setup (KAN-6)
+   │                                     └──► /signup?type=organization ──► /org/signup (KAN-7)
+   └──► Sign in ──► /login ──► / (person) or /org/items (organization)
 ```
 
-Logging in returns you to the page you originally tried to open. "Log out" in the nav goes to `/login`.
+Signed-in pages show the bottom bar; tabs without their own ticket yet show `ComingSoonPage`. Signing in
+returns you to the page you originally tried to open. "Sign out" on the Profile tab goes to `/welcome`.
+Give appears in the person bar only when `user.gives` is true (set by KAN-6/KAN-24).
 
 ## Accounts and access
 
 **The API is locked by default.** Every Django endpoint requires login unless it explicitly
 opts out (`/api/health/` and the `/api/auth/` endpoints do). A logged-out request gets **401**, and
-`api/client.js` responds by logging the user out locally, which sends them to `/login`.
+`api/client.js` responds by logging the user out locally, which sends them to `/welcome`.
 New endpoints are therefore protected automatically. Add `@permission_classes([AllowAny])` only
 for things that must be public.
 
@@ -63,8 +70,8 @@ The session is an HttpOnly cookie, so the frontend never handles tokens.
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /api/auth/csrf/` | Sets the CSRF cookie |
-| `GET /api/auth/me/` | `{user}` or `{user: null}` |
-| `POST /api/auth/signup/` | `{name, email, password}`: creates the account and logs in |
+| `GET /api/auth/me/` | `{user}` (includes `account_type`) or `{user: null}` |
+| `POST /api/auth/signup/` | `{name, email, password, account_type}`: `person` or `organization`; creates the account and logs in |
 | `POST /api/auth/login/` | `{email, password}` |
 | `POST /api/auth/logout/` | Ends the session |
 | `GET /api/resources/`, `/api/resources/:id/` | Resource list / detail (login required) |

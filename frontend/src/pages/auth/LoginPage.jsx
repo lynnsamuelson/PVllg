@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import Button from "../../components/Button.jsx";
+import TextField from "../../components/TextField.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { ROUTES } from "../../routes.js";
+import { homeFor, ROUTES } from "../../routes.js";
 
 export default function LoginPage() {
   const { user, login } = useAuth();
@@ -12,17 +14,17 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Return to the page they originally tried to open, or home.
-  const destination = location.state?.from?.pathname || ROUTES.home;
-  if (user) return <Navigate to={destination} replace />;
+  // Return to the page they originally tried to open, or their first tab.
+  const from = location.state?.from?.pathname;
+  if (user) return <Navigate to={from || homeFor(user)} replace />;
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSubmitting(true);
     try {
-      await login(email, password);
-      navigate(destination, { replace: true });
+      const signedIn = await login(email, password);
+      navigate(from || homeFor(signedIn), { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -31,33 +33,38 @@ export default function LoginPage() {
   };
 
   return (
-    <section className="auth-card">
-      <h1>Log in</h1>
+    <section>
+      <Link to={ROUTES.welcome} className="back-link">
+        ← Back
+      </Link>
+      <h1>Sign in</h1>
       <form onSubmit={onSubmit} className="stack">
         {error && <p className="form-error">{error}</p>}
-        <label>
-          Email
-          <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            required
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </label>
-        <button type="submit" disabled={submitting}>
-          {submitting ? "Logging in…" : "Log in"}
-        </button>
+        <TextField
+          label="Email"
+          type="email"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <TextField
+          label="Password"
+          type="password"
+          required
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Signing in…" : "Sign in"}
+        </Button>
       </form>
-      <p>
+      <p className="hint">
         <Link to={ROUTES.forgotPassword}>Forgot your password?</Link>
       </p>
-      <p>
-        New here? <Link to={ROUTES.signup}>Create an account</Link>
+      <p className="hint">
+        New here? <Link to={ROUTES.accountType}>Create an account</Link>
       </p>
     </section>
   );

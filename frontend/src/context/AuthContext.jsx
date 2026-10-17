@@ -10,7 +10,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Session expired or logged out elsewhere: drop the user so ProtectedRoute sends them to /login.
+    // Session expired or logged out elsewhere: drop the user so ProtectedRoute sends them to /welcome.
     api.setUnauthorizedHandler(() => setUser(null));
     api
       .ensureCsrf()
@@ -20,8 +20,13 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = async (email, password) => setUser(await api.login(email, password));
-  const signup = async (name, email, password) => setUser(await api.signup(name, email, password));
+  const signIn = (u) => {
+    setUser(u);
+    return u;
+  };
+  const login = async (email, password) => signIn(await api.login(email, password));
+  const signup = async (name, email, password, accountType) =>
+    signIn(await api.signup(name, email, password, accountType));
   const logout = async () => {
     try {
       await api.logout();
