@@ -1,12 +1,17 @@
 import { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
+import Button from "../../components/Button.jsx";
 import FieldError from "../../components/FieldError.jsx";
+import TextField from "../../components/TextField.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { ROUTES } from "../../routes.js";
+import { homeFor, ROUTES } from "../../routes.js";
+
+// Where each account type goes right after signing up.
+const NEXT = { person: ROUTES.profileSetup, organization: ROUTES.orgSignup };
 
 export default function SignupPage() {
   const { user, signup } = useAuth();
-  const navigate = useNavigate();
+  const accountType = useSearchParams()[0].get("type");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -14,8 +19,13 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [next, setNext] = useState(null);
 
-  if (user) return <Navigate to={ROUTES.home} replace />;
+  // A new account goes to its next step. Both redirects happen in render, so they can't race; while submitting,
+  // the user is already set but the next step isn't yet.
+  if (next) return <Navigate to={next} replace />;
+  if (user && !submitting) return <Navigate to={homeFor(user)} replace />;
+  if (!Object.hasOwn(NEXT, accountType ?? "")) return <Navigate to={ROUTES.accountType} replace />;
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -27,8 +37,8 @@ export default function SignupPage() {
     }
     setSubmitting(true);
     try {
-      await signup(name, email, password);
-      navigate(ROUTES.home, { replace: true });
+      await signup(name, email, password, accountType);
+      setNext(NEXT[accountType]);
     } catch (err) {
       setFieldErrors(err.fields || {});
       if (!err.fields || !Object.keys(err.fields).length) setError(err.message);
@@ -38,49 +48,56 @@ export default function SignupPage() {
   };
 
   return (
-    <section className="auth-card">
-      <h1>Create an account</h1>
+    <section>
+      <Link to={ROUTES.accountType} className="back-link">
+        ← Back
+      </Link>
+      <h1>Create your account</h1>
       <form onSubmit={onSubmit} className="stack">
         {error && <p className="form-error">{error}</p>}
-        <label>
-          Name
-          <input required autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
-          <FieldError messages={fieldErrors.name} />
-        </label>
-        <label>
-          Email
-          <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <FieldError messages={fieldErrors.email} />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            required
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <small>At least 8 characters; not a common password; not too similar to your name or email.</small>
-          <FieldError messages={fieldErrors.password} />
-        </label>
-        <label>
-          Confirm password
-          <input
-            type="password"
-            required
-            autoComplete="new-password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-          />
-          <FieldError messages={fieldErrors.confirm} />
-        </label>
-        <button type="submit" disabled={submitting}>
+        <TextField
+          label="Name"
+          required
+          autoComplete="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          errors={fieldErrors.name}
+        />
+        <TextField
+          label="Email"
+          type="email"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          errors={fieldErrors.email}
+        />
+        <TextField
+          label="Password"
+          type="password"
+          required
+          autoComplete="new-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          hint="At least 8 characters; not a common password; not too similar to your name or email."
+          errors={fieldErrors.password}
+        />
+        <TextField
+          label="Confirm password"
+          type="password"
+          required
+          autoComplete="new-password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          errors={fieldErrors.confirm}
+        />
+        <FieldError messages={fieldErrors.account_type} />
+        <Button type="submit" disabled={submitting}>
           {submitting ? "Creating account…" : "Sign up"}
-        </button>
+        </Button>
       </form>
-      <p>
-        Already have an account? <Link to={ROUTES.login}>Log in</Link>
+      <p className="hint">
+        Already have an account? <Link to={ROUTES.login}>Sign in</Link>
       </p>
     </section>
   );

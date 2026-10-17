@@ -9,7 +9,7 @@ function renderAt(path) {
   render(
     <MemoryRouter initialEntries={[path]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
-        <Route path={ROUTES.login} element={<p>Login page</p>} />
+        <Route path={ROUTES.welcome} element={<p>Welcome page</p>} />
         <Route element={<ProtectedRoute />}>
           <Route path={ROUTES.home} element={<p>Secret page</p>} />
         </Route>
@@ -25,10 +25,10 @@ describe("ProtectedRoute", () => {
     expect(screen.getByText("Loading…")).toBeInTheDocument();
   });
 
-  it("redirects logged-out visitors to login", () => {
+  it("redirects logged-out visitors to welcome", () => {
     vi.spyOn(auth, "useAuth").mockReturnValue({ user: null, loading: false });
     renderAt(ROUTES.home);
-    expect(screen.getByText("Login page")).toBeInTheDocument();
+    expect(screen.getByText("Welcome page")).toBeInTheDocument();
   });
 
   it("renders the page for logged-in users", () => {

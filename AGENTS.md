@@ -53,7 +53,7 @@ frontend/
     App.jsx          route table
     routes.js        every URL path; always use ROUTES.x
     pages/<area>/    one folder per area, one file per page
-    components/      shared UI (Layout, NavBar, ProtectedRoute, FieldError, Placeholder)
+    components/      shared UI (Layout, BottomNav, Button, TextField, ChoiceCard, NoteBox, Logo, ProtectedRoute, FieldError, Placeholder)
     context/         AuthContext (current user, login/signup/logout)
     api/client.js    the ONLY place that calls fetch(); handles CSRF + 401
     logger.js        the ONLY place that calls console; use log.info/warn/error
@@ -116,11 +116,13 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
 - Logged-out requests return **401** (`accounts/authentication.py`). The frontend relies on 401 to redirect to
   login, so don't replace this with DRF's default 403.
 - **Users** are Django's built-in `User`. The lowercased email is stored as `username` (and `email`), and the
-  display name goes in `first_name`. Use `get_user_model()`. Don't introduce a custom user model; existing
+  display name goes in `first_name`. Whether the account is a person or an organization lives in `accounts.Profile.account_type`
+  (`user.account_type` in the API); accounts made before it existed read as `person`. Use `get_user_model()`. Don't introduce a custom user model; existing
   migrations depend on the built-in one.
 - **CSRF:** session cookies plus the `X-CSRFToken` header. Anonymous POST endpoints that change auth state
   must call `enforce_csrf(request)` (see `accounts/views.py`), because DRF skips CSRF for anonymous users.
-- **Settings come from env vars only** (`config/settings.py`). Add new settings with a safe local default.
+- **Settings come from env vars only** (`config/settings.py`). Add new settings with a safe local default, and list
+  them (commented out, with the default) in `backend/.env.example`.
 - **Write tests** for every endpoint: at minimum, logged out → 401 and logged in → expected data.
 - **Logging:** `from config.log import get_logger; logger = get_logger(__name__)`. Never import `logging` (or
   another logging library) directly, so the library can be swapped in one place. Output goes to stdout, which is
@@ -128,6 +130,8 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   not passwords, tokens or request bodies. When a test triggers a log line, wrap it in `self.assertLogs(...)` so
   test output stays clean.
 - **Coverage** can't drop below `fail_under` in `.coveragerc`. When you raise coverage, raise the floor too.
+- **More than one write per request goes in `transaction.atomic()`** (for example a `User` plus its `Profile`), so a
+  failure halfway can't leave a half-made record. Test it: make the second write fail and assert nothing was saved.
 - **Migrations run against the shared production database on deploy.** Avoid destructive changes (dropping or
   renaming columns that hold data) without a plan. Seed data goes in a data migration with a reverse function.
 
@@ -140,9 +144,21 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   user out on 401.
 - Get the current user from `useAuth()` (`user`, `loading`, `login`, `signup`, `logout`). Don't store auth state
   or tokens anywhere else. The session is an HttpOnly cookie.
-- Show API validation errors with `<FieldError messages={err.fields.<field>} />`.
+- Use `<Button>` (`variant="primary"|"outline"`, `small`, `to` for links) and `<TextField label hint errors>` instead of
+  raw `<button>`/`<input>` markup.
+- Show API validation errors with `<TextField errors={err.fields.<field>}>`, or `<FieldError messages={...} />` for
+  errors not tied to one field.
+- Branch on account type with `user.account_type === "organization"` (or `"person"`). Don't infer it from routes
+  or other fields.
+- **Check URL and query values against an explicit list** with `Object.hasOwn(MAP, value)` or a `Set`, never
+  `MAP[value]`: plain objects also answer to `constructor`, `toString` and `__proto__`.
+- **Don't mix `navigate()` with a render-time `<Navigate>` on the same page.** On a page that redirects signed-in users
+  (`if (user) return <Navigate …>`), a submit handler that calls `navigate()` after login/signup can lose to that
+  redirect. Store the destination in state instead (`setNext(path)`, then `if (next) return <Navigate to={next} />`),
+  and skip the signed-in redirect while submitting. See `SignupPage.jsx` and its test.
 - Every page that fetches data needs loading, empty and error states.
-- Pages awaiting design show `<Placeholder>`. Remove it once the real design is in.
+- Pages awaiting design show `<Placeholder>`. Remove it once the real design is in. Screens whose ticket isn't built
+  yet use `<ComingSoonPage title>`, which shows the same `<Placeholder>`, so searching for `Placeholder` finds both.
 - Plain CSS in `styles/index.css`, using the design tokens (see Design below). Don't add a CSS framework without
   asking the team.
 - **Logging:** `import { log } from "../logger.js"` and use `log.debug/info/warn/error`, never `console` directly.
@@ -164,7 +180,9 @@ tickets refer to these numbers). `design/README.md` maps each screen to its Jira
 screen must keep. **Before building or restyling a page, open its mockup and match it.** The mockups are layout
 references, not pixel-final: Figma (KAN-4) may refine them, but colors, components and wording come from here.
 
-**Tokens.** Use the variables in `frontend/src/styles/index.css`, never raw hex, px radii or font sizes.
+**Tokens.** Use the variables in `frontend/src/styles/index.css`, never raw hex (white included: `--color-white`),
+px radii or font sizes. Don't make up sizes with `calc()` on a token either; if no token fits, add one to `:root` and
+list it here.
 
 | Token | Hex | Role |
 | --- | --- | --- |
@@ -179,10 +197,12 @@ references, not pixel-final: Figma (KAN-4) may refine them, but colors, componen
 | `--color-peach-tint` | `#F7E7DC` | Note boxes, Demo badge |
 | `--color-person-tint` | `#F1E4EA` | Person badge |
 | `--color-line` | `#EBD9D0` | Card borders, dividers |
+| `--color-white` | `#FFFFFF` | Cards, text fields, outline buttons, button text, bottom bar |
 
 Spacing and shape: `--space-side` 16px screen padding, `--space-card-gap` 9px between cards, `--radius-button` 12px,
 `--radius-card` 14px, `--radius-pill` for chips and badges. Type: titles bold `--text-title`, body `--text-body`,
-small `--text-small`, labels bold `--text-label`. Font is Arial until the team picks one (`--font-brand`).
+small `--text-small`, labels bold `--text-label`, choice-card titles bold `--text-card-title`, the PVill name on
+Welcome `--text-display`. Font is Arial until the team picks one (`--font-brand`).
 
 **Components** (build each once in `components/`, then reuse; don't restyle per page):
 
@@ -230,26 +250,6 @@ approval (KAN-11).
 | Sage on ivory | 2.5 | ❌ decoration only |
 | Peach on ivory | 1.8 | ❌ never for text |
 | White on sage or peach | 1.9–2.6 | ❌ never |
-
---- | --- | --- |
-| `--color-plum` | `#593B50` | **Primary.** Nav, headings, primary buttons |
-| `--color-peach` | `#E8B394` | **Primary accent.** Highlights, active states, accent backgrounds |
-| `--color-sage` | `#8AAA72` | **Secondary.** Tags, borders, decorative accents |
-| `--color-green` | `#387C60` | **Secondary.** Success states, secondary buttons, links |
-
-**Accessible pairings** (WCAG AA needs a contrast ratio of at least 4.5 for normal text, 3 for large text and UI):
-
-| Combination | Ratio | Use? |
-| --- | --- | --- |
-| White text on plum | 9.7 | ✅ any text |
-| Plum text on peach | 5.2 | ✅ any text |
-| Dark text (`#1F1A1E`) on peach | 9.2 | ✅ any text |
-| White text on green | 5.0 | ✅ any text (buttons, badges) |
-| Green text on white | 5.0 | ✅ links, success messages |
-| Dark text on sage | 6.6 | ✅ any text |
-| Sage text on white | 2.6 | ❌ decoration and borders only |
-| Peach text on white | 1.9 | ❌ never for text |
-| White text on sage or peach | 1.9–2.6 | ❌ never |
 
 ---
 

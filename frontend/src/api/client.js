@@ -47,7 +47,8 @@ const post = (path, body) => request(path, { method: "POST", body: body && JSON.
 // Auth
 export const ensureCsrf = () => request("/auth/csrf/");
 export const getCurrentUser = () => request("/auth/me/").then((d) => d.user);
-export const signup = (name, email, password) => post("/auth/signup/", { name, email, password }).then((d) => d.user);
+export const signup = (name, email, password, accountType) =>
+  post("/auth/signup/", { name, email, password, account_type: accountType }).then((d) => d.user);
 export const login = (email, password) => post("/auth/login/", { email, password }).then((d) => d.user);
 export const logout = () => post("/auth/logout/");
 

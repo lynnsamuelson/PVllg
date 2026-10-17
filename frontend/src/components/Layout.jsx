@@ -1,14 +1,16 @@
 import { Outlet } from "react-router-dom";
-import NavBar from "./NavBar.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import BottomNav from "./BottomNav.jsx";
 
-// Shared frame for every page: nav bar on top, the current page below.
+// Shared frame for every page: the current page, plus the bottom bar once signed in.
 export default function Layout() {
+  const { user } = useAuth();
   return (
     <>
-      <NavBar />
-      <main className="page">
+      <main className={`page${user ? " with-nav" : ""}`}>
         <Outlet />
       </main>
+      {user && <BottomNav user={user} />}
     </>
   );
 }

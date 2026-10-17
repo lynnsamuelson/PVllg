@@ -1,7 +1,7 @@
 /* Minimal placeholder styling — design will replace this. */
 :root {
   font-family: system-ui, sans-serif;
-  color-scheme: light dark;
+  color-scheme: light; /* the design is light-only for now */
   --border: #8884;
 
   /* Design tokens from design/PVill-all-screens.pdf. See AGENTS.md "Design" for roles and contrast rules. */
@@ -17,6 +17,7 @@
   --color-person-tint: #f1e4ea; /* Person badge */
   --color-line: #ebd9d0; /* card borders, dividers */
   --color-text-dark: #1f1a1e; /* readable on peach and sage */
+  --color-white: #ffffff; /* cards, inputs, outline buttons, button text */
 
   --space-side: 16px; /* screen side padding */
   --space-card-gap: 9px;
@@ -26,42 +27,152 @@
 
   /* Type sizes as drawn on the 300px-wide mockups; KAN-4 (Figma) may revise. */
   --font-brand: Arial, sans-serif; /* placeholder until the team picks a font */
+  --text-display: 30px; /* bold, the PVill name on Welcome */
   --text-title: 19px; /* bold */
+  --text-card-title: 15px; /* bold, choice card titles */
   --text-body: 13px;
   --text-small: 11.5px;
   --text-label: 12px; /* bold */
 }
 body {
   margin: 0;
+  background: var(--color-ivory);
+  color: var(--color-plum);
+  font-family: var(--font-brand);
+  font-size: var(--text-body);
+}
+h1 {
+  font-size: var(--text-title);
+}
+a {
+  color: var(--color-green);
 }
 
-.navbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border);
+/* Mobile-first: one column about phone width. */
+.page {
+  max-width: 390px;
+  margin: 0 auto;
+  padding: 24px var(--space-side);
+  box-sizing: border-box;
 }
-.navbar nav {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
+.page.with-nav {
+  padding-bottom: 80px; /* room for the bottom bar */
 }
-.navbar a.active {
-  font-weight: 600;
+.hint {
+  color: var(--color-plum-muted);
+  font-size: var(--text-small);
 }
-.brand {
-  font-weight: 700;
-  font-size: 1.25rem;
+.back-link {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: var(--color-plum-muted);
+  font-size: var(--text-small);
   text-decoration: none;
 }
 
-.page {
-  max-width: 800px;
-  margin: 2rem auto;
-  padding: 0 1rem;
+/* Buttons: primary (one per screen) and outline. Used on <button> and <Link>. */
+.btn {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-button);
+  font-weight: bold;
+  font-size: var(--text-body);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn-primary {
+  background: var(--color-green);
+  border: 1px solid var(--color-green);
+  color: var(--color-white);
+}
+.btn-outline {
+  background: var(--color-white);
+  border: 1px solid var(--color-plum);
+  color: var(--color-plum);
+}
+.btn-small {
+  display: inline-block;
+  width: auto;
+  padding: 6px 14px;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.note-box {
+  background: var(--color-peach-tint);
+  border-radius: var(--radius-button);
+  padding: 10px 12px;
+  margin: 0;
+  font-size: var(--text-small);
+}
+
+.welcome {
+  text-align: center;
+  padding-top: 32px;
+}
+.welcome-name {
+  font-size: var(--text-display);
+  margin: 4px 0;
+}
+.welcome-motto {
+  color: var(--color-plum-muted);
+}
+
+.stack.card-list {
+  gap: var(--space-card-gap);
+}
+.card.choice-card {
+  display: flex;
+  padding: 12px 14px;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin: 0;
+  text-align: left;
+  background: var(--color-white);
+  color: var(--color-plum);
+  cursor: pointer;
+}
+.choice-card.selected {
+  background: var(--color-sage-tint);
+  outline: 2px solid var(--color-green);
+  border-color: transparent;
+}
+.choice-card-title {
+  font-weight: bold;
+  font-size: var(--text-card-title);
+}
+.choice-card-text {
+  font-size: var(--text-small);
+  color: var(--color-plum-muted);
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  max-width: 390px;
+  margin: 0 auto;
+  padding: 12px var(--space-side);
+  background: var(--color-white);
+  border-top: 1px solid var(--color-line);
+}
+.bottom-nav a {
+  color: var(--color-plum-muted);
+  font-size: var(--text-small);
+  text-decoration: none;
+}
+.bottom-nav a.active {
+  color: var(--color-green);
+  font-weight: bold;
 }
 .auth-card {
   max-width: 380px;
@@ -69,8 +180,9 @@ body {
 }
 
 .card {
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  font: inherit;
   padding: 1rem;
   margin-bottom: 1rem;
 }
@@ -79,10 +191,22 @@ body {
   flex-direction: column;
   gap: 0.75rem;
 }
-.stack label {
+.field {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+}
+.field label {
+  font-weight: bold;
+  font-size: var(--text-label);
+}
+.field input {
+  background: var(--color-white);
+  border: 1px solid var(--color-rose);
+  border-radius: var(--radius-button);
+  color: var(--color-plum);
+  font-weight: normal;
+  padding: 10px 12px;
 }
 .row {
   display: flex;
@@ -153,9 +277,6 @@ button {
   font-size: 0.85rem;
   margin: 0;
   padding-left: 1rem;
-}
-.stack small {
-  opacity: 0.75;
 }
 .ok { color: #1a7f37; }
 .bad { color: #cf222e; }
