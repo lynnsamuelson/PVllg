@@ -7,12 +7,14 @@ GOOD_PASSWORD = "correct-horse-battery-42"
 
 class SignupTests(APITestCase):
     def test_signup_creates_user_and_logs_in(self):
-        resp = self.client.post(
-            "/api/auth/signup/",
-            {"name": "Ada", "email": "Ada@Example.com", "password": GOOD_PASSWORD},
-            format="json",
-        )
+        with self.assertLogs("accounts.views", "INFO") as logs:
+            resp = self.client.post(
+                "/api/auth/signup/",
+                {"name": "Ada", "email": "Ada@Example.com", "password": GOOD_PASSWORD},
+                format="json",
+            )
         self.assertEqual(resp.status_code, 201)
+        self.assertIn("signup user_id=", logs.output[0])
         self.assertEqual(resp.json()["user"]["email"], "ada@example.com")
         self.assertEqual(self.client.get("/api/auth/me/").json()["user"]["name"], "Ada")
         self.assertTrue(User.objects.get(username="ada@example.com").check_password(GOOD_PASSWORD))
@@ -43,15 +45,20 @@ class LoginTests(APITestCase):
 
     def test_login_logout_flow(self):
         self.assertIsNone(self.client.get("/api/auth/me/").json()["user"])
-        resp = self.client.post("/api/auth/login/", {"email": "ADA@example.com", "password": GOOD_PASSWORD}, format="json")
+        with self.assertLogs("accounts.views", "INFO"):
+            resp = self.client.post(
+                "/api/auth/login/", {"email": "ADA@example.com", "password": GOOD_PASSWORD}, format="json"
+            )
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(self.client.get("/api/auth/me/").json()["user"]["email"], "ada@example.com")
         self.assertEqual(self.client.post("/api/auth/logout/").status_code, 204)
         self.assertIsNone(self.client.get("/api/auth/me/").json()["user"])
 
     def test_wrong_password(self):
-        resp = self.client.post("/api/auth/login/", {"email": "ada@example.com", "password": "nope"}, format="json")
+        with self.assertLogs("accounts.views", "WARNING") as logs:
+            resp = self.client.post("/api/auth/login/", {"email": "ada@example.com", "password": "nope"}, format="json")
         self.assertEqual(resp.status_code, 400)
+        self.assertIn("login failed email=ada@example.com", logs.output[0])
         self.assertEqual(resp.json()["detail"], "Incorrect email or password.")
 
 
@@ -65,10 +72,11 @@ class CsrfTests(APITestCase):
 
         client.get("/api/auth/csrf/")
         token = client.cookies["csrftoken"].value
-        resp = client.post(
-            "/api/auth/signup/",
-            {"name": "Ada", "email": "ada@example.com", "password": GOOD_PASSWORD},
-            format="json",
-            HTTP_X_CSRFTOKEN=token,
-        )
+        with self.assertLogs("accounts.views", "INFO"):
+            resp = client.post(
+                "/api/auth/signup/",
+                {"name": "Ada", "email": "ada@example.com", "password": GOOD_PASSWORD},
+                format="json",
+                HTTP_X_CSRFTOKEN=token,
+            )
         self.assertEqual(resp.status_code, 201)

@@ -6,7 +6,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from config.log import get_logger
+
 from .serializers import LoginSerializer, SignupSerializer, UserSerializer
+
+logger = get_logger(__name__)
 
 
 def enforce_csrf(request):
@@ -38,6 +42,7 @@ def signup(request):
     serializer.is_valid(raise_exception=True)
     user = serializer.save()
     login(request, user)
+    logger.info("signup user_id=%s", user.pk)
     return Response({"user": UserSerializer(user).data}, status=status.HTTP_201_CREATED)
 
 
@@ -53,8 +58,10 @@ def login_view(request):
         password=serializer.validated_data["password"],
     )
     if user is None:
+        logger.warning("login failed email=%s", serializer.validated_data["email"])
         return Response({"detail": "Incorrect email or password."}, status=status.HTTP_400_BAD_REQUEST)
     login(request, user)
+    logger.info("login user_id=%s", user.pk)
     return Response({"user": UserSerializer(user).data})
 
 
