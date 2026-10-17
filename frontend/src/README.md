@@ -5,6 +5,7 @@ src/
 ├── main.jsx              Entry point: router + auth provider wrap the app
 ├── App.jsx               Route table: which URL shows which page
 ├── routes.js             All URL paths in one place (use ROUTES.x, never hard-code paths)
+├── logger.js             Logging wrapper: use log.info/warn/error, never console directly
 │
 ├── pages/                One folder per area; one file per page
 │   ├── auth/             LoginPage, SignupPage (real), ForgotPasswordPage (placeholder)  (public)
@@ -19,15 +20,20 @@ src/
 │   ├── NavBar.jsx        Top navigation (changes when logged in/out)
 │   ├── ProtectedRoute.jsx  Redirects logged-out users to /login
 │   ├── FieldError.jsx    Shows API validation messages under a form field
-│   └── Placeholder.jsx   Yellow "placeholder" banner — delete when pages are designed
+│   ├── Placeholder.jsx   Yellow "placeholder" banner — delete when pages are designed
+│   └── ErrorBoundary.jsx Logs render crashes and shows a fallback instead of a blank page
 │
 ├── context/
 │   └── AuthContext.jsx   Who is logged in (asks Django on load); login/signup/logout
 ├── api/
 │   └── client.js         Functions that call the Django API (/api/...), handles CSRF
-└── styles/
-    └── index.css         Global styles (minimal, pending design)
+├── styles/
+│   └── index.css         Global styles (minimal, pending design)
+└── test/
+    └── setup.js          Vitest setup (jest-dom matchers, cleanup between tests)
 ```
+
+Unit tests sit next to the file they test as `<name>.test.js(x)`. Browser tests are in `frontend/e2e/`.
 
 ## Page map
 
