@@ -152,9 +152,10 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   or other fields.
 - **Check URL and query values against an explicit list** with `Object.hasOwn(MAP, value)` or a `Set`, never
   `MAP[value]`: plain objects also answer to `constructor`, `toString` and `__proto__`.
-- **After a login or signup, the submit handler decides where to go.** A page that also redirects signed-in users
-  (`if (user) return <Navigate …>`) must skip that check while submitting (`if (user && !submitting)`), or the two
-  redirects race.
+- **Don't mix `navigate()` with a render-time `<Navigate>` on the same page.** On a page that redirects signed-in users
+  (`if (user) return <Navigate …>`), a submit handler that calls `navigate()` after login/signup can lose to that
+  redirect. Store the destination in state instead (`setNext(path)`, then `if (next) return <Navigate to={next} />`),
+  and skip the signed-in redirect while submitting. See `SignupPage.jsx` and its test.
 - Every page that fetches data needs loading, empty and error states.
 - Pages awaiting design show `<Placeholder>`. Remove it once the real design is in. Screens whose ticket isn't built
   yet use `<ComingSoonPage title>`, which shows the same `<Placeholder>`, so searching for `Placeholder` finds both.

@@ -21,7 +21,7 @@ Run these and stop at the first failure, then report it with the output. Don't f
    - Backend: any request that writes more than one row does it inside `transaction.atomic()`, with a test that a
      failing second write leaves nothing saved.
    - Frontend: URL/query values are checked with `Object.hasOwn` or a `Set` (not `MAP[value]`); account type is read
-     from `user.account_type`; pages that redirect signed-in users skip that while a login/signup is submitting.
+     from `user.account_type`; pages with a render-time `<Navigate>` don't also call `navigate()` from a submit handler (store the destination in state instead).
    - New pages use the shared components (`Button`, `TextField`, `ChoiceCard`, `NoteBox`, `Placeholder`), not raw
      `<button>`/`<input>` or a new not-built-yet marker.
    - New settings have a safe local default in `settings.py` and appear in `backend/.env.example`.

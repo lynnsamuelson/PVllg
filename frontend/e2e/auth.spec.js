@@ -56,6 +56,24 @@ test("an organization signs up and gets the organization tabs", async ({ page })
   }
 });
 
+test("an organization signs back in to its Items tab, and / sends it there too", async ({ page }) => {
+  const email = uniqueEmail();
+  await signup(page, /An organization/, "Food Bank", email);
+  await tabs(page).getByText("Profile", { exact: true }).click();
+  await page.getByRole("button", { name: "Sign out" }).click();
+
+  await page.getByRole("link", { name: "Sign in" }).click();
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/org\/items$/);
+  await expect(page.getByRole("heading", { name: "My items" })).toBeVisible();
+
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/org\/items$/);
+  await expect(tabs(page)).toHaveText(["Items", "Claims", "Impact", "Profile"]);
+});
+
 test("signing up with a used email says what went wrong", async ({ page }) => {
   const email = uniqueEmail();
   await signup(page, /A person/, "Ada", email);

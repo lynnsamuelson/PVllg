@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import Button from "../../components/Button.jsx";
 import FieldError from "../../components/FieldError.jsx";
 import TextField from "../../components/TextField.jsx";
@@ -11,7 +11,6 @@ const NEXT = { person: ROUTES.profileSetup, organization: ROUTES.orgSignup };
 
 export default function SignupPage() {
   const { user, signup } = useAuth();
-  const navigate = useNavigate();
   const accountType = useSearchParams()[0].get("type");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -20,8 +19,11 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [next, setNext] = useState(null);
 
-  // While submitting, onSubmit decides where a new account goes.
+  // A new account goes to its next step. Both redirects happen in render, so they can't race; while submitting,
+  // the user is already set but the next step isn't yet.
+  if (next) return <Navigate to={next} replace />;
   if (user && !submitting) return <Navigate to={homeFor(user)} replace />;
   if (!Object.hasOwn(NEXT, accountType ?? "")) return <Navigate to={ROUTES.accountType} replace />;
 
@@ -36,7 +38,7 @@ export default function SignupPage() {
     setSubmitting(true);
     try {
       await signup(name, email, password, accountType);
-      navigate(NEXT[accountType], { replace: true });
+      setNext(NEXT[accountType]);
     } catch (err) {
       setFieldErrors(err.fields || {});
       if (!err.fields || !Object.keys(err.fields).length) setError(err.message);
