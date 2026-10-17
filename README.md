@@ -4,6 +4,8 @@ Django 4.2 (Python 3.9) API + React (Vite) UI + Oracle MySQL HeatWave, deployed 
 
 **Live:** http://207.211.189.5
 
+**New to the project (human or AI agent)? Start with [AGENTS.md](AGENTS.md):** conventions, constraints, brand colors and workflow.
+
 ```
 backend/    Django project (config/) + example "api" app (health check, Notes CRUD)
 frontend/   React + Vite; calls same-origin /api/*  (folder guide: frontend/src/README.md)
