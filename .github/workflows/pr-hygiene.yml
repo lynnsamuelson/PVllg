@@ -1,0 +1,32 @@
+name: PR hygiene
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  pr-hygiene:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Branch name is <type>/<firstname>-<thing>
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          if [[ ! "$BRANCH" =~ ^(feature|fix|docs|chore)/[a-z]+-[a-z0-9-]+$ ]]; then
+            echo "::error::Branch '$BRANCH' should look like feature/sydney-resource-filters (type: feature, fix, docs or chore)."
+            exit 1
+          fi
+      - name: PR description has Summary and QA steps
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          fail=0
+          for section in "Summary" "QA steps"; do
+            text=$(printf '%s\n' "$BODY" | tr -d '\r' | sed 's/<!--.*-->//g' \
+              | awk -v h="## $section" '$0 == h {f=1; next} /^## /{f=0} f')
+            if ! grep -q '[[:alpha:]]' <<<"$text"; then
+              echo "::error::Fill in the '## $section' section of the PR description (see .github/pull_request_template.md)."
+              fail=1
+            fi
+          done
+          exit $fail

@@ -1,0 +1,26 @@
+---
+name: pre-pr
+description: Run the same checks CI runs, plus a security review of the branch diff, before opening a PR. Use when the user is about to open or update a PR.
+---
+
+0. The current branch must match `<type>/<firstname>-<thing>` (type: `feature`, `fix`, `docs`, `chore`), e.g. `feature/sydney-resource-filters`. If it doesn't, stop and suggest a name.
+
+Run these and stop at the first failure, then report it with the output. Don't fix things unless asked.
+
+1. In `backend/` (activate `.venv` if it exists):
+   - `python manage.py check`
+   - `python manage.py makemigrations --check --dry-run` (if it fails, a model changed without a committed migration)
+   - `python manage.py test`
+2. In `frontend/`: `npm run build`
+3. Review `git diff origin/main...HEAD` against the AGENTS.md rules:
+   - Any new endpoint is in `PROTECTED` or `PUBLIC` in `backend/api/tests.py::LockdownTests`, and has a logged-out → 401 test and a logged-in test.
+   - `AllowAny` appears only where an endpoint truly must be public; anonymous POSTs that change auth state call `enforce_csrf(request)`.
+   - No `fetch()` outside `frontend/src/api/client.js`; no raw hex colors where a token exists.
+   - No secrets, `.env`, keys or hardcoded IPs/passwords.
+   - Migrations don't drop or rename columns that hold data.
+   - Nothing Python 3.10+ (`match`, `X | Y` unions at runtime, `zip(strict=)`).
+4. Run `/security-review`.
+
+5. If everything passes, draft the PR description from `.github/pull_request_template.md`. **QA steps** are numbered steps a teammate can follow, each with an expected result, written from the diff. Don't claim checklist items you didn't verify.
+
+Finish with one line: ready, or the list of blockers.

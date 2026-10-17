@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python manage.py check*)",
+      "Bash(python manage.py test*)",
+      "Bash(python manage.py makemigrations --check*)",
+      "Bash(.venv/bin/python manage.py check*)",
+      "Bash(.venv/bin/python manage.py test*)",
+      "Bash(.venv/bin/python manage.py makemigrations --check*)",
+      "Bash(npm run build)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)"
+    ],
+    "deny": [
+      "Read(./**/.env)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)",
+      "Bash(git push origin main*)",
+      "Bash(git push * main)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(*db-tunnel.sh*)"
+    ]
+  }
+}
