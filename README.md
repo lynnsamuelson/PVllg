@@ -18,7 +18,7 @@ Backend (Python 3.9):
 
 ```bash
 cd backend
-python3.9 -m venv .venv && source .venv/bin/activate
+python3.9 -m venv .venv && source .venv/bin/activate   # or python3, if it is 3.9
 pip install -r requirements.txt
 cp .env.example .env          # SQLite by default; see below for HeatWave
 python manage.py migrate
