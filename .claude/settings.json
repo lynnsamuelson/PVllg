@@ -22,5 +22,20 @@
       "Bash(git push -f*)",
       "Bash(*db-tunnel.sh*)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git commit*)",
+            "command": "jq -r '.tool_input.command' | grep -q 'git commit' && echo '{\"hookSpecificOutput\": {\"hookEventName\": \"PreToolUse\", \"additionalContext\": \"Docs reminder (AGENTS.md, Git and PR workflow step 3): before this commit, check whether the change affects anything README.md, AGENTS.md or frontend/src/README.md describes (setup steps, commands, env vars, folders, conventions, CI, deploy). If it does, update those files in this commit or the same PR. pr-hygiene requires the Docs are up to date box in the PR description to be ticked.\"}}' || true",
+            "statusMessage": "Docs reminder"
+          }
+        ]
+      }
+    ]
   }
 }

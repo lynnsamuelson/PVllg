@@ -30,3 +30,11 @@ jobs:
             fi
           done
           exit $fail
+      - name: Docs checkbox is ticked
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if ! printf '%s\n' "$BODY" | grep -qiE '^\s*- \[x\] Docs are up to date'; then
+            echo "::error::Update README.md / AGENTS.md / frontend/src/README.md if this change affects them, then tick the 'Docs are up to date' box in the PR description."
+            exit 1
+          fi

@@ -19,7 +19,7 @@ No passwords or cloud access needed.
 | --- | --- | --- |
 | Git | `git --version` | `xcode-select --install` |
 | Python **3.9** | `python3 --version` (or `python3.9 --version`) | `brew install pyenv && pyenv install 3.9` |
-| Node **18 or newer** | `node --version` | `brew install node` (or the LTS installer from [nodejs.org](https://nodejs.org)) |
+| Node **20 or newer** | `node --version` | `brew install node` (or the LTS installer from [nodejs.org](https://nodejs.org)) |
 
 No Homebrew? Install it from [brew.sh](https://brew.sh). It has to be Python 3.9, not 3.10+: the server runs 3.9.
 
@@ -36,7 +36,7 @@ cd PVllg
 cd backend
 python3 -m venv .venv          # use python3.9 if python3 isn't 3.9
 source .venv/bin/activate      # your prompt now starts with (.venv)
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # app dependencies plus test tools
 cp .env.example .env
 python manage.py migrate       # creates the local database and sample data
 python manage.py runserver
@@ -74,20 +74,24 @@ cd backend && source .venv/bin/activate && python manage.py runserver
 cd frontend && npm run dev
 ```
 
-After you pull new code, run `pip install -r requirements.txt` and `python manage.py migrate` in the backend, and
+After you pull new code, run `pip install -r requirements-dev.txt` and `python manage.py migrate` in the backend, and
 `npm install` in the frontend, in case something changed.
 
 ### Before you open a PR
 
 ```bash
 # terminal 1 (in backend/, venv active)
-python manage.py test
+coverage run manage.py test && coverage report   # tests + coverage (fails if coverage drops)
 
 # terminal 2 (in frontend/)
+npm run coverage                 # unit tests + coverage (fails if coverage drops)
 npm run build
+npx playwright install chromium  # first time only
+npm run e2e                      # browser tests; starts its own servers, safe to run alongside yours
 ```
 
-CI runs these same checks on every PR. See [AGENTS.md](AGENTS.md#git-and-pr-workflow) for the branch and PR workflow.
+CI runs these same checks on every PR. If your change affects anything this README or [AGENTS.md](AGENTS.md)
+describes, update them in the same PR. The PR checklist asks you to confirm it. See [AGENTS.md](AGENTS.md#git-and-pr-workflow) for the branch and PR workflow.
 
 ---
 
@@ -102,6 +106,8 @@ CI runs these same checks on every PR. See [AGENTS.md](AGENTS.md#git-and-pr-work
 | You keep getting sent to the login page | Expected: everything needs login. Sign up at http://localhost:5173/signup. |
 | `Error: That port is already in use` | Another copy is still running. Stop it with Ctrl+C in its terminal, or run `lsof -i :8000` to find it. |
 | Opening http://127.0.0.1:8000 shows a bare page or 404 | That's only the API. Use http://localhost:5173. |
+| `npm run e2e` says `Executable doesn't exist` | Run `npx playwright install chromium` in `frontend/`. |
+| `npm run e2e` can't start the backend | It uses `backend/.venv/bin/python`. Create the venv (step 3) first. |
 
 Want the Django admin locally? Run `python manage.py createsuperuser` in `backend/`, then open http://localhost:5173/admin/.
 
@@ -143,7 +149,8 @@ Then in `backend/.env` set `DB_HOST=127.0.0.1`, `DB_PORT=3307`, `DB_NAME`, `DB_U
 
 ## Deployment
 
-1. Open a PR into `main` (direct pushes are blocked). CI runs the backend tests and the frontend build.
+1. Open a PR into `main` (direct pushes are blocked). CI runs the backend and frontend tests with coverage, the
+   frontend build and the Playwright browser tests.
 2. Merge the PR. This starts a deploy that **waits for approval**.
 3. An approver opens the run under Actions → **Review deployments** → `production` → **Approve**.
    Approvers are set in Settings → Environments → production.
@@ -158,7 +165,7 @@ On the VM:
 | Django code + venv | `/opt/hackathon-app/` |
 | Env file (generated from GitHub secrets each deploy) | `/opt/hackathon-app/.env` |
 | React build | `/var/www/hackathon-app/` |
-| API service | `sudo systemctl status hackathon-api` / `journalctl -u hackathon-api -f` |
+| API service and app logs | `sudo systemctl status hackathon-api` / `journalctl -u hackathon-api -f` |
 | Apache | `/etc/httpd/conf.d/hackathon-app.conf`, logs in `/var/log/httpd/hackathon-app-*.log` |
 
 Apache serves the React build and proxies `/api/` and `/admin/` to gunicorn on `127.0.0.1:8000`.
