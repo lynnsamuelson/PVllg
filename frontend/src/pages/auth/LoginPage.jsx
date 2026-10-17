@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import Button from "../../components/Button.jsx";
 import TextField from "../../components/TextField.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -7,14 +7,14 @@ import { homeFor, ROUTES } from "../../routes.js";
 
 export default function LoginPage() {
   const { user, login } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Return to the page they originally tried to open, or their first tab.
+  // Return to the page they originally tried to open, or their first tab. This is the only redirect: once login()
+  // sets the user, the page re-renders and lands here.
   const from = location.state?.from?.pathname;
   if (user) return <Navigate to={from || homeFor(user)} replace />;
 
@@ -23,8 +23,7 @@ export default function LoginPage() {
     setError("");
     setSubmitting(true);
     try {
-      const signedIn = await login(email, password);
-      navigate(from || homeFor(signedIn), { replace: true });
+      await login(email, password);
     } catch (err) {
       setError(err.message);
     } finally {
