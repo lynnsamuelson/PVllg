@@ -11,7 +11,7 @@ Run these and stop at the first failure, then report it with the output. Don't f
    - `python manage.py check`
    - `python manage.py makemigrations --check --dry-run` (if it fails, a model changed without a committed migration)
    - `coverage run manage.py test && coverage report` (needs `pip install -r requirements-dev.txt`; fails below the `fail_under` floor)
-2. In `frontend/`: `npm run coverage` (fails below the thresholds in `vite.config.js`), then `npm run build`
+2. In `frontend/`: `npm run coverage` (fails below the thresholds in `vite.config.js`), then `npm run build`, then `npm run e2e` (Playwright; first time: `npx playwright install chromium`)
 3. Review `git diff origin/main...HEAD` against the AGENTS.md rules:
    - Any new endpoint is in `PROTECTED` or `PUBLIC` in `backend/api/tests.py::LockdownTests`, and has a logged-out → 401 test and a logged-in test.
    - `AllowAny` appears only where an endpoint truly must be public; anonymous POSTs that change auth state call `enforce_csrf(request)`.
