@@ -6,19 +6,26 @@ function getCookie(name) {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+// AuthContext registers a callback here so any 401 ("not logged in") logs the user out locally.
+let onUnauthorized = () => {};
+export function setUnauthorizedHandler(fn) {
+  onUnauthorized = fn;
+}
+
 // Error with the API's per-field messages attached, e.g. err.fields.email = ["..."].
 export class ApiError extends Error {
-  constructor(message, fields = {}) {
+  constructor(message, fields = {}, status = 0) {
     super(message);
     this.fields = fields;
+    this.status = status;
   }
 }
 
-function toApiError(data, fallback) {
-  if (!data || typeof data !== "object") return new ApiError(fallback);
+function toApiError(data, fallback, status) {
+  if (!data || typeof data !== "object") return new ApiError(fallback, {}, status);
   const { detail, non_field_errors, ...fields } = data;
   const message = detail || non_field_errors?.[0] || Object.values(fields).flat()[0] || fallback;
-  return new ApiError(message, fields);
+  return new ApiError(message, fields, status);
 }
 
 async function request(path, options = {}) {
@@ -30,7 +37,8 @@ async function request(path, options = {}) {
   }
   const resp = await fetch(`/api${path}`, { ...options, method, headers, credentials: "same-origin" });
   const data = resp.status === 204 ? null : await resp.json().catch(() => null);
-  if (!resp.ok) throw toApiError(data, resp.statusText || "Request failed");
+  if (resp.status === 401) onUnauthorized();
+  if (!resp.ok) throw toApiError(data, resp.statusText || "Request failed", resp.status);
   return data;
 }
 
@@ -42,6 +50,10 @@ export const getCurrentUser = () => request("/auth/me/").then((d) => d.user);
 export const signup = (name, email, password) => post("/auth/signup/", { name, email, password }).then((d) => d.user);
 export const login = (email, password) => post("/auth/login/", { email, password }).then((d) => d.user);
 export const logout = () => post("/auth/logout/");
+
+// Resources (login required)
+export const listResources = () => request("/resources/");
+export const getResource = (id) => request(`/resources/${id}/`);
 
 // Demo endpoints (used by the /status page)
 export const getHealth = () => request("/health/");

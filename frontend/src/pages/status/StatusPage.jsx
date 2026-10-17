@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 import { createNote, deleteNote, getHealth, listNotes } from "../../api/client.js";
 
 // Developer page: confirms React -> Django -> database is wired up. Not linked from the nav.
+// Health is public; the notes demo requires login like the rest of the API.
 export default function StatusPage() {
   const [health, setHealth] = useState(null);
   const [notes, setNotes] = useState([]);
   const [title, setTitle] = useState("");
   const [error, setError] = useState("");
 
-  const refresh = () => listNotes().then(setNotes).catch((e) => setError(e.message));
+  const showError = (e) => setError(e.status === 401 ? "Log in to try the notes demo." : e.message);
+  const refresh = () => listNotes().then(setNotes).catch(showError);
 
   useEffect(() => {
     getHealth().then(setHealth).catch((e) => setHealth({ status: "error", error: e.message }));
@@ -23,7 +25,7 @@ export default function StatusPage() {
       setTitle("");
       refresh();
     } catch (err) {
-      setError(err.message);
+      showError(err);
     }
   };
 

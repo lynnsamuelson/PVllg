@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "api",
     "accounts",
+    "resources",
 ]
 
 MIDDLEWARE = [
@@ -109,8 +110,9 @@ CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "http://localhost:5173")
 
 REST_FRAMEWORK = {
     # Same-origin session cookies (set by /api/auth/login/), CSRF-protected on writes.
-    "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
-    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
+    "DEFAULT_AUTHENTICATION_CLASSES": ["accounts.authentication.SessionAuthentication401"],
+    # Locked by default: every endpoint requires login unless it opts out with AllowAny.
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
 }
 
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 14  # stay logged in for two weeks
