@@ -3,6 +3,13 @@
   font-family: system-ui, sans-serif;
   color-scheme: light dark;
   --border: #8884;
+
+  /* Brand palette — see AGENTS.md "Design" for roles and accessible text pairings. */
+  --color-plum: #593b50; /* primary */
+  --color-peach: #e8b394; /* primary accent */
+  --color-sage: #8aaa72; /* secondary */
+  --color-green: #387c60; /* secondary */
+  --color-text-dark: #1f1a1e; /* readable on peach and sage */
 }
 body {
   margin: 0;
