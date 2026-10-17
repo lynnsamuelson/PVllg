@@ -191,7 +191,8 @@ hex values.
 3. **Update the docs in the same PR.** If your change affects anything `README.md`, `AGENTS.md` or
    `frontend/src/README.md` describes (setup steps, commands, env vars, folders, conventions, CI, deploy), update
    them before you push. Then tick the docs box in the PR checklist. `pr-hygiene` fails until it's ticked, and
-   ticking it is your confirmation that the docs either changed or didn't need to.
+   ticking it is your confirmation that the docs either changed or didn't need to. Claude Code also gets a
+   reminder before every `git commit` (a `PreToolUse` hook in `.claude/settings.json`).
 4. Open a PR into `main` and fill in `.github/pull_request_template.md`. **Summary** and **QA steps** must not be
    empty: QA steps are numbered steps a teammate can follow, with the expected result of each. The `backend`,
    `frontend` and `pr-hygiene` checks run automatically and must pass.
