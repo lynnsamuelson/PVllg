@@ -1,62 +1,36 @@
-import { useEffect, useState } from "react";
-import { createNote, deleteNote, getHealth, listNotes } from "./api.js";
+import { Route, Routes } from "react-router-dom";
+import Layout from "./components/Layout.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import { ROUTES } from "./routes.js";
+
+import LoginPage from "./pages/auth/LoginPage.jsx";
+import SignupPage from "./pages/auth/SignupPage.jsx";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage.jsx";
+import HomePage from "./pages/home/HomePage.jsx";
+import ResourceDetailPage from "./pages/resources/ResourceDetailPage.jsx";
+import ProfilePage from "./pages/profile/ProfilePage.jsx";
+import StatusPage from "./pages/status/StatusPage.jsx";
+import NotFoundPage from "./pages/NotFoundPage.jsx";
 
 export default function App() {
-  const [health, setHealth] = useState(null);
-  const [notes, setNotes] = useState([]);
-  const [title, setTitle] = useState("");
-  const [error, setError] = useState("");
-
-  const refresh = () => listNotes().then(setNotes).catch((e) => setError(e.message));
-
-  useEffect(() => {
-    getHealth().then(setHealth).catch((e) => setHealth({ status: "error", error: e.message }));
-    refresh();
-  }, []);
-
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-    try {
-      await createNote({ title });
-      setTitle("");
-      refresh();
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
   return (
-    <main>
-      <h1>PVllg</h1>
+    <Routes>
+      <Route element={<Layout />}>
+        {/* Public pages */}
+        <Route path={ROUTES.login} element={<LoginPage />} />
+        <Route path={ROUTES.signup} element={<SignupPage />} />
+        <Route path={ROUTES.forgotPassword} element={<ForgotPasswordPage />} />
+        <Route path={ROUTES.status} element={<StatusPage />} />
 
-      <section className="card">
-        <h2>API status</h2>
-        {health ? (
-          <p className={health.status === "ok" ? "ok" : "bad"}>
-            {health.status} — {health.db} {health.db_version || health.error}
-          </p>
-        ) : (
-          <p>checking…</p>
-        )}
-      </section>
+        {/* Pages that require being logged in */}
+        <Route element={<ProtectedRoute />}>
+          <Route path={ROUTES.home} element={<HomePage />} />
+          <Route path={ROUTES.resource()} element={<ResourceDetailPage />} />
+          <Route path={ROUTES.profile} element={<ProfilePage />} />
+        </Route>
 
-      <section className="card">
-        <h2>Notes (example CRUD)</h2>
-        <form onSubmit={onSubmit}>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="New note" />
-          <button type="submit">Add</button>
-        </form>
-        {error && <p className="bad">{error}</p>}
-        <ul>
-          {notes.map((n) => (
-            <li key={n.id}>
-              {n.title}
-              <button onClick={() => deleteNote(n.id).then(refresh)}>×</button>
-            </li>
-          ))}
-        </ul>
-      </section>
-    </main>
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+    </Routes>
   );
 }

@@ -1,0 +1,118 @@
+/* Minimal placeholder styling — design will replace this. */
+:root {
+  font-family: system-ui, sans-serif;
+  color-scheme: light dark;
+  --border: #8884;
+}
+body {
+  margin: 0;
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.navbar nav {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+.navbar a.active {
+  font-weight: 600;
+}
+.brand {
+  font-weight: 700;
+  font-size: 1.25rem;
+  text-decoration: none;
+}
+
+.page {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+.auth-card {
+  max-width: 380px;
+  margin: 0 auto;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.stack label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.row {
+  display: flex;
+  gap: 0.5rem;
+}
+.row input {
+  flex: 1;
+}
+input,
+button {
+  font: inherit;
+  padding: 0.4rem 0.6rem;
+}
+.link-button {
+  background: none;
+  border: none;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.resource-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+.resource-list h3 {
+  margin: 0.5rem 0;
+}
+.tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.5rem 1rem;
+}
+.details dt {
+  font-weight: 600;
+}
+.details dd {
+  margin: 0;
+}
+
+.placeholder {
+  background: #fff3c4;
+  color: #5c4400;
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+}
+.ok { color: #1a7f37; }
+.bad { color: #cf222e; }
