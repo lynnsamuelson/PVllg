@@ -13,10 +13,13 @@ __pycache__/
 venv/
 *.sqlite3
 backend/staticfiles/
+.coverage
+htmlcov/
 
 # Node / frontend
 node_modules/
 frontend/dist/
+frontend/coverage/
 
 # Editors / OS
 .vscode/
