@@ -10,6 +10,8 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Session expired or logged out elsewhere: drop the user so ProtectedRoute sends them to /login.
+    api.setUnauthorizedHandler(() => setUser(null));
     api
       .ensureCsrf()
       .then(api.getCurrentUser)

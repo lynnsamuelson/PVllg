@@ -25,8 +25,6 @@ src/
 │   └── AuthContext.jsx   Who is logged in (asks Django on load); login/signup/logout
 ├── api/
 │   └── client.js         Functions that call the Django API (/api/...), handles CSRF
-├── data/
-│   └── mockResources.js  Sample resources until the real API exists
 └── styles/
     └── index.css         Global styles (minimal, pending design)
 ```
@@ -43,7 +41,14 @@ src/
 
 Logging in returns you to the page you originally tried to open. "Log out" in the nav goes to `/login`.
 
-## Accounts
+## Accounts and access
+
+**The API is locked by default.** Every Django endpoint requires login unless it explicitly
+opts out (`/api/health/` and the `/api/auth/` endpoints do). A logged-out request gets **401**, and
+`api/client.js` responds by logging the user out locally, which sends them to `/login`.
+New endpoints are therefore protected automatically. Add `@permission_classes([AllowAny])` only
+for things that must be public.
+
 
 Sign-up and log-in are real: they call the Django `accounts` app (`backend/accounts/`), which uses
 Django's built-in users (email stored as username), password hashing and password-strength rules.
@@ -56,6 +61,7 @@ The session is an HttpOnly cookie, so the frontend never handles tokens.
 | `POST /api/auth/signup/` | `{name, email, password}`: creates the account and logs in |
 | `POST /api/auth/login/` | `{email, password}` |
 | `POST /api/auth/logout/` | Ends the session |
+| `GET /api/resources/`, `/api/resources/:id/` | Resource list / detail (login required) |
 
 Forgot password is still a placeholder (it needs an email service).
 
