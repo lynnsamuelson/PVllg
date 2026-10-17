@@ -3,12 +3,13 @@ import { useState } from "react";
 import { flushSync } from "react-dom";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
+import { ApiError } from "../../api/client.js";
 import * as auth from "../../context/AuthContext.jsx";
 import { ROUTES } from "../../routes.js";
 import SignupPage from "./SignupPage.jsx";
 
-function renderAt(url) {
-  vi.spyOn(auth, "useAuth").mockReturnValue({ user: null, signup: vi.fn() });
+function renderAt(url, signup = vi.fn()) {
+  vi.spyOn(auth, "useAuth").mockReturnValue({ user: null, signup });
   render(
     <MemoryRouter initialEntries={[url]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
@@ -28,6 +29,33 @@ describe("SignupPage", () => {
   it.each(["", "?type=robot", "?type=constructor", "?type=__proto__"])("sends %s back to pick a type", (query) => {
     renderAt(`${ROUTES.signup}${query}`);
     expect(screen.getByText("Pick a type")).toBeInTheDocument();
+  });
+
+  function fillForm(confirm = "pw") {
+    for (const [label, value] of [["Name", "Ada"], ["Email", "ada@example.com"], ["Password", "pw"], ["Confirm password", confirm]]) {
+      fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Sign up" }));
+  }
+
+  it("catches mismatched passwords before calling the API", () => {
+    const signup = vi.fn();
+    renderAt(`${ROUTES.signup}?type=person`, signup);
+    fillForm("other");
+    expect(screen.getByText("Passwords don't match.")).toBeInTheDocument();
+    expect(signup).not.toHaveBeenCalled();
+  });
+
+  it("shows field errors under their field and other errors at the top", async () => {
+    const signup = vi
+      .fn()
+      .mockRejectedValueOnce(new ApiError("x", { email: ["An account with this email already exists."] }, 400))
+      .mockRejectedValueOnce(new ApiError("Server down", {}, 500));
+    renderAt(`${ROUTES.signup}?type=person`, signup);
+    fillForm();
+    expect(await screen.findByText("An account with this email already exists.")).toBeInTheDocument();
+    fillForm();
+    expect(await screen.findByText("Server down")).toBeInTheDocument();
   });
 
   it("sends a new person to profile setup even if the signed-in redirect renders first", async () => {
