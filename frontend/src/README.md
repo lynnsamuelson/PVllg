@@ -28,7 +28,7 @@ src/
 ├── api/
 │   └── client.js         Functions that call the Django API (/api/...), handles CSRF
 ├── styles/
-│   └── index.css         Global styles (minimal, pending design)
+│   └── index.css         Global styles + design tokens (see AGENTS.md "Design")
 └── test/
     └── setup.js          Vitest setup (jest-dom matchers, cleanup between tests)
 ```
