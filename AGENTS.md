@@ -156,9 +156,12 @@ hex values.
 
 ## Git and PR workflow
 
-1. Branch from `main`: `feature/<thing>`, `fix/<thing>`, `docs/<thing>`.
-2. Keep PRs focused. Run backend tests and the frontend build locally first.
-3. Open a PR into `main`. `backend` and `frontend` checks run automatically and must pass.
+1. Branch from `main` as `<type>/<firstname>-<thing>`, all lowercase, where type is `feature`, `fix`, `docs` or
+   `chore`. Example: `feature/sydney-resource-filters`. The `pr-hygiene` check fails other names.
+2. Keep PRs focused. Run `/pre-pr` (or backend tests and the frontend build) locally first.
+3. Open a PR into `main` and fill in `.github/pull_request_template.md`. **Summary** and **QA steps** must not be
+   empty: QA steps are numbered steps a teammate can follow, with the expected result of each. The `backend`,
+   `frontend` and `pr-hygiene` checks run automatically and must pass.
 4. Merging to `main` starts a deploy that **pauses for approval** (Actions → the run → *Review deployments*).
 5. After approval, the pipeline deploys and checks `http://<VM>/api/health/`.
 
