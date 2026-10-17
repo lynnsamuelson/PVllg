@@ -1,0 +1,110 @@
+name: CI / Deploy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt
+      - run: python manage.py check
+      - run: python manage.py makemigrations --check --dry-run
+      - run: python manage.py test
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 3
+
+  deploy:
+    needs: [backend, frontend]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: http://${{ vars.VM_HOST }}/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Configure SSH
+        env:
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+          VM_KNOWN_HOSTS: ${{ secrets.VM_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$VM_SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$VM_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Build release bundle and env file
+        env:
+          VM_HOST: ${{ vars.VM_HOST }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          tar --exclude='__pycache__' --exclude='.env' --exclude='*.sqlite3' \
+              -czf release.tgz backend deploy frontend/dist
+          umask 077
+          {
+            echo "DJANGO_SECRET_KEY=$DJANGO_SECRET_KEY"
+            echo "DJANGO_DEBUG=false"
+            echo "DJANGO_ALLOWED_HOSTS=$VM_HOST,localhost,127.0.0.1"
+            echo "DJANGO_CSRF_TRUSTED_ORIGINS=http://$VM_HOST"
+            # Leave the DB_HOST secret unset to fall back to SQLite on the VM.
+            if [ -n "$DB_HOST" ]; then
+              echo "DB_HOST=$DB_HOST"
+              echo "DB_NAME=${DB_NAME:-hackathon}"
+              echo "DB_USER=$DB_USER"
+              echo "DB_PASSWORD=$DB_PASSWORD"
+            fi
+          } > app.env
+
+      - name: Upload and deploy
+        env:
+          VM_HOST: ${{ vars.VM_HOST }}
+        run: |
+          SSH="ssh -i ~/.ssh/deploy_key -o BatchMode=yes"
+          scp -i ~/.ssh/deploy_key -o BatchMode=yes release.tgz app.env "opc@$VM_HOST:/tmp/"
+          $SSH "opc@$VM_HOST" 'bash -s' < deploy/remote-deploy.sh
+
+      - name: Public smoke test
+        env:
+          VM_HOST: ${{ vars.VM_HOST }}
+        run: curl -fsS "http://$VM_HOST/api/health/"
