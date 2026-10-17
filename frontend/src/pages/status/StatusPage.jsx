@@ -34,7 +34,7 @@ export default function StatusPage() {
       <h1>System status</h1>
 
       <div className="card">
-        <h2>API status</h2>
+        <h2>API health</h2>
         {health ? (
           <p className={health.status === "ok" ? "ok" : "bad"}>
             {health.status} — {health.db} {health.db_version || health.error}
