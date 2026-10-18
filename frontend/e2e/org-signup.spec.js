@@ -32,7 +32,7 @@ test("an organization confirms its domain email and becomes Verified", async ({ 
   await page.getByLabel("Website").fill(`https://www.${domain}`);
   await page.getByLabel("Work email").fill("closet@gmail.com");
   await page.getByRole("button", { name: "Send me a code" }).click();
-  await expect(page.getByText("Free email, like Gmail, can't be used to post items.")).toBeVisible();
+  await expect(page.getByText("Free email, like Gmail, can't be used to post items.", { exact: true })).toBeVisible();
 
   await page.getByLabel("Work email").fill("hi@another-site.org");
   await page.getByRole("button", { name: "Send me a code" }).click();

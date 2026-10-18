@@ -28,6 +28,8 @@ Run these and stop at the first failure, then report it with the output. Don't f
    - No secrets, `.env`, keys or hardcoded IPs/passwords.
    - Migrations don't drop or rename columns that hold data.
    - Nothing Python 3.10+ (`match`, `X | Y` unions at runtime, `zip(strict=)`).
+   - e2e: if the diff adds a screen, flow or user-visible behavior, it also adds or extends a spec in `frontend/e2e/`
+     that walks it in the browser. If not, it's a blocker: name the flow that has no spec.
    - Docs: if the diff changes anything `README.md`, `AGENTS.md` or `frontend/src/README.md` describes (setup, commands, env vars, folders, conventions, CI, deploy), those files are updated in the diff too. If not, it's a blocker: list exactly what's stale.
 4. Run `/security-review`.
 
