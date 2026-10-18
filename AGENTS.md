@@ -53,7 +53,7 @@ frontend/
     App.jsx          route table
     routes.js        every URL path; always use ROUTES.x
     pages/<area>/    one folder per area, one file per page
-    components/      shared UI (Layout, BottomNav, Button, TextField, ChoiceCard, NoteBox, Logo, ProtectedRoute, FieldError, Placeholder)
+    components/      shared UI (Layout, BottomNav, Button, TextField, ChoiceCard, NoteBox, Logo, BrandHeader, Badge, CodeInput, ProtectedRoute, RequireVerifiedOrg, FieldError, Placeholder)
     context/         AuthContext (current user, login/signup/logout)
     api/client.js    the ONLY place that calls fetch(); handles CSRF + 401
     logger.js        the ONLY place that calls console; use log.info/warn/error
@@ -130,6 +130,10 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   not passwords, tokens or request bodies. When a test triggers a log line, wrap it in `self.assertLogs(...)` so
   test output stays clean.
 - **Coverage** can't drop below `fail_under` in `.coveragerc`. When you raise coverage, raise the floor too.
+- **Organizations are Pending until they confirm a work email** on their website's domain (`accounts.Organization`,
+  `user.organization.status` in the API: `pending` or `verified`, `null` before they start). Anything only Verified
+  organizations may do must check `organization.verified_at` on the backend; on the frontend, wrap the route in
+  `<RequireVerifiedOrg>`. Email goes through `django.core.mail` (`EMAIL_*` settings; the console without `EMAIL_HOST`).
 - **More than one write per request goes in `transaction.atomic()`** (for example a `User` plus its `Profile`), so a
   failure halfway can't leave a half-made record. Test it: make the second write fail and assert nothing was saved.
 - **Migrations run against the shared production database on deploy.** Avoid destructive changes (dropping or
@@ -297,6 +301,7 @@ Apache and systemd config, restarts the app, and checks health.
 | `VM_SSH_KEY`, `VM_KNOWN_HOSTS` | secret | Deploy key + host key for SSH |
 | `DJANGO_SECRET_KEY` | secret | Django secret |
 | `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | secret | HeatWave app user (not admin) |
+| `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` | secret | SMTP for organization codes (e.g. OCI Email Delivery on 587). Unset: emails go to `journalctl` |
 
 **On the VM** (Oracle Linux 9, user `opc`, SELinux enforcing). Paths still use the original placeholder name
 `hackathon-app`:
@@ -319,7 +324,7 @@ Apache and systemd config, restarts the app, and checks health.
 
 ## Not built yet
 
-- Forgot password / password reset (needs an email service; the page is a placeholder)
+- Forgot password / password reset (the page is a placeholder; email can reuse the SMTP settings)
 - Rate limiting on login
 - Error reporting service such as Sentry (hook it into `config/log.py` and `frontend/src/logger.js`)
 - Profile editing

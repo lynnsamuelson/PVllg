@@ -12,6 +12,7 @@ __pycache__/
 .venv/
 venv/
 *.sqlite3
+backend/e2e-mail/
 backend/staticfiles/
 .coverage
 htmlcov/
