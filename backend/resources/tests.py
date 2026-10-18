@@ -22,7 +22,7 @@ class ResourceAccessTests(APITestCase):
         self.client.force_authenticate(self.user)
         resp = self.client.get("/api/resources/")
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(len(resp.json()), 4)
+        self.assertEqual(len(resp.json()), 12)  # the KAN-26 starter resources
         first = resp.json()[0]
         detail = self.client.get(f"/api/resources/{first['id']}/")
         self.assertEqual(detail.json()["title"], first["title"])
@@ -44,6 +44,7 @@ class MatchesEndpointTests(APITestCase):
     """Test resources shaped like the KAN-26 starter list."""
 
     def setUp(self):
+        Resource.objects.all().delete()  # only the resources below, not the seeded starter list
         make("Downtown Diapers", ["essentials"], zip_code="37201")
         make("Statewide Diapers", ["essentials"], "statewide", age_min_months=0, age_max_months=23,
              limits="Children under 2")
@@ -108,7 +109,8 @@ class MatchesEndpointTests(APITestCase):
         self.assertIn("category", resp.json())
 
     def test_existing_rows_without_tags_still_show(self):
-        # The placeholder seed rows (and anything added in admin before tagging) are local with no ZIP.
+        # Anything added in admin before tagging is local with no ZIP.
+        Resource.objects.create(title="Help center", category="Support", summary="Answers to common questions.")
         results = self.get("zip=37206").json()
         untagged = next(r for r in results if r["title"] == "Help center")
         self.assertIsNone(untagged["distance_miles"])

@@ -1,7 +1,9 @@
 from datetime import timedelta
+from importlib import import_module
 from unittest import mock
 
 from django.contrib.auth import get_user_model
+from django.apps import apps
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError
@@ -10,8 +12,9 @@ from rest_framework.test import APIClient, APITestCase
 
 from accounts.models import Organization, Profile
 from claims.models import Claim
+from resources.models import Resource
 
-from . import privacy
+from . import demo, privacy
 from .models import Item, ItemPhoto, local_today
 
 User = get_user_model()
@@ -96,7 +99,7 @@ class PostItemTests(APITestCase):
     def test_verified_org_uses_its_profile_address(self):
         data = self.posted(make_org(), item(exact_address="somewhere else 37208"))
         self.assertNotIn("exact_address", data)
-        saved = Item.objects.get()
+        saved = Item.objects.get(pk=data["id"])
         self.assertEqual((saved.exact_address, saved.zip_code), ("123 Example St, Nashville, TN 37206", "37206"))
 
     def test_pending_org_cannot_post(self):
@@ -149,7 +152,7 @@ class PostItemTests(APITestCase):
         with mock.patch("items.serializers.MAX_PHOTO_BYTES", 10):
             big = [SimpleUploadedFile("big.png", PNG)]
             self.assertIn("photos", self.post(user, {**item(), "photos": big}, "multipart").json())
-        self.assertFalse(Item.objects.exists())
+        self.assertFalse(Item.objects.filter(owner=user).exists())
 
     def test_webp_is_a_photo(self):
         webp = b"RIFF\x00\x00\x00\x00WEBPVP8 " + b"\x00" * 10
@@ -161,7 +164,7 @@ class PostItemTests(APITestCase):
         with mock.patch.object(ItemPhoto.objects, "bulk_create", side_effect=DatabaseError("boom")), \
                 self.assertRaises(DatabaseError), self.assertLogs("django.request", "ERROR"):
             self.post(user, {**item(), "photos": [SimpleUploadedFile("a.png", PNG)]}, "multipart")
-        self.assertFalse(Item.objects.exists())
+        self.assertFalse(Item.objects.filter(owner=user).exists())
 
 
 class MyItemsTests(APITestCase):
@@ -359,3 +362,82 @@ class AddressPrivacyTests(APITestCase):
         self.giver.first_name = ""
         self.giver.save()
         self.assertEqual(self.view_as(self.family)["giver"], "A neighbor")
+
+
+class DemoDataTests(APITestCase):
+    """KAN-26: the made-up demo accounts and sample items loaded by migration."""
+
+    def test_demo_accounts_and_items(self):
+        closet = User.objects.get(username="team@samplecommunitycloset.example")
+        self.assertFalse(closet.has_usable_password())
+        self.assertIsNotNone(closet.organization.verified_at)
+        self.assertEqual(closet.organization.zip_code, "37206")
+        taylor = User.objects.get(username="taylor@demo.example")
+        self.assertEqual(taylor.profile.needs, ["essentials", "feeding"])
+        self.assertEqual(taylor.profile.usage, "get")
+        jordan = User.objects.get(username="jordan@demo.example")
+        self.assertEqual(jordan.profile.roles, ["parent", "kinship"])
+        demo_items = Item.objects.filter(owner__username__endswith=".example")
+        self.assertEqual(demo_items.count(), 10)
+        diapers = demo_items.get(name="Size 1 diapers")
+        self.assertEqual((diapers.quantity, diapers.zip_code), (12, "37206"))
+        self.assertEqual(diapers.exact_address, "100 Sample Way, Nashville, TN 37206")
+        # Set when the test database was built, which may have been just before midnight.
+        self.assertIn(diapers.pickup_date - local_today(), (timedelta(days=3), timedelta(days=2)))
+        self.assertTrue(closet.profile.is_demo and taylor.profile.is_demo)
+        self.assertEqual((diapers.pickup_start.hour, diapers.pickup_end.hour), (10, 14))
+        bundle = demo_items.get(name="Baby clothes bundle, 0-3 mo")
+        self.assertEqual(bundle.owner.first_name, "Casey")
+        self.assertEqual((bundle.exact_address, bundle.zip_code), ("400 Fictional St, Nashville, TN 37207", "37207"))
+
+    def test_refresh_dates_moves_only_demo_items(self):
+        mine = make_person()
+        self.client.force_authenticate(mine)
+        with self.assertLogs("items.views", "INFO"):
+            own = self.client.post("/api/items/", item(), format="json").json()["id"]
+        Item.objects.update(pickup_date="2020-01-01")
+        self.assertEqual(demo.refresh_dates(Item.objects.all()), 10)
+        self.assertEqual(Item.objects.get(name="Pack and play").pickup_date, local_today() + timedelta(days=5))
+        self.assertEqual(str(Item.objects.get(pk=own).pickup_date), "2020-01-01")
+
+    def test_public_items_say_demo(self):
+        self.client.force_authenticate(make_person("viewer@example.com", "get"))
+        demo_item = Item.objects.get(name="Size 1 diapers")
+        self.assertTrue(self.client.get(f"/api/items/{demo_item.pk}/").json()["demo"])
+
+    def test_admin_action(self):
+        admin_user = User.objects.create_superuser(username="admin@example.com", password="x")
+        self.client.force_login(admin_user)
+        Item.objects.update(pickup_date="2020-01-01")
+        ids = list(Item.objects.values_list("pk", flat=True))
+        resp = self.client.post(
+            "/admin/items/item/", {"action": "refresh_demo_dates", "_selected_action": ids}, follow=True
+        )
+        self.assertContains(resp, "Moved 10 demo item(s)")
+
+    def test_loading_twice_leaves_existing_accounts_alone(self):
+        import_module("items.migrations.0003_demo_data").load(apps, None)
+        self.assertEqual(Item.objects.filter(owner__username__endswith=".example").count(), 10)
+
+    def test_unload_removes_the_demo_accounts(self):
+        migration = import_module("items.migrations.0003_demo_data")
+        migration.unload(apps, None)
+        self.assertFalse(User.objects.filter(username__endswith=".example").exists())
+        self.assertFalse(Item.objects.filter(owner__username__endswith=".example").exists())
+
+
+class StarterResourceTests(APITestCase):
+    def test_twelve_real_resources_with_facts_and_not_listed_blanks(self):
+        self.assertEqual(Resource.objects.count(), 12)
+        similac = Resource.objects.get(title="MySimilac Rewards")
+        self.assertIn("not free formula", similac.summary)
+        self.assertEqual(similac.area_type, "national")
+        tenncare = Resource.objects.get(title="TennCare Diaper Benefit")
+        self.assertEqual((tenncare.age_min_months, tenncare.age_max_months), (0, 23))
+        ffan = Resource.objects.get(title="Foster Families Assistance Network (FFAN)")
+        self.assertEqual(ffan.serves, ["foster", "kinship", "adoptive"])
+        self.assertEqual(ffan.public_phone, "")  # not listed
+        grace = Resource.objects.get(title="Grace Place")
+        self.assertIn("not an emergency shelter", grace.limits)
+        self.assertEqual(str(grace.last_checked), "2026-10-17")
+        self.assertFalse(Resource.objects.filter(title="Help center").exists())

@@ -9,7 +9,8 @@ class ResourceSerializer(serializers.ModelSerializer):
         model = Resource
         fields = [
             "id", "title", "category", "categories", "summary", "description", "url", "area_type", "limits",
-            "created_at",
+            "org_type", "area_served", "who_we_serve", "age_text", "referral", "next_step", "public_address",
+            "public_phone", "public_email", "contact_note", "source_url", "last_checked", "created_at",
         ]
 
 

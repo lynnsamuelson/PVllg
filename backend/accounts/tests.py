@@ -46,6 +46,7 @@ class SignupTests(APITestCase):
         self.assertEqual(User.objects.get(username="hi@foodbank.org").profile.account_type, "organization")
 
     def test_failed_profile_save_leaves_no_account(self):
+        users = User.objects.count()
         with mock.patch("accounts.serializers.Profile.objects.create", side_effect=RuntimeError("db down")):
             with self.assertRaises(RuntimeError), self.assertLogs("django.request", "ERROR"):
                 self.client.post(
@@ -53,9 +54,10 @@ class SignupTests(APITestCase):
                     {"name": "Ada", "email": "ada@example.com", "password": GOOD_PASSWORD, "account_type": "person"},
                     format="json",
                 )
-        self.assertFalse(User.objects.exists())
+        self.assertEqual(User.objects.count(), users)
 
     def test_account_type_required_and_checked(self):
+        users = User.objects.count()
         for extra in ({}, {"account_type": "robot"}):
             resp = self.client.post(
                 "/api/auth/signup/",
@@ -64,7 +66,7 @@ class SignupTests(APITestCase):
             )
             self.assertEqual(resp.status_code, 400)
             self.assertIn("account_type", resp.json())
-        self.assertFalse(User.objects.exists())
+        self.assertEqual(User.objects.count(), users)
 
     def test_duplicate_email_rejected_case_insensitively(self):
         User.objects.create_user(username="ada@example.com", email="ada@example.com", password=GOOD_PASSWORD)
@@ -180,7 +182,7 @@ class OrganizationVerificationTests(APITestCase):
         resp = self.client.post("/api/auth/org/", {**ORG, "work_email": "hi@othersite.org"}, format="json")
         self.assertEqual(resp.status_code, 400)
         self.assertEqual(resp.json()["work_email"], ["Your email must end with @samplecommunitycloset.org."])
-        self.assertFalse(Organization.objects.exists())
+        self.assertFalse(Organization.objects.filter(user=self.user).exists())
         self.assertEqual(mail.outbox, [])
 
     def test_free_email_rejected(self):
@@ -269,7 +271,7 @@ class OrganizationVerificationTests(APITestCase):
             with self.assertLogs("accounts.views", "ERROR"), self.assertLogs("django.request", "ERROR"):
                 resp = self.client.post("/api/auth/org/", ORG, format="json")
         self.assertEqual(resp.status_code, 503)
-        self.assertFalse(Organization.objects.exists())
+        self.assertFalse(Organization.objects.filter(user=self.user).exists())
 
     def test_failed_resend_keeps_old_code(self):
         code = self.start()
@@ -525,7 +527,7 @@ class OrganizationProfileTests(APITestCase):
         with self.assertLogs("accounts.views", "INFO"):
             self.save(pickup_address="9 Sample Ave, Nashville, TN 37208")
         self.assertEqual(
-            Item.objects.values_list("exact_address", "zip_code").get(), ("9 Sample Ave, Nashville, TN 37208", "37208")
+            Item.objects.filter(owner=self.user).values_list("exact_address", "zip_code").get(), ("9 Sample Ave, Nashville, TN 37208", "37208")
         )
 
     def test_failed_item_update_keeps_the_old_address(self):
@@ -572,6 +574,7 @@ class EnsureAdminTests(APITestCase):
             call_command("ensure_admin", stdout=mock.Mock())
 
     def test_creates_admin_then_resets_its_password(self):
+        users = User.objects.count()
         self.run_it(ADMIN_EMAIL=" Owner@Example.com ", ADMIN_PASSWORD=GOOD_PASSWORD)
         admin = User.objects.get(username="owner@example.com")
         self.assertTrue(admin.is_superuser and admin.is_staff)
@@ -581,11 +584,12 @@ class EnsureAdminTests(APITestCase):
         admin.refresh_from_db()
         self.assertTrue(admin.check_password("a-different-password-9"))
         self.assertTrue(admin.is_superuser and admin.is_staff)
-        self.assertEqual(User.objects.count(), 1)
+        self.assertEqual(User.objects.count(), users + 1)
 
     def test_skips_without_settings(self):
+        users = User.objects.count()
         self.run_it(ADMIN_EMAIL="owner@example.com", ADMIN_PASSWORD="")
-        self.assertFalse(User.objects.exists())
+        self.assertEqual(User.objects.count(), users)
 
 
 class OrganizationAdminTests(APITestCase):
