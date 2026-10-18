@@ -19,7 +19,7 @@ export const nashvilleToday = () => new Date().toLocaleDateString("en-CA", { tim
 
 async function signup(page, { name, email, type }) {
   await page.goto(`/signup?type=${type}`);
-  await page.getByLabel("Name", { exact: true }).fill(name);
+  await page.getByLabel(type === "organization" ? "Organization name" : "Name", { exact: true }).fill(name);
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel(/^Password/).fill(PASSWORD);
   await page.getByLabel("Confirm password").fill(PASSWORD);

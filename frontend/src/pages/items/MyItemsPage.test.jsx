@@ -113,6 +113,7 @@ describe("MyItemsPage", () => {
     expect(await screen.findByText("Approved for Taylor")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Mark picked up" })).toBeEnabled();
     expect(screen.queryByRole("button", { name: "Take down" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Edit" })).toHaveAttribute("href", ROUTES.editItem(BUNDLE.id));
     expect(approve).toHaveBeenCalledWith(30);
     expect(list).toHaveBeenCalledTimes(2);
   });

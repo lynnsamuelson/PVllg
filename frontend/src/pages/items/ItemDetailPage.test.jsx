@@ -14,7 +14,7 @@ const BASE = {
 const ORG_ITEM = {
   ...BASE, name: "Size 1 diapers", quantity: 12, left: 12, giver: "Sample Community Closet", from_organization: true,
   general_area: "East Nashville", distance_miles: 1, exact_address: "100 Sample Way, Nashville, TN 37206",
-  where_to_go: "Ask for the Baby Closet.", private_note: null,
+  where_to_go: "Ask for the Baby Closet.", private_note: null, public_contact: "Call (615) 555-0100",
 };
 const PERSON_ITEM = {
   ...BASE, name: "Baby clothes bundle", quantity: 1, left: 1, giver: "A parent nearby", from_organization: false,
@@ -53,6 +53,7 @@ describe("ItemDetailPage", () => {
     expect(screen.getByText("100 Sample Way, Nashville, TN 37206 (organization address)")).toBeInTheDocument();
     expect(screen.getByText("Ask for the Baby Closet.")).toBeInTheDocument();
     expect(screen.getByText("Bring a bag.")).toBeInTheDocument();
+    expect(screen.getByText("Call (615) 555-0100")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Claim one (held for 3 days)" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Report a problem" })).toBeInTheDocument();
     expect(api.getItem).toHaveBeenCalledWith("1");

@@ -325,6 +325,25 @@ class AddressPrivacyTests(APITestCase):
         self.assertEqual(data["giver"], "Sample Community Closet")
         self.assertTrue(data["from_organization"])
         self.assertIsNone(data["private_note"])
+        self.assertIsNone(data["public_contact"])  # none saved yet
+
+    def test_organization_public_contact_shows_as_typed(self):
+        org = make_org()
+        org.organization.public_contact = "Call (615) 555-0100, Mon-Fri"
+        org.organization.save()
+        self.client.force_authenticate(org)
+        with self.assertLogs("items.views", "INFO"):
+            pk = self.client.post("/api/items/", item(), format="json").json()["id"]
+        self.client.force_authenticate(self.family)
+        self.assertEqual(self.client.get(f"/api/items/{pk}/").json()["public_contact"], "Call (615) 555-0100, Mon-Fri")
+        org.organization.verified_at = None
+        org.organization.save()
+        self.assertIsNone(self.client.get(f"/api/items/{pk}/").json()["public_contact"])
+
+    def test_person_item_never_has_a_contact(self):
+        self.claim(Claim.APPROVED)
+        self.assertIsNone(self.view_as(self.family)["public_contact"])
+        self.assertIsNone(self.view_as(self.giver)["public_contact"])
 
     def test_unknown_zip_has_no_distance_and_taken_down_items_are_gone(self):
         self.family.profile.zip_code = ""

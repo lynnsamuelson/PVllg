@@ -9,7 +9,7 @@ async function signup(page, type, name, email) {
   await page.getByRole("link", { name: "Get started" }).click();
   await page.getByRole("radio", { name: type }).click();
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByLabel("Name", { exact: true }).fill(name);
+  await page.getByLabel(/^(Organization name|Name)$/).fill(name);
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel(/^Password/).fill(PASSWORD);
   await page.getByLabel("Confirm password").fill(PASSWORD);

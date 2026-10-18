@@ -26,6 +26,8 @@ export default function SignupPage() {
   if (next) return <Navigate to={next} replace />;
   if (user && !submitting) return <Navigate to={homeFor(user)} replace />;
   if (!Object.hasOwn(NEXT, accountType ?? "")) return <Navigate to={ROUTES.accountType} replace />;
+  // An organization's name fills "Organization name" on the next step, so ask for that, not the lead's (KAN-31).
+  const isOrg = accountType === "organization";
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -56,9 +58,9 @@ export default function SignupPage() {
       <form onSubmit={onSubmit} className="stack">
         {error && <p className="form-error">{error}</p>}
         <TextField
-          label="Name"
+          label={isOrg ? "Organization name" : "Name"}
           required
-          autoComplete="name"
+          autoComplete={isOrg ? "organization" : "name"}
           value={name}
           onChange={(e) => setName(e.target.value)}
           errors={fieldErrors.name}

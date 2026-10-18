@@ -35,6 +35,7 @@ test("a family claims an organization's item, sees where to go, and cancels", as
 
   await page.goto(`/items/${id}`);
   await expect(page.getByRole("heading", { name: "1 left" })).toBeVisible();
+  await expect(page.getByText("info@example.org", { exact: true })).toBeVisible();
 
   await page.goto("/claims");
   await claim.getByRole("button", { name: "Cancel claim" }).click();

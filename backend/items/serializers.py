@@ -98,6 +98,7 @@ class PublicItemSerializer(serializers.ModelSerializer):
     exact_address = serializers.SerializerMethodField()
     where_to_go = serializers.SerializerMethodField()
     private_note = serializers.SerializerMethodField()
+    public_contact = serializers.SerializerMethodField()
     photos = serializers.SerializerMethodField()
     available = serializers.SerializerMethodField()
     mine = serializers.SerializerMethodField()
@@ -109,7 +110,7 @@ class PublicItemSerializer(serializers.ModelSerializer):
             "id", "name", "category", "details", "quantity", "left", "photos", "pickup_date", "pickup_start",
             "pickup_end",
             "general_area", "what_to_bring", "giver", "from_organization", "demo", "distance_miles", "exact_address",
-            "where_to_go", "private_note", "available", "mine",
+            "where_to_go", "private_note", "public_contact", "available", "mine",
         ]
 
     def to_representation(self, item):
@@ -143,6 +144,11 @@ class PublicItemSerializer(serializers.ModelSerializer):
 
     def get_private_note(self, item):
         return None if self._visible else privacy.PRIVATE_NOTE
+
+    def get_public_contact(self, item):
+        """A Verified organization's public contact as it typed it (KAN-8). Never anything for a person (KAN-11)."""
+        org = privacy.verified_organization(item)
+        return (org.public_contact or None) if org else None
 
     def get_available(self, item):
         """Can it still be claimed: some left and its pickup day hasn't passed."""

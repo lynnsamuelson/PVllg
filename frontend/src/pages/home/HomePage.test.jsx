@@ -16,7 +16,7 @@ const DIAPERS = {
 };
 const WIC = {
   id: 6, title: "Davidson County WIC", category: "Food & feeding support", referral: "Appointment required.",
-  matches_needs: true,
+  matches_needs: true, reason: "Matches Feeding and your area",
 };
 
 function renderHome(user = TAYLOR) {
@@ -58,6 +58,7 @@ describe("HomePage", () => {
     expect(screen.getByText("Demo")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Davidson County WIC/ })).toHaveAttribute("href", ROUTES.resource(6));
     expect(screen.getByText("Food & feeding support · Appointment required.")).toBeInTheDocument();
+    expect(screen.getByText("Matches Feeding and your area")).toBeInTheDocument();
     expect(matches).toHaveBeenCalledWith(PROFILE);
     expect(screen.getByRole("link", { name: "Find resources" })).toHaveAttribute("href", `${ROUTES.search}?tab=resources`);
     expect(screen.getByRole("link", { name: "See items" })).toHaveAttribute("href", ROUTES.search);

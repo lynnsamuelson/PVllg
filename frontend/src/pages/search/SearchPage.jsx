@@ -60,6 +60,7 @@ function ResourceCard({ resource }) {
         <p className="result-card-line">
           {resource.category} · {resourceArea(resource)}
         </p>
+        {resource.reason && <p className="result-card-line">{resource.reason}</p>}
         {resource.limits && <p className="result-card-line">{resource.limits}</p>}
       </Link>
     </li>
