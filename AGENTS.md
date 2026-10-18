@@ -65,6 +65,8 @@ frontend/
     logger.js        the ONLY place that calls console; use log.info/warn/error
     **/*.test.js(x)  Vitest unit tests, next to the file they test
     styles/index.css global styles + design tokens (colors, spacing, radii, type)
+    assets/          brand images (mark, wordmark); use these, don't redraw the logo
+  public/            files served as-is at the site root (app icon / favicon)
   e2e/               Playwright browser tests (playwright.config.js starts Django + Vite itself)
 deploy/              Apache vhost, systemd unit, remote-deploy.sh (runs on the VM)
 scripts/             add-teammate-key.sh, db-tunnel.sh
