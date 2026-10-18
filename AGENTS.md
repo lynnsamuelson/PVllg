@@ -198,6 +198,8 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
 - **Browser tests** (Playwright) go in `frontend/e2e/`, one spec per user flow. Use them for whole flows across
   pages, and use unique emails per test (the e2e database is reused between tests). Prefer `getByRole` and
   `getByLabel` over CSS selectors.
+- **Every PR that adds a screen, flow or user-visible behavior adds or extends an e2e spec for it**, in the same
+  PR. Unit tests don't replace it. Shared sign-up and setup steps live in `e2e/helpers.js`.
 
 ---
 
@@ -296,7 +298,8 @@ approval (KAN-11).
 
 1. Branch from `main` as `<type>/<firstname>-<thing>`, all lowercase, where type is `feature`, `fix`, `docs` or
    `chore`. Example: `feature/sydney-resource-filters`. The `pr-hygiene` check fails other names.
-2. Keep PRs focused. Run `/pre-pr` (or the commands in "What CI runs") locally first.
+2. Keep PRs focused. New functionality comes with its e2e spec (see Frontend conventions). Run `/pre-pr` (or the
+   commands in "What CI runs") locally first.
 3. **Update the docs in the same PR.** If your change affects anything `README.md`, `AGENTS.md` or
    `frontend/src/README.md` describes (setup steps, commands, env vars, folders, conventions, CI, deploy), update
    them before you push. Then tick the docs box in the PR checklist. `pr-hygiene` fails until it's ticked, and
