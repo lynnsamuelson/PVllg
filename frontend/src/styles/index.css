@@ -370,6 +370,14 @@ select {
   background: var(--color-sage-tint);
   border-color: var(--color-green);
 }
+.badge-person {
+  background: var(--color-person-tint);
+  border-color: var(--color-rose);
+}
+.badge-demo {
+  background: var(--color-peach-tint);
+  border-color: var(--color-peach-tint);
+}
 
 .code-input {
   display: flex;
@@ -543,6 +551,75 @@ button.text-link {
   margin: 0;
 }
 .item-card-counts {
+  color: var(--color-plum-muted);
+  margin: 0;
+}
+
+/* Tabs: text tabs, green underline on the active one. */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-line);
+}
+.tab {
+  flex: 1;
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  padding: 0 0 10px;
+  color: var(--color-plum-muted);
+  cursor: pointer;
+}
+.tab.active {
+  border-bottom-color: var(--color-green);
+  color: var(--color-plum);
+  font-weight: bold;
+}
+
+/* Search near me (Mock Up 12). */
+.search-box {
+  background: var(--color-white);
+  border: 1px solid var(--color-rose);
+  border-radius: var(--radius-button);
+  color: var(--color-plum);
+  padding: 10px 12px;
+}
+.sort-line {
+  color: var(--color-plum-muted);
+}
+.sort-line select {
+  background: none;
+  border: 0;
+  color: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+.search-loading {
+  color: var(--color-plum-muted);
+  margin: 0;
+}
+.result-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-card-gap);
+}
+.result-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  background: var(--color-white);
+  color: var(--color-plum);
+  text-decoration: none;
+}
+.result-card h2 {
+  font-size: var(--text-card-title);
+  margin: 0;
+}
+.result-card-line {
   color: var(--color-plum-muted);
   margin: 0;
 }

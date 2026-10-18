@@ -28,6 +28,7 @@ class Claim(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [models.Index(fields=["claimant", "status"])]  # the privacy rule's lookup
 
     def __str__(self):
         return f"{self.claimant} → {self.item} ({self.status})"

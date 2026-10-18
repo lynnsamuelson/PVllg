@@ -14,6 +14,7 @@ export const ROUTES = {
   orgItems: "/org/items",
   postItem: "/items/new",
   editItem: (id = ":itemId") => `/items/${id}/edit`,
+  item: (id = ":itemId") => `/items/${id}`,
   search: "/search",
   claims: "/claims",
   give: "/give",

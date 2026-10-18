@@ -11,7 +11,7 @@ from datetime import timedelta
 
 from accounts.models import Profile
 from claims.models import Claim
-from resources.matching import miles_between
+from resources.matching import ZIP_CENTERS, miles_between
 
 from .models import local_today
 
@@ -60,10 +60,27 @@ def giver_name(item):
     return (item.owner.first_name.split() or ["A neighbor"])[0]
 
 
-def rounded_miles(user, item):
-    """Whole miles (halves round up) from the user's ZIP to the item's, at least 1, or None if either is unknown."""
+def user_zip(user):
+    """A person's profile ZIP, or an organization's, or ""."""
     profile = getattr(user, "profile", None)
     org = getattr(user, "organization", None)
-    user_zip = (profile.zip_code if profile else "") or (org.zip_code if org else "")
-    miles = miles_between(user_zip, item.zip_code)
-    return None if miles is None else max(1, math.floor(miles + 0.5))
+    return (profile.zip_code if profile else "") or (org.zip_code if org else "")
+
+
+def miles(user, item):
+    """Unrounded miles from the user's ZIP to the item's, or None if either is unknown. Only for comparing with a
+    radius on the server; never send it to a client (use rounded_miles)."""
+    return miles_between(user_zip(user), item.zip_code)
+
+
+def zips_within(user, radius):
+    """ZIP codes whose centers are within `radius` miles of the user's, to narrow a search before checking each item."""
+    home = user_zip(user)
+    distances = {z: miles_between(home, z) for z in ZIP_CENTERS}
+    return [z for z, d in distances.items() if d is not None and d <= radius]
+
+
+def rounded_miles(user, item):
+    """Whole miles (halves round up) from the user's ZIP to the item's, at least 1, or None if either is unknown."""
+    exact = miles(user, item)
+    return None if exact is None else max(1, math.floor(exact + 0.5))

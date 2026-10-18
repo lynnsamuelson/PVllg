@@ -73,6 +73,13 @@ export function postItem(fields, photos = []) {
   return request("/items/", { method: "POST", body });
 }
 
+// Search near me, Items tab (KAN-15). options = { q, category, radius }. Nearest first, privacy rule applied.
+export function searchItems(options = {}) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(options)) if (value) params.set(key, value);
+  return request(`/items/search/?${params}`);
+}
+
 // My items (KAN-10): the giver's own items, with exact_address and counts (left, requested, claimed).
 export const listMyItems = () => request("/items/mine/");
 export const getMyItem = (id) => request(`/items/mine/${id}/`);

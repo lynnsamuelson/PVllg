@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -10,8 +11,16 @@ from rest_framework.response import Response
 from accounts.models import Profile
 from config.log import get_logger
 
-from .models import Item, ItemPhoto
-from .serializers import ItemSerializer, OwnItemSerializer, PublicItemSerializer, check_photos
+from . import privacy
+from .models import CATEGORIES, Item, ItemPhoto, local_today
+from .serializers import (
+    CHIP_CATEGORIES,
+    ItemSearchSerializer,
+    ItemSerializer,
+    OwnItemSerializer,
+    PublicItemSerializer,
+    check_photos,
+)
 
 logger = get_logger(__name__)
 
@@ -47,6 +56,33 @@ def post_item(request):
         ItemPhoto.objects.bulk_create(ItemPhoto(item=item, content_type=t, data=d) for t, d in photos)
     logger.info("item posted user_id=%s item_id=%s photos=%s", request.user.pk, item.pk, len(photos))
     return Response(ItemSerializer(item).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET"])
+def search_items(request):
+    """Search near me, Items tab (KAN-15): live items with some left and a pickup day that hasn't passed, within
+    `radius` miles of the viewer's ZIP, nearest first. Items whose distance can't be worked out aren't shown, so nothing out of range reads as nearby."""
+    params = ItemSearchSerializer(data=request.query_params)
+    params.is_valid(raise_exception=True)
+    opts = params.validated_data
+    items = (
+        Item.objects.public()
+        .filter(quantity__gt=0, pickup_date__gte=local_today(), zip_code__in=privacy.zips_within(request.user, opts["radius"]))
+        .exclude(owner=request.user)
+    )
+    if opts["category"]:
+        items = items.filter(category__in=CHIP_CATEGORIES[opts["category"]])
+    for word in opts["q"].split():
+        labels = [key for key, label in CATEGORIES.items() if word.lower() in label.lower()]
+        items = items.filter(Q(name__icontains=word) | Q(details__icontains=word) | Q(category__in=labels))
+    nearby = []
+    for item in items:
+        distance = privacy.miles(request.user, item)  # unrounded, so the radius is a strict cutoff
+        if distance is not None and distance <= opts["radius"]:
+            nearby.append((distance, item.pickup_date, item))
+    nearby.sort(key=lambda m: (m[0], m[1]))
+    serializer = PublicItemSerializer([item for _, _, item in nearby], many=True, context={"request": request})
+    return Response(serializer.data)
 
 
 @api_view(["GET"])

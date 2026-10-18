@@ -14,6 +14,7 @@ src/
 │   ├── resources/        ResourceDetailPage: one resource                (login required)
 │   ├── profile/          ProfilePage, ProfileSetupPage (4 steps, KAN-6)  (login required)
 │   ├── org/              OrgSignupPage (Mock Up 7), OrgVerifyPage (Mock Up 8), OrgProfilePage (Mock Up 9, Verified only)  (login required)
+│   ├── search/           SearchPage (Mock Up 12): Items and Resources tabs; search state lives in the URL  (login required)
 │   ├── items/            MyItemsPage (Mock Up 21), PostItemPage (2 steps, Mock Ups 19-20; also Edit)  (givers only)
 │   ├── status/           StatusPage: dev check of API + database         (public, not in nav)
 │   ├── ComingSoonPage.jsx  Stand-in for tabs whose ticket isn't built yet (login required)
@@ -32,7 +33,8 @@ src/
 │   ├── Logo.jsx          PVill mark (assets/pvill-symbol.png)
 │   ├── BrandHeader.jsx   Logo with "PVill" under it, top of most screens
 │   ├── AppHeader.jsx     Small logo with the screen title beside it, top left (Mock Ups 9, 10, 21)
-│   ├── Badge.jsx         Pill badge (pending, verified)
+│   ├── Badge.jsx         Pill badge (pending, verified, person, demo)
+│   ├── Tabs.jsx          Text tabs with a green underline on the active one
 │   ├── CodeInput.jsx     Six boxes for an emailed code
 │   ├── ProtectedRoute.jsx  Redirects logged-out users to /welcome
 │   ├── RequireGiver.jsx  Shows its routes only to givers (Verified organizations, people with Give support)
@@ -92,6 +94,7 @@ The session is an HttpOnly cookie, so the frontend never handles tokens.
 | `POST /api/auth/org/verify/` | `{code}`: right and under 15 minutes old marks the organization Verified; 5 tries per code |
 | `POST /api/auth/org/profile/` | `{about, serves[], pickup_address, public_contact}`: a Verified organization's public profile. The address needs a ZIP code (search measures distance from it) |
 | `POST /api/items/` | Post an item (givers only), as multipart form data with up to 4 `photos` (JPEG/PNG/WebP, 5 MB each). A person's `exact_address` must end with a ZIP code; an organization's comes from its profile |
+| `GET /api/items/search/` | Search near me, Items tab: `q`, `category` (essentials, feeding, parenting, housing), `radius` (5, 10, 25, 50; default 10). Live items with a pickup day not yet passed, within the radius of your ZIP, nearest first, shaped like `GET /api/items/:id/` |
 | `GET /api/items/:id/` | One item as others see it: general area, whole-mile `distance_miles`, giver's first name or organization name, `demo` (made-up sample data: show the Demo badge). `exact_address` and `where_to_go` are null with a `private_note` unless the viewer may see them (KAN-11) |
 | `GET /api/items/mine/` | Your own items (any account, so turning Give off doesn't strand them) that aren't taken down, with `exact_address` and counts `left`, `requested`, `claimed` |
 | `GET`/`PUT`/`DELETE /api/items/mine/:id/` | One of the giver's items: fill in Edit, save it (JSON, photos unchanged; givers only), take it down |
