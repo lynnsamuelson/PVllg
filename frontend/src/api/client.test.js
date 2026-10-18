@@ -1,5 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
-import { ApiError, getCurrentUser, getResourceMatches, login, setUnauthorizedHandler } from "./client.js";
+
+import {
+  ApiError,
+  getCurrentUser,
+  login,
+  resendOrgCode,
+  setUnauthorizedHandler,
+  startOrgVerification,
+  verifyOrgCode,
+  getResourceMatches,
+} from "./client.js";
 
 function jsonResponse(status, body) {
   return { ok: status >= 200 && status < 300, status, statusText: "", json: () => Promise.resolve(body) };
@@ -60,5 +70,22 @@ describe("api client", () => {
 
     await expect(getCurrentUser()).rejects.toThrow("Not logged in.");
     expect(onUnauthorized).toHaveBeenCalledOnce();
+  });
+
+  it("posts the organization email check and returns the user", async () => {
+    document.cookie = "csrftoken=abc123";
+    const fetch = vi.fn(async () => jsonResponse(200, { user: { id: 1 } }));
+    vi.stubGlobal("fetch", fetch);
+
+    expect(await startOrgVerification("Closet", "closet.org", "hi@closet.org")).toEqual({ id: 1 });
+    await resendOrgCode();
+    await verifyOrgCode("123456");
+
+    const calls = fetch.mock.calls.map(([url, o]) => [url, o.body && JSON.parse(o.body)]);
+    expect(calls).toEqual([
+      ["/api/auth/org/", { name: "Closet", website: "closet.org", work_email: "hi@closet.org" }],
+      ["/api/auth/org/resend/", undefined],
+      ["/api/auth/org/verify/", { code: "123456" }],
+    ]);
   });
 });

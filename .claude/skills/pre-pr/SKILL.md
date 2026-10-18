@@ -15,7 +15,16 @@ Run these and stop at the first failure, then report it with the output. Don't f
 3. Review `git diff origin/main...HEAD` against the AGENTS.md rules:
    - Any new endpoint is in `PROTECTED` or `PUBLIC` in `backend/api/tests.py::LockdownTests`, and has a logged-out → 401 test and a logged-in test.
    - `AllowAny` appears only where an endpoint truly must be public; anonymous POSTs that change auth state call `enforce_csrf(request)`.
-   - No `fetch()` outside `frontend/src/api/client.js`; no raw hex colors where a token exists.
+   - No `fetch()` outside `frontend/src/api/client.js`.
+   - CSS: `git diff origin/main...HEAD -- '*.css' | grep -nE '^\+.*(#[0-9a-fA-F]{3,8}\b|calc\(|[0-9]px)'` and check each
+     hit. Only `:root` token definitions and spacing/borders may use raw values; colors, radii and font sizes use tokens.
+   - Backend: any request that writes more than one row does it inside `transaction.atomic()`, with a test that a
+     failing second write leaves nothing saved.
+   - Frontend: URL/query values are checked with `Object.hasOwn` or a `Set` (not `MAP[value]`); account type is read
+     from `user.account_type`; pages with a render-time `<Navigate>` don't also call `navigate()` from a submit handler (store the destination in state instead).
+   - New pages use the shared components (`Button`, `TextField`, `ChoiceCard`, `NoteBox`, `Placeholder`), not raw
+     `<button>`/`<input>` or a new not-built-yet marker.
+   - New settings have a safe local default in `settings.py` and appear in `backend/.env.example`.
    - No secrets, `.env`, keys or hardcoded IPs/passwords.
    - Migrations don't drop or rename columns that hold data.
    - Nothing Python 3.10+ (`match`, `X | Y` unions at runtime, `zip(strict=)`).

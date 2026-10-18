@@ -59,8 +59,10 @@ Leave this running too.
 ### 5. Open the app
 
 1. Go to **http://localhost:5173/status**. You should see `ok — sqlite`. That means React, Django and the database are connected.
-2. Go to **http://localhost:5173/signup** and create an account. It only exists on your machine, so any email and password will do.
-3. You're in. The home page lists the sample resources.
+2. Go to **http://localhost:5173/welcome**, tap **Get started**, pick a person or an organization, and create an account.
+   It only exists on your machine, so any email will do.
+3. You're in. A person sees the Home, Search, Claims and Profile tabs; an organization sees Items, Claims, Impact and
+   Profile. Tabs whose screens aren't built yet say "coming soon".
 
 ### Coming back later
 
@@ -103,7 +105,8 @@ describes, update them in the same PR. The PR checklist asks you to confirm it. 
 | `node: command not found` / `npm: command not found` | Install Node (step 1), then open a new terminal. |
 | `ModuleNotFoundError: No module named 'django'` | The venv isn't active. Run `source .venv/bin/activate` in `backend/`. |
 | `/status` shows an error, or pages won't load data | The backend isn't running. Check terminal 1. |
-| You keep getting sent to the login page | Expected: everything needs login. Sign up at http://localhost:5173/signup. |
+| You keep getting sent to the welcome page | Expected: everything needs login. Sign up from http://localhost:5173/welcome. |
+| `CSRF Failed: Origin checking failed` on sign up or sign in | Vite is on a port other than 5173. Set `DJANGO_CSRF_TRUSTED_ORIGINS` in `backend/.env` to that origin (see `.env.example`) and restart the backend. |
 | `Error: That port is already in use` | Another copy is still running. Stop it with Ctrl+C in its terminal, or run `lsof -i :8000` to find it. |
 | Opening http://127.0.0.1:8000 shows a bare page or 404 | That's only the API. Use http://localhost:5173. |
 | `npm run e2e` says `Executable doesn't exist` | Run `npx playwright install chromium` in `frontend/`. |
@@ -180,6 +183,9 @@ Apache serves the React build and proxies `/api/` and `/admin/` to gunicorn on `
 | `DJANGO_SECRET_KEY` | secret | random string |
 | `DB_HOST` | secret | HeatWave private IP. **Leave unset to use SQLite on the VM** |
 | `DB_NAME` / `DB_USER` / `DB_PASSWORD` | secret | HeatWave database credentials |
+| `EMAIL_HOST` | secret | SMTP server for organization codes (e.g. OCI Email Delivery). **Leave unset and codes print to `journalctl`** |
+| `EMAIL_PORT` / `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` | secret | SMTP port (default 587) and credentials |
+| `DEFAULT_FROM_EMAIL` | secret | From address, on a domain approved for sending, e.g. `PVill <no-reply@example.org>` |
 
 To create a Django admin user on the VM:
 

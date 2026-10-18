@@ -20,8 +20,8 @@ export default defineConfig({
       include: ["src/**/*.{js,jsx}"],
       exclude: ["src/test/**", "src/**/*.test.{js,jsx}", "src/main.jsx"],
       reporter: ["text", "html"],
-      // Floor at the current baseline so coverage can only go up. Pages are covered by Playwright.
-      thresholds: { lines: 18 },
+      // Floor just under the current coverage so it can only go up; raise it when coverage rises.
+      thresholds: { lines: 91 },
     },
   },
 });

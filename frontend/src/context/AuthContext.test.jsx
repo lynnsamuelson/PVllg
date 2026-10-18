@@ -34,4 +34,43 @@ describe("AuthContext", () => {
     act(() => onUnauthorized());
     await waitFor(() => expect(screen.getByText("nobody")).toBeInTheDocument());
   });
+
+  it("signs up with an account type and returns the new user", async () => {
+    vi.spyOn(api, "ensureCsrf").mockResolvedValue({});
+    vi.spyOn(api, "getCurrentUser").mockResolvedValue(null);
+    const created = { name: "Food Bank", account_type: "organization" };
+    const signupApi = vi.spyOn(api, "signup").mockResolvedValue(created);
+    let auth;
+    function Grab() {
+      auth = useAuth();
+      return <ShowUser />;
+    }
+    render(<AuthProvider><Grab /></AuthProvider>);
+    await screen.findByText("nobody");
+
+    let returned;
+    await act(async () => (returned = await auth.signup("Food Bank", "hi@foodbank.org", "pw", "organization")));
+    expect(signupApi).toHaveBeenCalledWith("Food Bank", "hi@foodbank.org", "pw", "organization");
+    expect(returned).toBe(created);
+    expect(screen.getByText("Food Bank")).toBeInTheDocument();
+  });
+
+  it("logs in, and logs out locally even when the API call fails", async () => {
+    vi.spyOn(api, "ensureCsrf").mockResolvedValue({});
+    vi.spyOn(api, "getCurrentUser").mockResolvedValue(null);
+    vi.spyOn(api, "login").mockResolvedValue({ name: "Ada" });
+    vi.spyOn(api, "logout").mockRejectedValue(new Error("offline"));
+    let auth;
+    function Grab() {
+      auth = useAuth();
+      return <ShowUser />;
+    }
+    render(<AuthProvider><Grab /></AuthProvider>);
+    await screen.findByText("nobody");
+
+    await act(() => auth.login("ada@example.com", "pw"));
+    expect(screen.getByText("Ada")).toBeInTheDocument();
+    await act(() => auth.logout().catch(() => {}));
+    expect(screen.getByText("nobody")).toBeInTheDocument();
+  });
 });

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import Button from "../../components/Button.jsx";
 import Placeholder from "../../components/Placeholder.jsx";
+import TextField from "../../components/TextField.jsx";
 import { ROUTES } from "../../routes.js";
 
 export default function ForgotPasswordPage() {
@@ -20,11 +22,8 @@ export default function ForgotPasswordPage() {
         <p>If an account exists for {email}, a reset link would be sent.</p>
       ) : (
         <form onSubmit={onSubmit} className="stack">
-          <label>
-            Email
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-          </label>
-          <button type="submit">Send reset link</button>
+          <TextField label="Email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Button type="submit">Send reset link</Button>
         </form>
       )}
       <p>

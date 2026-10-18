@@ -47,9 +47,16 @@ const post = (path, body) => request(path, { method: "POST", body: body && JSON.
 // Auth
 export const ensureCsrf = () => request("/auth/csrf/");
 export const getCurrentUser = () => request("/auth/me/").then((d) => d.user);
-export const signup = (name, email, password) => post("/auth/signup/", { name, email, password }).then((d) => d.user);
+export const signup = (name, email, password, accountType) =>
+  post("/auth/signup/", { name, email, password, account_type: accountType }).then((d) => d.user);
 export const login = (email, password) => post("/auth/login/", { email, password }).then((d) => d.user);
 export const logout = () => post("/auth/logout/");
+
+// Organization email check (KAN-7). Each returns the updated user.
+export const startOrgVerification = (name, website, workEmail) =>
+  post("/auth/org/", { name, website, work_email: workEmail }).then((d) => d.user);
+export const resendOrgCode = () => post("/auth/org/resend/").then((d) => d.user);
+export const verifyOrgCode = (code) => post("/auth/org/verify/", { code }).then((d) => d.user);
 
 // Resources (login required)
 export const listResources = () => request("/resources/");

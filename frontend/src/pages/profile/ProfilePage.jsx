@@ -1,10 +1,17 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import Button from "../../components/Button.jsx";
 import Placeholder from "../../components/Placeholder.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { ROUTES } from "../../routes.js";
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const onLogout = async () => {
+    await logout();
+    navigate(ROUTES.welcome);
+  };
 
   return (
     <section>
@@ -18,9 +25,9 @@ export default function ProfilePage() {
         <dt>Member since</dt>
         <dd>{new Date(user.joined).toLocaleDateString()}</dd>
       </dl>
-      <p>
-        <Link to={ROUTES.home}>← Back to resources</Link>
-      </p>
+      <Button variant="outline" onClick={onLogout}>
+        Sign out
+      </Button>
     </section>
   );
 }

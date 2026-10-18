@@ -54,7 +54,7 @@ frontend/
     App.jsx          route table
     routes.js        every URL path; always use ROUTES.x
     pages/<area>/    one folder per area, one file per page
-    components/      shared UI (Layout, NavBar, ProtectedRoute, FieldError, Placeholder)
+    components/      shared UI (Layout, BottomNav, Button, TextField, ChoiceCard, NoteBox, Logo, BrandHeader, Badge, CodeInput, ProtectedRoute, RequireVerifiedOrg, FieldError, Placeholder)
     context/         AuthContext (current user, login/signup/logout)
     api/client.js    the ONLY place that calls fetch(); handles CSRF + 401
     logger.js        the ONLY place that calls console; use log.info/warn/error
@@ -117,11 +117,13 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
 - Logged-out requests return **401** (`accounts/authentication.py`). The frontend relies on 401 to redirect to
   login, so don't replace this with DRF's default 403.
 - **Users** are Django's built-in `User`. The lowercased email is stored as `username` (and `email`), and the
-  display name goes in `first_name`. Use `get_user_model()`. Don't introduce a custom user model; existing
+  display name goes in `first_name`. Whether the account is a person or an organization lives in `accounts.Profile.account_type`
+  (`user.account_type` in the API); accounts made before it existed read as `person`. Use `get_user_model()`. Don't introduce a custom user model; existing
   migrations depend on the built-in one.
 - **CSRF:** session cookies plus the `X-CSRFToken` header. Anonymous POST endpoints that change auth state
   must call `enforce_csrf(request)` (see `accounts/views.py`), because DRF skips CSRF for anonymous users.
-- **Settings come from env vars only** (`config/settings.py`). Add new settings with a safe local default.
+- **Settings come from env vars only** (`config/settings.py`). Add new settings with a safe local default, and list
+  them (commented out, with the default) in `backend/.env.example`.
 - **Write tests** for every endpoint: at minimum, logged out → 401 and logged in → expected data.
 - **Logging:** `from config.log import get_logger; logger = get_logger(__name__)`. Never import `logging` (or
   another logging library) directly, so the library can be swapped in one place. Output goes to stdout, which is
@@ -129,6 +131,12 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   not passwords, tokens or request bodies. When a test triggers a log line, wrap it in `self.assertLogs(...)` so
   test output stays clean.
 - **Coverage** can't drop below `fail_under` in `.coveragerc`. When you raise coverage, raise the floor too.
+- **Organizations are Pending until they confirm a work email** on their website's domain (`accounts.Organization`,
+  `user.organization.status` in the API: `pending` or `verified`, `null` before they start). Anything only Verified
+  organizations may do must check `organization.verified_at` on the backend; on the frontend, wrap the route in
+  `<RequireVerifiedOrg>`. Email goes through `django.core.mail` (`EMAIL_*` settings; the console without `EMAIL_HOST`).
+- **More than one write per request goes in `transaction.atomic()`** (for example a `User` plus its `Profile`), so a
+  failure halfway can't leave a half-made record. Test it: make the second write fail and assert nothing was saved.
 - **Migrations run against the shared production database on deploy.** Avoid destructive changes (dropping or
   renaming columns that hold data) without a plan. Seed data goes in a data migration with a reverse function.
 
@@ -141,9 +149,21 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   user out on 401.
 - Get the current user from `useAuth()` (`user`, `loading`, `login`, `signup`, `logout`). Don't store auth state
   or tokens anywhere else. The session is an HttpOnly cookie.
-- Show API validation errors with `<FieldError messages={err.fields.<field>} />`.
+- Use `<Button>` (`variant="primary"|"outline"`, `small`, `to` for links) and `<TextField label hint errors>` instead of
+  raw `<button>`/`<input>` markup.
+- Show API validation errors with `<TextField errors={err.fields.<field>}>`, or `<FieldError messages={...} />` for
+  errors not tied to one field.
+- Branch on account type with `user.account_type === "organization"` (or `"person"`). Don't infer it from routes
+  or other fields.
+- **Check URL and query values against an explicit list** with `Object.hasOwn(MAP, value)` or a `Set`, never
+  `MAP[value]`: plain objects also answer to `constructor`, `toString` and `__proto__`.
+- **Don't mix `navigate()` with a render-time `<Navigate>` on the same page.** On a page that redirects signed-in users
+  (`if (user) return <Navigate …>`), a submit handler that calls `navigate()` after login/signup can lose to that
+  redirect. Store the destination in state instead (`setNext(path)`, then `if (next) return <Navigate to={next} />`),
+  and skip the signed-in redirect while submitting. See `SignupPage.jsx` and its test.
 - Every page that fetches data needs loading, empty and error states.
-- Pages awaiting design show `<Placeholder>`. Remove it once the real design is in.
+- Pages awaiting design show `<Placeholder>`. Remove it once the real design is in. Screens whose ticket isn't built
+  yet use `<ComingSoonPage title>`, which shows the same `<Placeholder>`, so searching for `Placeholder` finds both.
 - Plain CSS in `styles/index.css`, using the design tokens (see Design below). Don't add a CSS framework without
   asking the team.
 - **Logging:** `import { log } from "../logger.js"` and use `log.debug/info/warn/error`, never `console` directly.
@@ -160,12 +180,20 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
 
 ## Design
 
-The mockups are in `design/PVill-all-screens.pdf` (25 phone screens, numbered "Mock Up 1" to "Mock Up 25"; Jira
-tickets refer to these numbers). `design/README.md` maps each screen to its Jira ticket and lists the rules each
-screen must keep. **Before building or restyling a page, open its mockup and match it.** The mockups are layout
-references, not pixel-final: Figma (KAN-4) may refine them, but colors, components and wording come from here.
+The designs are in the [PVill Figma file](https://www.figma.com/design/ro8GztAZLeYwu4b7aG086X/Pvill) (KAN-4), with
+frames named `NN · Area · Screen` to match the mockup numbers. Build from Figma; `design/PVill-all-screens.pdf` (25
+phone screens, numbered "Mock Up 1" to "Mock Up 25") is the fallback for anything not in Figma yet. Jira tickets refer
+to these numbers. `design/README.md` maps each screen to its Jira ticket and lists the rules each screen must keep.
+**Before building or restyling a page, open its design and match it.** Where Figma and this file disagree, this file
+wins until it is updated.
 
-**Tokens.** Use the variables in `frontend/src/styles/index.css`, never raw hex, px radii or font sizes.
+**Figma is drawn 1.3× larger.** Its frames are 390px wide; our tokens were measured on the 300px-wide PDF. Divide any
+px value you read in Figma by 1.3 to find the token (Figma 24.7 → `--text-title` 19px, 16.9 → `--text-body` 13px,
+15.6 button radius → `--radius-button` 12px, 20.8 side padding → `--space-side` 16px).
+
+**Tokens.** Use the variables in `frontend/src/styles/index.css`, never raw hex (white included: `--color-white`),
+px radii or font sizes. Don't make up sizes with `calc()` on a token either; if no token fits, add one to `:root` and
+list it here.
 
 | Token | Hex | Role |
 | --- | --- | --- |
@@ -180,13 +208,18 @@ references, not pixel-final: Figma (KAN-4) may refine them, but colors, componen
 | `--color-peach-tint` | `#F7E7DC` | Note boxes, Demo badge |
 | `--color-person-tint` | `#F1E4EA` | Person badge |
 | `--color-line` | `#EBD9D0` | Card borders, dividers |
+| `--color-white` | `#FFFFFF` | Cards, text fields, outline buttons, button text, bottom bar |
 
 Spacing and shape: `--space-side` 16px screen padding, `--space-card-gap` 9px between cards, `--radius-button` 12px,
 `--radius-card` 14px, `--radius-pill` for chips and badges. Type: titles bold `--text-title`, body `--text-body`,
-small `--text-small`, labels bold `--text-label`. Font is Arial until the team picks one (`--font-brand`).
+small `--text-small`, labels bold `--text-label`, choice-card titles bold `--text-card-title`, the PVill name on
+Welcome `--text-display`. Figma uses Arimo, which has the same letter widths as Arial; `--font-brand` stays Arial
+until Arimo is loaded.
 
 **Components** (build each once in `components/`, then reuse; don't restyle per page):
 
+- **Brand header:** leaf mark (84px in Figma) with "PVill" in bold under it, centered near the top of most screens.
+  Welcome uses a larger mark (140px in Figma) and `--text-display`.
 - **Primary button:** full width, green fill, white bold text. One per screen, for the main action.
 - **Outline button:** white fill, plum border and text. For the second choice (Sign in, Send a new code, Back to
   details).
@@ -199,8 +232,10 @@ small `--text-small`, labels bold `--text-label`. Font is Arial until the team p
 - **Note box:** peach-tint fill, no border, small plum text. Used for privacy, demo and rule notes.
 - **Badges:** pill, small bold, always plum text. Verified and Approved (sage tint, green border), Person (person
   tint), Pending and Waiting (white, line border), Demo / Demo only / Example data (peach tint). The mockups show
-  green text on Verified/Approved; design agreed to plum instead because green on sage tint fails contrast.
-- **Text field:** white, rose outline, button radius. Bold label above, small muted hint below.
+  green text on Verified/Approved, and so does Figma; design agreed to plum instead because green on sage tint fails
+  contrast. Keep plum.
+- **Text field:** white, rose outline, slightly smaller radius than buttons (13px in Figma, the same as note boxes).
+  Bold label above, small muted hint below.
 - **Progress bar:** green fill on line-color track, with `STEP n OF 4` in small caps above.
 - **Tabs:** text tabs with a green underline on the active one (Items/Resources, Active/Past).
 - **Bottom navigation:** signed-in screens only. Person: Home, Search, Claims, Give, Profile (Give only with Give
@@ -231,26 +266,6 @@ approval (KAN-11).
 | Sage on ivory | 2.5 | ❌ decoration only |
 | Peach on ivory | 1.8 | ❌ never for text |
 | White on sage or peach | 1.9–2.6 | ❌ never |
-
---- | --- | --- |
-| `--color-plum` | `#593B50` | **Primary.** Nav, headings, primary buttons |
-| `--color-peach` | `#E8B394` | **Primary accent.** Highlights, active states, accent backgrounds |
-| `--color-sage` | `#8AAA72` | **Secondary.** Tags, borders, decorative accents |
-| `--color-green` | `#387C60` | **Secondary.** Success states, secondary buttons, links |
-
-**Accessible pairings** (WCAG AA needs a contrast ratio of at least 4.5 for normal text, 3 for large text and UI):
-
-| Combination | Ratio | Use? |
-| --- | --- | --- |
-| White text on plum | 9.7 | ✅ any text |
-| Plum text on peach | 5.2 | ✅ any text |
-| Dark text (`#1F1A1E`) on peach | 9.2 | ✅ any text |
-| White text on green | 5.0 | ✅ any text (buttons, badges) |
-| Green text on white | 5.0 | ✅ links, success messages |
-| Dark text on sage | 6.6 | ✅ any text |
-| Sage text on white | 2.6 | ❌ decoration and borders only |
-| Peach text on white | 1.9 | ❌ never for text |
-| White text on sage or peach | 1.9–2.6 | ❌ never |
 
 ---
 
@@ -287,6 +302,7 @@ Apache and systemd config, restarts the app, and checks health.
 | `VM_SSH_KEY`, `VM_KNOWN_HOSTS` | secret | Deploy key + host key for SSH |
 | `DJANGO_SECRET_KEY` | secret | Django secret |
 | `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | secret | HeatWave app user (not admin) |
+| `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` | secret | SMTP for organization codes (e.g. OCI Email Delivery on 587). Unset: emails go to `journalctl` |
 
 **On the VM** (Oracle Linux 9, user `opc`, SELinux enforcing). Paths still use the original placeholder name
 `hackathon-app`:
@@ -309,7 +325,7 @@ Apache and systemd config, restarts the app, and checks health.
 
 ## Not built yet
 
-- Forgot password / password reset (needs an email service; the page is a placeholder)
+- Forgot password / password reset (the page is a placeholder; email can reuse the SMTP settings)
 - Rate limiting on login
 - Error reporting service such as Sentry (hook it into `config/log.py` and `frontend/src/logger.js`)
 - Profile editing

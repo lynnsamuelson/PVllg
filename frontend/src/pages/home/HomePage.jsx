@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { listResources } from "../../api/client.js";
 import Placeholder from "../../components/Placeholder.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -10,11 +10,17 @@ export default function HomePage() {
   const [resources, setResources] = useState(null);
   const [error, setError] = useState("");
 
+  const isOrg = user.account_type === "organization";
+
   useEffect(() => {
+    if (isOrg) return;
     listResources()
       .then(setResources)
       .catch((e) => setError(e.message));
-  }, []);
+  }, [isOrg]);
+
+  // Organizations start on their Items tab.
+  if (isOrg) return <Navigate to={ROUTES.orgItems} replace />;
 
   return (
     <section>

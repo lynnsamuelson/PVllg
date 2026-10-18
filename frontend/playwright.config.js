@@ -18,12 +18,14 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [
     {
-      command: `rm -f e2e.sqlite3 && ${python} manage.py migrate -v0 && ${python} manage.py runserver ${API_PORT} --noreload`,
+      command: `rm -rf e2e.sqlite3 e2e-mail && ${python} manage.py migrate -v0 && ${python} manage.py runserver ${API_PORT} --noreload`,
       cwd: "../backend",
       url: `http://127.0.0.1:${API_PORT}/api/health/`,
       env: {
         DB_HOST: "",
         SQLITE_PATH: "e2e.sqlite3",
+        EMAIL_HOST: "",
+        EMAIL_FILE_PATH: "e2e-mail", // e2e/org-signup.spec.js reads the emailed code from here
         DJANGO_DEBUG: "true",
         DJANGO_CSRF_TRUSTED_ORIGINS: `http://127.0.0.1:${WEB_PORT}`,
       },

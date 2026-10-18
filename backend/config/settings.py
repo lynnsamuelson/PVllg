@@ -17,7 +17,8 @@ def env_list(name, default=""):
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-insecure-change-me")
 DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
-CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+# Default is the Vite dev server, which proxies /api here; the deploy sets the VM's origin.
+CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -85,6 +86,22 @@ else:
             "NAME": os.environ.get("SQLITE_PATH", BASE_DIR / "db.sqlite3"),
         }
     }
+
+# Real SMTP when EMAIL_HOST is set; otherwise emails print to stdout. EMAIL_FILE_PATH (e2e only) writes them to files.
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "PVill <no-reply@localhost>")
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() == "true"
+EMAIL_TIMEOUT = 10
+EMAIL_FILE_PATH = os.environ.get("EMAIL_FILE_PATH", "")
+if EMAIL_HOST:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+elif EMAIL_FILE_PATH:
+    EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
