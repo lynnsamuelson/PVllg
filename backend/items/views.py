@@ -11,7 +11,7 @@ from accounts.models import Profile
 from config.log import get_logger
 
 from .models import Item, ItemPhoto
-from .serializers import ItemSerializer, OwnItemSerializer, check_photos
+from .serializers import ItemSerializer, OwnItemSerializer, PublicItemSerializer, check_photos
 
 logger = get_logger(__name__)
 
@@ -49,6 +49,13 @@ def post_item(request):
     return Response(ItemSerializer(item).data, status=status.HTTP_201_CREATED)
 
 
+@api_view(["GET"])
+def item_detail(request, pk):
+    """One item as anyone signed in sees it, with the address privacy rule applied (KAN-11; screen in KAN-17)."""
+    item = get_object_or_404(Item.objects.public(), pk=pk)
+    return Response(PublicItemSerializer(item, context={"request": request}).data)
+
+
 # My items only needs a login: someone who turns Give support off can still see and take down what they posted.
 @api_view(["GET"])
 def my_items(request):
@@ -81,7 +88,7 @@ def my_item(request, pk):
 @api_view(["GET"])
 def item_photo(request, pk):
     """Only the giver sees their photos for now: a porch photo can show where someone lives.
-    Item details (KAN-17) and the privacy rule (KAN-11) decide who else may."""
+    Item details (KAN-17) decides who else may, through privacy.can_see_exact_address."""
     photo = get_object_or_404(ItemPhoto, pk=pk, item__owner=request.user)
     resp = HttpResponse(bytes(photo.data), content_type=photo.content_type)
     resp["Cache-Control"] = "private, max-age=31536000, immutable"  # photos never change

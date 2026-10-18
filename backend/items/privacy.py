@@ -1,0 +1,69 @@
+"""The address privacy rule (KAN-11). Every screen, search, calendar file or message that could show where an item
+is picked up asks these functions; nothing else decides it.
+
+- A Verified organization's public address can always be seen.
+- A person's exact address and Where to go are seen only by the giver and by the family with an Approved claim,
+  until that claim ends (declined, canceled, ended or picked up) or the day after the pickup date.
+- Everyone else sees the general area, a whole-mile distance and the giver's first name, never a full name.
+"""
+import math
+from datetime import timedelta
+
+from accounts.models import Profile
+from claims.models import Claim
+from resources.matching import miles_between
+
+from .models import local_today
+
+PRIVATE_NOTE = "Private. The exact pickup place is shared only after the giver approves your request."
+
+
+def verified_organization(item):
+    """The giver's Organization if it is a Verified organization, else None."""
+    profile = getattr(item.owner, "profile", None)
+    if not profile or profile.account_type != Profile.ORGANIZATION:
+        return None
+    org = getattr(item.owner, "organization", None)
+    return org if org and org.verified_at else None
+
+
+def from_organization(item):
+    return verified_organization(item) is not None
+
+
+def approved_item_ids(user):
+    """Ids of items this user has an Approved claim on."""
+    if not user.is_authenticated:
+        return set()
+    return set(Claim.objects.filter(claimant=user, status=Claim.APPROVED).values_list("item_id", flat=True))
+
+
+def can_see_exact_address(user, item, approved=None):
+    """Can this user see this item's exact address (and Where to go) right now?
+    `approved`: approved_item_ids(user), when checking many items."""
+    if from_organization(item):
+        return True
+    if not user.is_authenticated:
+        return False
+    if item.owner_id == user.pk:
+        return True
+    if item.taken_down_at or item.pickup_date < local_today() - timedelta(days=1):
+        return False  # the claim is over once the item is taken down or its pickup day has passed
+    return item.pk in (approved if approved is not None else approved_item_ids(user))
+
+
+def giver_name(item):
+    """The organization's name, or only a person's first name."""
+    org = verified_organization(item)
+    if org:
+        return org.name
+    return (item.owner.first_name.split() or ["A neighbor"])[0]
+
+
+def rounded_miles(user, item):
+    """Whole miles (halves round up) from the user's ZIP to the item's, at least 1, or None if either is unknown."""
+    profile = getattr(user, "profile", None)
+    org = getattr(user, "organization", None)
+    user_zip = (profile.zip_code if profile else "") or (org.zip_code if org else "")
+    miles = miles_between(user_zip, item.zip_code)
+    return None if miles is None else max(1, math.floor(miles + 0.5))
