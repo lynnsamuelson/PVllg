@@ -54,7 +54,7 @@ frontend/
     App.jsx          route table
     routes.js        every URL path; always use ROUTES.x
     pages/<area>/    one folder per area, one file per page
-    components/      shared UI (Layout, BottomNav, Button, TextField, ChoiceCard, NoteBox, Logo, BrandHeader, Badge, CodeInput, ProtectedRoute, RequireVerifiedOrg, FieldError, Placeholder)
+    components/      shared UI (Layout, BottomNav, Button, TextField, ChoiceCard, Chip, Checkbox, ProgressBar, NoteBox, Logo, BrandHeader, Badge, CodeInput, ProtectedRoute, RequireVerifiedOrg, FieldError, Placeholder)
     context/         AuthContext (current user, login/signup/logout)
     api/client.js    the ONLY place that calls fetch(); handles CSRF + 401
     logger.js        the ONLY place that calls console; use log.info/warn/error
@@ -120,6 +120,10 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   display name goes in `first_name`. Whether the account is a person or an organization lives in `accounts.Profile.account_type`
   (`user.account_type` in the API); accounts made before it existed read as `person`. Use `get_user_model()`. Don't introduce a custom user model; existing
   migrations depend on the built-in one.
+- **A person's profile answers** (ZIP, stage, child age groups, roles, needs, Get/Give/Both) are fields on
+  `accounts.Profile`, saved by `POST /api/auth/profile/` and read as `user.profile` (null until set up) and `user.gives`.
+  The age-group, role and need keys come from `resources` (`matching.AGE_GROUPS`, `ROLE_TO_SERVES`, `models.CATEGORIES`),
+  so `user.profile` can be passed straight to `getResourceMatches`.
 - **CSRF:** session cookies plus the `X-CSRFToken` header. Anonymous POST endpoints that change auth state
   must call `enforce_csrf(request)` (see `accounts/views.py`), because DRF skips CSRF for anonymous users.
 - **Settings come from env vars only** (`config/settings.py`). Add new settings with a safe local default, and list
@@ -212,7 +216,7 @@ list it here.
 | `--color-white` | `#FFFFFF` | Cards, text fields, outline buttons, button text, bottom bar |
 
 Spacing and shape: `--space-side` 16px screen padding, `--space-card-gap` 9px between cards, `--radius-button` 12px,
-`--radius-card` 14px, `--radius-pill` for chips and badges. Type: titles bold `--text-title`, body `--text-body`,
+`--radius-card` 14px, `--radius-pill` for chips and badges, `--radius-checkbox` 3px. Type: titles bold `--text-title`, body `--text-body`,
 small `--text-small`, labels bold `--text-label`, choice-card titles bold `--text-card-title`, the PVill name on
 Welcome `--text-display`. Figma uses Arimo, which has the same letter widths as Arial; `--font-brand` stays Arial
 until Arimo is loaded.

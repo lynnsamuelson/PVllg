@@ -5,6 +5,7 @@ import {
   getCurrentUser,
   login,
   resendOrgCode,
+  savePersonProfile,
   setUnauthorizedHandler,
   startOrgVerification,
   verifyOrgCode,
@@ -87,5 +88,16 @@ describe("api client", () => {
       ["/api/auth/org/resend/", undefined],
       ["/api/auth/org/verify/", { code: "123456" }],
     ]);
+  });
+
+  it("posts the person profile and returns the user", async () => {
+    document.cookie = "csrftoken=abc123";
+    const fetch = vi.fn(async () => jsonResponse(200, { user: { id: 2, gives: true } }));
+    vi.stubGlobal("fetch", fetch);
+
+    const answers = { zip: "37206", stage: "parenting", ages: ["3_12mo"], roles: [], needs: ["feeding"], usage: "both" };
+    expect(await savePersonProfile(answers)).toEqual({ id: 2, gives: true });
+    expect(fetch.mock.calls[0][0]).toBe("/api/auth/profile/");
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual(answers);
   });
 });

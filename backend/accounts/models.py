@@ -7,8 +7,21 @@ class Profile(models.Model):
     ORGANIZATION = "organization"
     ACCOUNT_TYPES = [(PERSON, "Person"), (ORGANIZATION, "Organization")]
 
+    STAGES = [("expecting", "Expecting"), ("parenting", "Parenting"), ("both", "Both")]
+    USAGES = [("get", "Get support"), ("give", "Give support"), ("both", "Both")]
+
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
     account_type = models.CharField(max_length=20, choices=ACCOUNT_TYPES)
+
+    # A person's answers from profile setup (KAN-6). Blank until they finish it; organizations never fill them in.
+    zip_code = models.CharField(max_length=5, blank=True)
+    stage = models.CharField(max_length=10, choices=STAGES, blank=True)
+    arrival_month = models.CharField(max_length=7, blank=True)  # YYYY-MM, only when expecting
+    ages = models.JSONField(default=list, blank=True)  # one age group per child, never names or birth dates
+    roles = models.JSONField(default=list, blank=True)
+    needs = models.JSONField(default=list, blank=True)
+    usage = models.CharField(max_length=4, choices=USAGES, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.username} ({self.account_type})"

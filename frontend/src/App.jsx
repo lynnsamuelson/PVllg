@@ -12,6 +12,7 @@ import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage.jsx";
 import HomePage from "./pages/home/HomePage.jsx";
 import ResourceDetailPage from "./pages/resources/ResourceDetailPage.jsx";
 import ProfilePage from "./pages/profile/ProfilePage.jsx";
+import ProfileSetupPage from "./pages/profile/ProfileSetupPage.jsx";
 import OrgSignupPage from "./pages/org/OrgSignupPage.jsx";
 import OrgVerifyPage from "./pages/org/OrgVerifyPage.jsx";
 import StatusPage from "./pages/status/StatusPage.jsx";
@@ -35,11 +36,11 @@ export default function App() {
           <Route path={ROUTES.home} element={<HomePage />} />
           <Route path={ROUTES.resource()} element={<ResourceDetailPage />} />
           <Route path={ROUTES.profile} element={<ProfilePage />} />
+          <Route path={ROUTES.profileSetup} element={<ProfileSetupPage />} />
           <Route path={ROUTES.orgSignup} element={<OrgSignupPage />} />
           <Route path={ROUTES.orgVerify} element={<OrgVerifyPage />} />
 
-          {/* Filled in by their own tickets: KAN-6, KAN-15, KAN-12, KAN-9, KAN-10, KAN-23 */}
-          <Route path={ROUTES.profileSetup} element={<ComingSoonPage title="Your profile" />} />
+          {/* Filled in by their own tickets: KAN-15, KAN-12, KAN-9, KAN-10, KAN-23 */}
           <Route path={ROUTES.search} element={<ComingSoonPage title="Search near me" />} />
           <Route path={ROUTES.claims} element={<ComingSoonPage title="My claims" />} />
           <Route path={ROUTES.give} element={<ComingSoonPage title="Give" />} />

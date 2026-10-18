@@ -5,6 +5,9 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from rest_framework import serializers
 
+from resources.matching import AGE_GROUPS, ROLE_TO_SERVES
+from resources.models import CATEGORIES
+
 from .models import Profile
 
 User = get_user_model()
@@ -19,15 +22,36 @@ class UserSerializer(serializers.ModelSerializer):
     joined = serializers.DateTimeField(source="date_joined")
     account_type = serializers.SerializerMethodField()
     organization = serializers.SerializerMethodField()
+    profile = serializers.SerializerMethodField()
+    gives = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "name", "email", "joined", "account_type", "organization"]
+        fields = ["id", "name", "email", "joined", "account_type", "organization", "profile", "gives"]
 
     def get_account_type(self, user):
         # Accounts made before account types existed have no Profile; they signed up as people.
         profile = getattr(user, "profile", None)
         return profile.account_type if profile else Profile.PERSON
+
+    def get_profile(self, user):
+        """A person's setup answers (KAN-6), in the shape /api/resources/matches/ takes. null until they finish."""
+        profile = getattr(user, "profile", None)
+        if profile is None or profile.completed_at is None:
+            return None
+        return {
+            "zip": profile.zip_code,
+            "stage": profile.stage,
+            "arrival_month": profile.arrival_month,
+            "ages": profile.ages,
+            "roles": profile.roles,
+            "needs": profile.needs,
+            "usage": profile.usage,
+        }
+
+    def get_gives(self, user):
+        profile = getattr(user, "profile", None)
+        return bool(profile and profile.usage in ("give", "both"))
 
     def get_organization(self, user):
         org = getattr(user, "organization", None)
@@ -121,6 +145,45 @@ class OrganizationSerializer(serializers.Serializer):
         if email_domain != domain:
             raise serializers.ValidationError({"work_email": [f"Your email must end with @{domain}."]})
         return {**attrs, "work_email": email, "domain": domain}
+
+
+PROFILE_ROLES = [*ROLE_TO_SERVES, "other", "prefer_not"]
+
+
+class PersonProfileSerializer(serializers.Serializer):
+    """Profile setup (Mock Ups 3-6). Never takes a street address, birth date, names or medical details."""
+
+    zip = serializers.RegexField(r"^\d{5}$", error_messages={"invalid": "Enter a 5-digit ZIP code."})
+    stage = serializers.ChoiceField(choices=Profile.STAGES)
+    arrival_month = serializers.RegexField(
+        r"^\d{4}-(0[1-9]|1[0-2])$", required=False, allow_blank=True, error_messages={"invalid": "Pick a month."}
+    )
+    ages = serializers.ListField(child=serializers.ChoiceField(choices=list(AGE_GROUPS)), required=False, max_length=10)
+    roles = serializers.ListField(child=serializers.ChoiceField(choices=PROFILE_ROLES), required=False)
+    needs = serializers.ListField(
+        child=serializers.ChoiceField(choices=list(CATEGORIES)),
+        allow_empty=False,
+        error_messages={"empty": "Pick at least one."},
+    )
+    usage = serializers.ChoiceField(choices=Profile.USAGES)
+
+    def validate_roles(self, value):
+        roles = list(dict.fromkeys(value))
+        if "prefer_not" in roles and len(roles) > 1:
+            raise serializers.ValidationError("Prefer not to say can't be picked with other roles.")
+        return roles
+
+    def validate_needs(self, value):
+        return list(dict.fromkeys(value))
+
+    def validate(self, attrs):
+        attrs.setdefault("ages", [])
+        attrs.setdefault("roles", [])
+        if attrs["stage"] in ("parenting", "both") and not attrs["ages"]:
+            raise serializers.ValidationError({"ages": ["Pick an age group for your child."]})
+        if attrs["stage"] == "parenting":
+            attrs["arrival_month"] = ""
+        return attrs
 
 
 class OrganizationCodeSerializer(serializers.Serializer):

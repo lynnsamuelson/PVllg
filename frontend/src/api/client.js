@@ -52,6 +52,9 @@ export const signup = (name, email, password, accountType) =>
 export const login = (email, password) => post("/auth/login/", { email, password }).then((d) => d.user);
 export const logout = () => post("/auth/logout/");
 
+// Person profile setup (KAN-6). answers = { zip, stage, arrival_month, ages[], roles[], needs[], usage }.
+export const savePersonProfile = (answers) => post("/auth/profile/", answers).then((d) => d.user);
+
 // Organization email check (KAN-7). Each returns the updated user.
 export const startOrgVerification = (name, website, workEmail) =>
   post("/auth/org/", { name, website, work_email: workEmail }).then((d) => d.user);

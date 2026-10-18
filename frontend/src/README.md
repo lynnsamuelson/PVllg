@@ -12,7 +12,7 @@ src/
 │   ├── auth/             AccountTypePage (Mock Up 2), SignupPage, LoginPage, ForgotPasswordPage (placeholder)  (public)
 │   ├── home/             HomePage: lists resources                       (login required)
 │   ├── resources/        ResourceDetailPage: one resource                (login required)
-│   ├── profile/          ProfilePage                                     (login required)
+│   ├── profile/          ProfilePage, ProfileSetupPage (4 steps, KAN-6)  (login required)
 │   ├── org/              OrgSignupPage (Mock Up 7), OrgVerifyPage (Mock Up 8)  (login required)
 │   ├── status/           StatusPage: dev check of API + database         (public, not in nav)
 │   ├── ComingSoonPage.jsx  Stand-in for tabs whose ticket isn't built yet (login required)
@@ -24,6 +24,9 @@ src/
 │   ├── Button.jsx        Primary / outline / small button; a <Link> when given `to`
 │   ├── TextField.jsx     Label + input + hint + API errors
 │   ├── ChoiceCard.jsx    Selectable card, one pick per group
+│   ├── Chip.jsx          Pill choice, one pick per group
+│   ├── Checkbox.jsx      Checkbox row (green box with a white check)
+│   ├── ProgressBar.jsx   STEP n OF 4 and the green bar
 │   ├── NoteBox.jsx       Peach-tint note
 │   ├── Logo.jsx          PVill mark
 │   ├── BrandHeader.jsx   Logo with "PVill" under it, top of most screens
