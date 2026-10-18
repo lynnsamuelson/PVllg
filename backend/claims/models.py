@@ -38,6 +38,7 @@ class Claim(models.Model):
     status = models.CharField(max_length=10, choices=STATUSES, default=WAITING)
     created_at = models.DateTimeField(auto_now_add=True)
     held_until = models.DateTimeField(null=True, blank=True)  # end of the 3-day hold (KAN-12; the PO may change it)
+    calendar_added_at = models.DateTimeField(null=True, blank=True)  # last calendar file download (KAN-19)
     end_reason = models.CharField(max_length=20, choices=REASONS, blank=True)  # why an Ended claim ended (KAN-14)
 
     class Meta:

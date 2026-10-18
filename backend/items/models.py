@@ -54,6 +54,10 @@ class ItemQuerySet(models.QuerySet):
         )
 
 
+PICKUP_FIELDS = ["pickup_date", "pickup_start", "pickup_end", "general_area", "exact_address", "where_to_go",
+                 "what_to_bring"]  # when and where: editing these shows families "Pickup details changed" (KAN-19)
+
+
 class Item(models.Model):
     """Something a giver posted (KAN-9). The exact address is private; KAN-11 decides who may see it."""
 
@@ -72,6 +76,7 @@ class Item(models.Model):
     what_to_bring = models.CharField(max_length=500, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     taken_down_at = models.DateTimeField(null=True, blank=True)  # set by Take down (KAN-10); hidden from search
+    pickup_changed_at = models.DateTimeField(null=True, blank=True)  # last edit to when/where (KAN-19 change notice)
 
     objects = ItemQuerySet.as_manager()
 

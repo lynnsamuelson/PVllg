@@ -273,7 +273,9 @@ def organization_profile(request):
     with transaction.atomic():
         org.save(update_fields=list(profile))
         # The organization's items are picked up at its public address, so they follow it (KAN-9).
-        request.user.items.update(exact_address=profile["pickup_address"], zip_code=profile["zip_code"])
+        request.user.items.exclude(exact_address=profile["pickup_address"]).update(
+            exact_address=profile["pickup_address"], zip_code=profile["zip_code"], pickup_changed_at=timezone.now()
+        )
     logger.info("org profile saved user_id=%s", request.user.pk)
     return user_response(request.user)
 
@@ -285,16 +287,19 @@ def person_profile(request):
     serializer = PersonProfileSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     answers = serializer.validated_data
-    with transaction.atomic():
-        profile, _ = Profile.objects.get_or_create(user=request.user, defaults={"account_type": Profile.PERSON})
-        profile.zip_code = answers["zip"]
-        profile.stage = answers["stage"]
-        profile.arrival_month = answers.get("arrival_month", "")
-        profile.ages = answers["ages"]
-        profile.roles = answers["roles"]
-        profile.needs = answers["needs"]
-        profile.usage = answers["usage"]
-        profile.completed_at = timezone.now()
-        profile.save()
+    fields = {
+        "zip_code": answers["zip"],
+        "stage": answers["stage"],
+        "arrival_month": answers.get("arrival_month", ""),
+        "ages": answers["ages"],
+        "roles": answers["roles"],
+        "needs": answers["needs"],
+        "usage": answers["usage"],
+        "completed_at": timezone.now(),
+    }
+    # Write without reading first: on SQLite a read-then-write transaction fails with "database is locked"
+    # when another request is writing, instead of waiting.
+    if not Profile.objects.filter(user=request.user).update(**fields):
+        Profile.objects.create(user=request.user, account_type=Profile.PERSON, **fields)
     logger.info("profile saved user_id=%s", request.user.pk)
     return user_response(request.user)

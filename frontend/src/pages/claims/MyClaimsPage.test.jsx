@@ -65,7 +65,14 @@ describe("MyClaimsPage", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/the item goes back on the list for other families/)).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Cancel claim" })).toHaveLength(2);
+    expect(screen.getByRole("link", { name: "Add to calendar" })).toHaveAttribute("href", ROUTES.claimCalendar(1));
     expect(api.listClaims).toHaveBeenCalledWith("active");
+  });
+
+  it("says when the giver changed the pickup details", async () => {
+    vi.spyOn(api, "listClaims").mockResolvedValue([{ ...APPROVED, pickup_changed: true }]);
+    renderPage();
+    expect(await screen.findByText("Pickup details changed. Update your calendar.")).toBeInTheDocument();
   });
 
   it("leaves out the hold line when a claim has no hold date", async () => {

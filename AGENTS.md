@@ -53,7 +53,7 @@ backend/
                      data/sample-data.json: made-up demo accounts and sample items (KAN-26, migration 0003);
                      demo.py refreshes their pickup dates (admin action)
   claims/            Claim model (Waiting, Approved, Declined, Canceled, Ended, Picked up); /api/claims/ (claim, My
-                     claims, cancel: KAN-12; approve, decline, picked up: KAN-13; didn't come, expiry: KAN-14); actions.py
+                     claims, cancel: KAN-12; approve, decline, picked up: KAN-13; didn't come, expiry: KAN-14; calendar.ics: KAN-19); actions.py
                      holds every claim change
   api/               /api/health/ (public) and the Notes demo
   requirements.txt   what the VM installs
@@ -71,6 +71,8 @@ frontend/
     logger.js        the ONLY place that calls console; use log.info/warn/error
     **/*.test.js(x)  Vitest unit tests, next to the file they test
     styles/index.css global styles + design tokens (colors, spacing, radii, type)
+    assets/          brand images (mark, wordmark); use these, don't redraw the logo
+  public/            files served as-is at the site root (app icon / favicon)
   e2e/               Playwright browser tests (playwright.config.js starts Django + Vite itself)
 deploy/              Apache vhost, systemd unit, remote-deploy.sh (runs on the VM)
 scripts/             add-teammate-key.sh, db-tunnel.sh
@@ -216,6 +218,8 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
 - **Browser tests** (Playwright) go in `frontend/e2e/`, one spec per user flow. Use them for whole flows across
   pages, and use unique emails per test (the e2e database is reused between tests). Prefer `getByRole` and
   `getByLabel` over CSS selectors.
+- **Every PR that adds a screen, flow or user-visible behavior adds or extends an e2e spec for it**, in the same
+  PR. Unit tests don't replace it. Shared sign-up and setup steps live in `e2e/helpers.js`.
 
 ---
 
@@ -314,7 +318,8 @@ approval (KAN-11).
 
 1. Branch from `main` as `<type>/<firstname>-<thing>`, all lowercase, where type is `feature`, `fix`, `docs` or
    `chore`. Example: `feature/sydney-resource-filters`. The `pr-hygiene` check fails other names.
-2. Keep PRs focused. Run `/pre-pr` (or the commands in "What CI runs") locally first.
+2. Keep PRs focused. New functionality comes with its e2e spec (see Frontend conventions). Run `/pre-pr` (or the
+   commands in "What CI runs") locally first.
 3. **Update the docs in the same PR.** If your change affects anything `README.md`, `AGENTS.md` or
    `frontend/src/README.md` describes (setup steps, commands, env vars, folders, conventions, CI, deploy), update
    them before you push. Then tick the docs box in the PR checklist. `pr-hygiene` fails until it's ticked, and
