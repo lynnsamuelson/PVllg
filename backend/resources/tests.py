@@ -3,7 +3,7 @@ from django.test import SimpleTestCase
 from rest_framework.test import APITestCase
 
 from .matching import match_resources, miles_between
-from .models import Resource
+from .models import CATEGORIES, Resource
 
 User = get_user_model()
 
@@ -35,7 +35,7 @@ class ResourceAccessTests(APITestCase):
 
 def make(title, categories, area_type="local", zip_code="", **tags):
     return Resource.objects.create(
-        title=title, category=categories[0], summary=f"{title} summary", categories=categories,
+        title=title, category=CATEGORIES[categories[0]], summary=f"{title} summary", categories=categories,
         area_type=area_type, zip_code=zip_code, **tags,
     )
 
@@ -44,7 +44,6 @@ class MatchesEndpointTests(APITestCase):
     """Test resources shaped like the KAN-26 starter list."""
 
     def setUp(self):
-        Resource.objects.all().delete()  # drop the placeholder seed rows
         make("Downtown Diapers", ["essentials"], zip_code="37201")
         make("Statewide Diapers", ["essentials"], "statewide", age_min_months=0, age_max_months=23,
              limits="Children under 2")
@@ -97,17 +96,38 @@ class MatchesEndpointTests(APITestCase):
         self.assertEqual(self.titles("zip=37206&q=formula"), ["National Formula Savings"])
 
     def test_unknown_zip_still_gets_statewide_and_national(self):
-        self.assertEqual(self.titles("zip=38103"), ["National Formula Savings", "Statewide Diapers"])
+        titles = self.titles("zip=38103")
+        self.assertIn("National Formula Savings", titles)
+        self.assertIn("Statewide Diapers", titles)
+        self.assertNotIn("Downtown Diapers", titles)
 
-    def test_bad_zip_is_a_field_error(self):
-        resp = self.get("zip=abc")
+    def test_bad_zip_and_category_are_field_errors(self):
+        resp = self.get("zip=abc&category=diaper")
         self.assertEqual(resp.status_code, 400)
         self.assertIn("zip", resp.json())
+        self.assertIn("category", resp.json())
+
+    def test_existing_rows_without_tags_still_show(self):
+        # The placeholder seed rows (and anything added in admin before tagging) are local with no ZIP.
+        results = self.get("zip=37206").json()
+        untagged = next(r for r in results if r["title"] == "Help center")
+        self.assertIsNone(untagged["distance_miles"])
+        self.assertEqual(untagged["reason"], "May be a good fit")
+        # It ranks after the resources we can place on the map.
+        self.assertGreater(results.index(untagged), [r["title"] for r in results].index("Downtown Housing"))
+
+    def test_radius_is_strict(self):
+        # Antioch is about 10.3 miles from East Nashville: shown as "about 10 miles" but outside a 10-mile radius.
+        make("Antioch Diapers", ["essentials"], zip_code="37013")
+        self.assertNotIn("Antioch Diapers", self.titles("zip=37206&radius=10"))
+        antioch = next(r for r in self.get("zip=37206&radius=25").json() if r["title"] == "Antioch Diapers")
+        self.assertEqual(antioch["distance_miles"], 10)
 
 
 class MatchingUnitTests(SimpleTestCase):
     def test_miles_between(self):
         self.assertEqual(miles_between("37201", "37201"), 0)
+        self.assertIsInstance(miles_between("37201", "37206"), float)
         self.assertIsNone(miles_between("37201", "99999"))
 
     def test_reason_lines(self):
@@ -119,3 +139,8 @@ class MatchingUnitTests(SimpleTestCase):
         self.assertEqual(results[0]["reason"], "Matches Diapers and Tennessee · For foster and kinship families")
         self.assertEqual(results[1]["reason"], "May be a good fit")
         self.assertFalse(results[1]["matches_needs"])
+
+    def test_reason_with_two_needs_and_area_reads_naturally(self):
+        both = Resource(title="Z", categories=["essentials", "feeding"], area_type="local", zip_code="37201")
+        results = match_resources([both], {"zip": "37206", "needs": ["essentials", "feeding"]})
+        self.assertEqual(results[0]["reason"], "Matches Diapers, Feeding and your area")

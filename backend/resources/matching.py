@@ -69,17 +69,18 @@ ROLE_TO_SERVES = {
 }
 
 DEFAULT_RADIUS_MILES = 10
+# Short names for reason lines. A category missing here falls back to its full label.
 SHORT_CATEGORY = {"essentials": "Diapers", "feeding": "Feeding", "parenting": "Parenting", "housing": "Housing"}
 
 
 def miles_between(zip_a, zip_b):
-    """Rounded whole miles between two ZIP centers, or None if either ZIP is unknown."""
+    """Miles (unrounded) between two ZIP centers, or None if either ZIP is unknown."""
     a, b = ZIP_CENTERS.get(zip_a), ZIP_CENTERS.get(zip_b)
     if not a or not b:
         return None
     lat1, lng1, lat2, lng2 = map(math.radians, (*a, *b))
     h = math.sin((lat2 - lat1) / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin((lng2 - lng1) / 2) ** 2
-    return round(3959 * 2 * math.asin(math.sqrt(h)))
+    return 3959 * 2 * math.asin(math.sqrt(h))
 
 
 def _age_ranges(profile):
@@ -109,14 +110,12 @@ def _fits_role(resource, profile):
 
 
 def _reason(resource, matched_needs, distance):
-    parts = []
-    if matched_needs:
-        parts.append(" and ".join(SHORT_CATEGORY[c] for c in matched_needs))
+    parts = [SHORT_CATEGORY.get(c, CATEGORIES[c]) for c in matched_needs]
     if resource.area_type == Resource.LOCAL and distance is not None:
         parts.append("your area")
     elif resource.area_type == Resource.STATEWIDE:
         parts.append("Tennessee")
-    reason = "Matches " + " and ".join(parts) if parts else "May be a good fit"
+    reason = "Matches " + _join_words(parts) if parts else "May be a good fit"
     if resource.serves and "parents" not in resource.serves:
         groups = [SERVES[s].split()[0].lower() for s in resource.serves if s in SERVES]
         reason += f" · For {_join_words(groups)} families"
@@ -149,10 +148,13 @@ def match_resources(resources, profile, category=None, query="", radius=DEFAULT_
             continue
 
         distance = None
-        if resource.area_type == Resource.LOCAL:
-            distance = miles_between(profile.get("zip", ""), resource.zip_code)
-            if distance is None or distance > radius:
+        if resource.area_type == Resource.LOCAL and resource.zip_code:
+            # Compare unrounded miles so the radius is a strict cutoff; round only for display.
+            miles = miles_between(profile.get("zip", ""), resource.zip_code)
+            if miles is None or miles > radius:
                 continue
+            distance = round(miles)
+        # A local resource with no ZIP yet still shows, without a distance, after the ones we can place.
 
         matched_needs = [c for c in resource.categories if c in needs]
         results.append(

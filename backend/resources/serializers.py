@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from .models import Resource
+from .matching import DEFAULT_RADIUS_MILES
+from .models import CATEGORIES, Resource
 
 
 class ResourceSerializer(serializers.ModelSerializer):
@@ -20,9 +21,9 @@ class MatchQuerySerializer(serializers.Serializer):
     ages = serializers.CharField(required=False, default="")
     roles = serializers.CharField(required=False, default="")
     needs = serializers.CharField(required=False, default="")
-    category = serializers.CharField(required=False, default="")
+    category = serializers.ChoiceField(list(CATEGORIES), required=False, default="", allow_blank=True)
     q = serializers.CharField(required=False, default="", allow_blank=True)
-    radius = serializers.ChoiceField([5, 10, 25, 50], required=False, default=10)
+    radius = serializers.ChoiceField([5, 10, 25, 50], required=False, default=DEFAULT_RADIUS_MILES)
 
     def validate(self, attrs):
         for key in ("ages", "roles", "needs"):
