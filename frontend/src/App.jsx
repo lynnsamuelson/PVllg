@@ -61,7 +61,7 @@ export default function App() {
             <Route path={ROUTES.postItem} element={<PostItemPage />} />
             <Route path={ROUTES.editItem()} element={<PostItemPage />} />
           </Route>
-          <Route element={<RequireGiver title="My items" />}>
+          <Route element={<RequireGiver title="My items" anyPerson />}>
             <Route path={ROUTES.give} element={<MyItemsPage />} />
             <Route path={ROUTES.orgItems} element={<MyItemsPage />} />
           </Route>

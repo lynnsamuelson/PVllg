@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as api from "../../api/client.js";
+import * as auth from "../../context/AuthContext.jsx";
 import { ROUTES } from "../../routes.js";
 import MyItemsPage, { countsLine } from "./MyItemsPage.jsx";
 
@@ -15,7 +16,8 @@ const STROLLER = {
   claims: [{ id: 31, status: "approved", family: "Jordan" }],
 };
 
-function renderPage(state) {
+function renderPage(state, user = { account_type: "person", gives: true }) {
+  vi.spyOn(auth, "useAuth").mockReturnValue({ user });
   render(
     <MemoryRouter initialEntries={[{ pathname: ROUTES.give, state }]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <MyItemsPage />
@@ -164,6 +166,14 @@ describe("MyItemsPage", () => {
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: "Yes, it is available" }));
     expect(await screen.findByText("Failed to fetch")).toBeInTheDocument();
+  });
+
+  it("lets someone with Give off manage their items but not post new ones", async () => {
+    vi.spyOn(api, "listMyItems").mockResolvedValue([CRIB]);
+    renderPage(undefined, { account_type: "person", gives: false });
+    expect(await screen.findByRole("heading", { name: "Crib" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Post an item" })).not.toBeInTheDocument();
+    expect(screen.getByText(/Give support is off/)).toBeInTheDocument();
   });
 
   it("says Saved after an edit", async () => {
