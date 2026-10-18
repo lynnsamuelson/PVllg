@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { getResource } from "../../api/client.js";
 import BackToResults from "../../components/BackToResults.jsx";
 import Badge from "../../components/Badge.jsx";
+import BottomSheet from "../../components/BottomSheet.jsx";
 import BrandHeader from "../../components/BrandHeader.jsx";
 import Button from "../../components/Button.jsx";
 import { formatLongDate, resourceArea } from "../../format.js";
@@ -34,11 +35,14 @@ export default function ResourceDetailPage() {
   const { resourceId } = useParams();
   const [resource, setResource] = useState(null);
   const [error, setError] = useState(null);
+  const [reachingOut, setReachingOut] = useState(false);
+  const closeReachOut = () => setReachingOut(false);
 
   useEffect(() => {
     let current = true;
     setResource(null);
     setError(null);
+    setReachingOut(false);
     getResource(resourceId)
       .then((data) => current && setResource(data))
       .catch((err) => current && setError(err));
@@ -126,11 +130,26 @@ export default function ResourceDetailPage() {
           Source: {resource.source_url ? siteName(resource.source_url) : NOT_LISTED} · last checked{" "}
           {resource.last_checked ? formatLongDate(resource.last_checked) : NOT_LISTED}. Please confirm before you go.
         </p>
-        {/* The Reach out preview is built in KAN-21; until then the button shows but does nothing. */}
-        <Button>
+        <Button onClick={() => setReachingOut(true)}>
           Reach out <Badge variant="demo">Demo</Badge>
         </Button>
       </div>
+      {/* Mock Up 23: a demo only. Nothing is sent and nothing is collected, so it never says "Request sent". */}
+      {reachingOut && (
+        <BottomSheet
+          title="No request will be sent"
+          badge={<Badge variant="demo">Demo only</Badge>}
+          onClose={closeReachOut}
+        >
+          <p className="item-giver">
+            In the real version, this step could help you contact the program. For now, no message is sent and no
+            personal details are collected.
+          </p>
+          <Button variant="outline" onClick={closeReachOut}>
+            Back to details
+          </Button>
+        </BottomSheet>
+      )}
     </section>
   );
 }

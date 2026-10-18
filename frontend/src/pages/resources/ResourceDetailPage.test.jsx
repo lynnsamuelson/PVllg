@@ -61,6 +61,24 @@ describe("ResourceDetailPage", () => {
     expect(screen.queryByText(/qualify/i)).not.toBeInTheDocument();
   });
 
+  it("shows the Reach out demo and sends nothing (Mock Up 23)", async () => {
+    vi.spyOn(api, "getResource").mockResolvedValue(WIC);
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    renderDetail();
+    fireEvent.click(await screen.findByRole("button", { name: "Reach out Demo" }));
+    const sheet = screen.getByRole("dialog", { name: "No request will be sent" });
+    expect(sheet).toHaveAccessibleDescription("Demo only");
+    expect(sheet).toHaveTextContent("no message is sent and no personal details are collected");
+    expect(screen.queryByText(/Request sent/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Back to details" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Davidson County WIC" })).toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(api.getResource).toHaveBeenCalledTimes(1); // only the page's own load
+  });
+
   it("says Not listed for anything the page doesn't list", async () => {
     vi.spyOn(api, "getResource").mockResolvedValue({
       ...WIC, description: "", area_type: "national", url: "", public_phone: "", public_address: "", referral: "", source_url: "",

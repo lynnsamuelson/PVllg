@@ -833,3 +833,6 @@ button.text-link {
 .sheet-close {
   align-self: flex-end;
 }
+.sheet-badge {
+  margin-bottom: -6px; /* the badge sits close above its sheet's title (Mock Up 23) */
+}
