@@ -6,7 +6,6 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.core.mail import send_mail
-from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -281,16 +280,19 @@ def person_profile(request):
     serializer = PersonProfileSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     answers = serializer.validated_data
-    with transaction.atomic():
-        profile, _ = Profile.objects.get_or_create(user=request.user, defaults={"account_type": Profile.PERSON})
-        profile.zip_code = answers["zip"]
-        profile.stage = answers["stage"]
-        profile.arrival_month = answers.get("arrival_month", "")
-        profile.ages = answers["ages"]
-        profile.roles = answers["roles"]
-        profile.needs = answers["needs"]
-        profile.usage = answers["usage"]
-        profile.completed_at = timezone.now()
-        profile.save()
+    fields = {
+        "zip_code": answers["zip"],
+        "stage": answers["stage"],
+        "arrival_month": answers.get("arrival_month", ""),
+        "ages": answers["ages"],
+        "roles": answers["roles"],
+        "needs": answers["needs"],
+        "usage": answers["usage"],
+        "completed_at": timezone.now(),
+    }
+    # Write without reading first: on SQLite a read-then-write transaction fails with "database is locked"
+    # when another request is writing, instead of waiting.
+    if not Profile.objects.filter(user=request.user).update(**fields):
+        Profile.objects.create(user=request.user, account_type=Profile.PERSON, **fields)
     logger.info("profile saved user_id=%s", request.user.pk)
     return user_response(request.user)
