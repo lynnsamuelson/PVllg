@@ -63,7 +63,7 @@ frontend/
     App.jsx          route table
     routes.js        every URL path; always use ROUTES.x
     pages/<area>/    one folder per area, one file per page
-    components/      shared UI (Layout, BottomNav, Button, TextField, ChoiceCard, Chip, Checkbox, ProgressBar, NoteBox, Logo, BrandHeader, AppHeader, Badge, Tabs, CodeInput, ProtectedRoute, RequireVerifiedOrg, RequireGiver, FieldError, Placeholder)
+    components/      shared UI (Layout, BottomNav, Button, TextField, ChoiceCard, Chip, Checkbox, ProgressBar, NoteBox, Logo, BrandHeader, AppHeader, Badge, Tabs, BackToResults, CodeInput, ProtectedRoute, RequireVerifiedOrg, RequireGiver, FieldError, Placeholder)
     context/         AuthContext (current user, login/signup/logout)
     api/client.js    the ONLY place that calls fetch(); handles CSRF + 401
     logger.js        the ONLY place that calls console; use log.info/warn/error

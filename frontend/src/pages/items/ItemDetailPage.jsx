@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import * as api from "../../api/client.js";
+import BackToResults from "../../components/BackToResults.jsx";
 import Badge from "../../components/Badge.jsx";
 import BrandHeader from "../../components/BrandHeader.jsx";
 import Button from "../../components/Button.jsx";
@@ -24,8 +25,6 @@ function boldLabel(note) {
 // has no exact address until an approved claim, so this page only shows what it gets.
 export default function ItemDetailPage() {
   const { itemId } = useParams();
-  const navigate = useNavigate();
-  const location = useLocation();
   const [item, setItem] = useState(null);
   const [error, setError] = useState("");
 
@@ -42,13 +41,7 @@ export default function ItemDetailPage() {
     };
   }, [itemId]);
 
-  // Back to the results with the same search when Search opened this page; otherwise to Search.
-  const back = () => (location.state?.fromSearch ? navigate(-1) : navigate(ROUTES.search));
-  const header = (
-    <button type="button" className="back-link" onClick={back}>
-      ← Results
-    </button>
-  );
+  const header = <BackToResults fallback={ROUTES.search} />;
 
   if (error) {
     return (

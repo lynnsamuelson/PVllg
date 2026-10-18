@@ -450,6 +450,9 @@ class StarterResourceTests(APITestCase):
         self.assertIn("not an emergency shelter", grace.limits)
         self.assertEqual(str(grace.last_checked), "2026-10-17")
         self.assertFalse(Resource.objects.filter(title="Help center").exists())
+        # Notes to developers in the data never reach the screen.
+        self.assertFalse(Resource.objects.filter(limits__icontains="widens the distance").exists())
+        self.assertEqual(Resource.objects.get(title="Food Bank of North Alabama Diaper Bank").limits, "Only for North Alabama.")
 
 
 class SearchItemsTests(APITestCase):
