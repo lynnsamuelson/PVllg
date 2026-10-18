@@ -13,8 +13,8 @@ test("only the giver sees a person's exact address; an organization's address is
   const org = await (await browser.newContext()).newPage();
   await signupVerifiedOrg(org, { name: "Sample Community Closet" });
   await saveOrgProfile(org, "100 Sample Way, Nashville, TN 37206");
-  await postItem(org, { name: "Car seat" });
-  const orgItem = await myItemId(org, "/org/items", "Car seat");
+  await postItem(org, { name: "High chair" });
+  const orgItem = await myItemId(org, "/org/items", "High chair");
 
   const family = await (await browser.newContext()).newPage();
   await signupPerson(family, { name: "Taylor Kim", zip: "37208", usage: "Get support" });

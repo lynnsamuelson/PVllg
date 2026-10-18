@@ -122,7 +122,7 @@ test("a giver marks that the family didn't come", async ({ browser }) => {
 
 // KAN-12: only one family gets the last one.
 test("when two families try for the last one, the second is told it's gone", async ({ browser }) => {
-  const name = `Car seat ${Date.now()}`;
+  const name = `Baby swing ${Date.now()}`;
   const { id } = await personGiverWithItem(browser, name);
   const first = await family(browser, "Taylor Kim");
   const second = await family(browser, "Morgan Diaz");

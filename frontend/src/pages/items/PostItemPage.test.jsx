@@ -48,7 +48,7 @@ describe("PostItemPage", () => {
   it("says which answers are missing on step 1", () => {
     renderPage();
     expect(screen.getByText("Step 1 of 2 · About the item")).toBeInTheDocument();
-    expect(screen.getByText("Not allowed: breastmilk, medicine, and other health-sensitive items.")).toBeInTheDocument();
+    expect(screen.getByText("Not allowed: car seats, breastmilk, medicine, and other health-sensitive items.")).toBeInTheDocument();
     click("button", "Next: pickup details");
     expect(screen.getByText("Add the item name.")).toBeInTheDocument();
     expect(screen.getByText("Pick a category.")).toBeInTheDocument();

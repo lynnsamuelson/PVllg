@@ -1,6 +1,7 @@
-"""KAN-26 demo data helpers. Migrations 0003 and 0007 load the made-up accounts, items and claims from
-data/sample-data.json and data/demo-families.json; this moves their pickup dates forward again, and restarts the
-clock on demo families' active claims so they don't run out (Items admin → "Refresh demo pickup dates")."""
+"""KAN-26 demo data helpers. Migrations 0003, 0007 and 0008 load the made-up accounts, items and claims from
+data/sample-data.json, demo-families.json and demo-organizations.json; this moves their pickup dates forward again,
+and restarts the clock on demo families' active claims so they don't run out (Items admin → "Refresh demo pickup
+dates")."""
 import json
 from collections import defaultdict
 from datetime import timedelta
@@ -15,13 +16,15 @@ from .models import local_today
 
 DATA = Path(__file__).resolve().parent / "data" / "sample-data.json"
 FAMILIES = Path(__file__).resolve().parent / "data" / "demo-families.json"
+ORGANIZATIONS = Path(__file__).resolve().parent / "data" / "demo-organizations.json"
 
 
 def offsets():
     """{(owner email, item name): days from today} for every sample item."""
     sample = json.loads(DATA.read_text())
-    emails = {x["id"]: x["demoEmail"] for key in ("organizations", "people") for x in sample[key]}
-    items = sample["items"] + json.loads(FAMILIES.read_text())["items"]
+    more_orgs = json.loads(ORGANIZATIONS.read_text())
+    emails = {x["id"]: x["demoEmail"] for x in sample["organizations"] + sample["people"] + more_orgs["organizations"]}
+    items = sample["items"] + json.loads(FAMILIES.read_text())["items"] + more_orgs["items"]
     return {(emails[i["giver"]], i["name"]): i["pickupDayOffset"] for i in items}
 
 

@@ -55,7 +55,8 @@ backend/
                      show Mock Up 10's Example data)
                      data/sample-data.json: made-up demo accounts and sample items (KAN-26, migration 0003);
                      data/demo-families.json + demo-photos/: four more demo families, items with drawn photos and
-                     claims in set states (migration 0007);
+                     claims in set states (migration 0007); data/demo-organizations.json: two more Verified
+                     demo organizations and their items (migration 0008);
                      demo.py refreshes their pickup dates and restarts demo claims (admin action)
   claims/            Claim model (Waiting, Approved, Declined, Canceled, Ended, Picked up); /api/claims/ (claim, My
                      claims, cancel: KAN-12; approve, decline, picked up: KAN-13; didn't come, expiry: KAN-14; calendar.ics: KAN-19; report: KAN-20, read in admin → Pickup reports); actions.py
@@ -185,8 +186,8 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
 - **More than one write per request goes in `transaction.atomic()`** (for example a `User` plus its `Profile`), so a
   failure halfway can't leave a half-made record. Test it: make the second write fail and assert nothing was saved.
 - **Demo data is labeled.** Made-up accounts have `Profile.is_demo`; item responses carry `demo: true` for them. Show
-  the Demo badge wherever their items or profiles appear (Words: label made-up data). The demo JSON files (KAN-26's two
-  and `items/data/demo-families.json`) are migration inputs: don't edit them to change shipped data, add a migration or edit in admin.
+  the Demo badge wherever their items or profiles appear (Words: label made-up data). The demo JSON files (KAN-26's two,
+  `items/data/demo-families.json` and `demo-organizations.json`) are migration inputs: don't edit them to change shipped data, add a migration or edit in admin.
 - **Tests run on a database that already has the starter resources and demo accounts** (loaded by migrations), so
   assert on your own rows (`filter(owner=...)`, `filter(username=...)`), not on `.count()` or `.exists()` of a table.
 - **Migrations run against the shared production database on deploy.** Avoid destructive changes (dropping or
