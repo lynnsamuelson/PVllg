@@ -87,6 +87,22 @@ else:
         }
     }
 
+# Real SMTP when EMAIL_HOST is set; otherwise emails print to stdout. EMAIL_FILE_PATH (e2e only) writes them to files.
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "PVill <no-reply@localhost>")
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() == "true"
+EMAIL_TIMEOUT = 10
+EMAIL_FILE_PATH = os.environ.get("EMAIL_FILE_PATH", "")
+if EMAIL_HOST:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+elif EMAIL_FILE_PATH:
+    EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},

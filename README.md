@@ -183,6 +183,9 @@ Apache serves the React build and proxies `/api/` and `/admin/` to gunicorn on `
 | `DJANGO_SECRET_KEY` | secret | random string |
 | `DB_HOST` | secret | HeatWave private IP. **Leave unset to use SQLite on the VM** |
 | `DB_NAME` / `DB_USER` / `DB_PASSWORD` | secret | HeatWave database credentials |
+| `EMAIL_HOST` | secret | SMTP server for organization codes (e.g. OCI Email Delivery). **Leave unset and codes print to `journalctl`** |
+| `EMAIL_PORT` / `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` | secret | SMTP port (default 587) and credentials |
+| `DEFAULT_FROM_EMAIL` | secret | From address, on a domain approved for sending, e.g. `PVill <no-reply@example.org>` |
 
 To create a Django admin user on the VM:
 

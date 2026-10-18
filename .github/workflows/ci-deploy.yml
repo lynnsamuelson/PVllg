@@ -114,6 +114,11 @@ jobs:
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+          EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
+          EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
+          EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+          DEFAULT_FROM_EMAIL: ${{ secrets.DEFAULT_FROM_EMAIL }}
         run: |
           tar --exclude='__pycache__' --exclude='.env' --exclude='*.sqlite3' \
               -czf release.tgz backend deploy frontend/dist
@@ -130,6 +135,11 @@ jobs:
               echo "DB_USER=$DB_USER"
               echo "DB_PASSWORD=$DB_PASSWORD"
             fi
+            # Leave the EMAIL_HOST secret unset and emails (org codes) print to journalctl instead. Blank secrets
+            # are left out so they can't override the defaults in settings.py with empty values.
+            for name in EMAIL_HOST EMAIL_PORT EMAIL_HOST_USER EMAIL_HOST_PASSWORD DEFAULT_FROM_EMAIL; do
+              if [ -n "${!name}" ]; then echo "$name=${!name}"; fi
+            done
           } > app.env
 
       - name: Upload and deploy

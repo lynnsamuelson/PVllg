@@ -27,6 +27,8 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => signIn(await api.login(email, password));
   const signup = async (name, email, password, accountType) =>
     signIn(await api.signup(name, email, password, accountType));
+  // Endpoints that change the account (e.g. the organization email check) return the updated user.
+  const updateUser = signIn;
   const logout = async () => {
     try {
       await api.logout();
@@ -36,7 +38,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUser }}>{children}</AuthContext.Provider>
   );
 }
 
