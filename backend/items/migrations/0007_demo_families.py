@@ -120,7 +120,12 @@ def load(apps, schema_editor):
             item=item, claimant=family, status=c["status"], end_reason=c.get("endReason", ""),
             held_until=hold_until(made, item.pickup_date) if active else made + HOLD,  # a past hold ended in the past
         )
-        Claim.objects.filter(pk=claim.pk).update(created_at=made)  # auto_now_add ignores a value passed in
+        was_approved = c["status"] in ("approved", "picked_up") or c.get("endReason") == "hold_ended"
+        Claim.objects.filter(pk=claim.pk).update(  # auto_now_add ignores a created_at passed in
+            created_at=made,
+            approved_at=made if was_approved else None,
+            picked_up_at=made + timedelta(days=1) if c["status"] == "picked_up" else None,
+        )
 
 
 def unload(apps, schema_editor):
@@ -142,7 +147,7 @@ def unload(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [
         ("items", "0006_item_report"),
-        ("claims", "0006_pickup_problem"),
+        ("claims", "0007_claim_approved_picked_up_at"),
         ("accounts", "0005_profile_is_demo"),
     ]
     operations = [migrations.RunPython(load, unload)]

@@ -20,7 +20,7 @@
       "roles": ["Parent"],
       "needs": ["Diapers and Everyday Essentials", "Housing and Family Stability", "Parenting and Newborn Support"],
       "howToUse": "Get support",
-      "tryThis": "Log in as Jade. My claims shows an Approved hold on Size 2 diapers with the pickup place and Add to calendar. Past shows a Picked up bottle kit. Home shows housing help."
+      "tryThis": "Log in as Jade. My claims shows an Approved hold on Size 3 diapers with the pickup place and Add to calendar. Past shows a Picked up bottle kit. Home shows housing help."
     },
     {
       "id": "pat",
@@ -129,7 +129,7 @@
     {"giver": "morgan", "name": "Baby bath tub", "photo": "baby-bath-tub.png"}
   ],
   "claims": [
-    {"family": "jade", "giver": "sample-community-closet", "item": "Size 2 diapers", "status": "approved"},
+    {"family": "jade", "giver": "example-family-pantry", "item": "Size 3 diapers", "status": "approved"},
     {"family": "jade", "giver": "demo-baby-basics-hub", "item": "Bottle starter kit", "status": "picked_up", "createdDaysAgo": 8},
     {"family": "pat", "giver": "example-family-pantry", "item": "Pack and play", "status": "approved"},
     {"family": "pat", "giver": "example-family-pantry", "item": "Infant clothing bundle, 0-3 mo", "status": "ended", "endReason": "hold_ended", "createdDaysAgo": 6},
