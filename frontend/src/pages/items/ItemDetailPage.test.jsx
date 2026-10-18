@@ -22,7 +22,7 @@ const PERSON_ITEM = {
   photos: ["/api/items/photos/4/"],
 };
 
-const FROM_SEARCH = [ROUTES.search, { pathname: ROUTES.item(1), state: { fromSearch: true } }];
+const FROM_SEARCH = [ROUTES.search, { pathname: ROUTES.item(1), state: { fromList: true } }];
 
 function renderPage(item, entries = FROM_SEARCH) {
   vi.spyOn(api, "getItem").mockImplementation(() => (item instanceof Error ? Promise.reject(item) : Promise.resolve(item)));
