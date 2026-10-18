@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 
 from accounts.serializers import address_zip
@@ -5,7 +6,7 @@ from accounts.serializers import address_zip
 from claims.giver import RequestSerializer
 
 from . import privacy
-from .models import CATEGORIES, Item, local_today
+from .models import CATEGORIES, PICKUP_FIELDS, Item, local_today
 
 MAX_PHOTOS = 4
 MAX_PHOTO_BYTES = 5 * 1024 * 1024
@@ -187,6 +188,11 @@ class OwnItemSerializer(ItemSerializer):
         """Current claims (Waiting requests to answer, Approved ones to mark picked up), first names only.
         own_items() prefetches only current claims, oldest first."""
         return RequestSerializer(item.claims.all(), many=True).data
+
+    def update(self, item, validated_data):
+        if any(field in validated_data and validated_data[field] != getattr(item, field) for field in PICKUP_FIELDS):
+            validated_data["pickup_changed_at"] = timezone.now()  # families with a claim see "Pickup details changed"
+        return super().update(item, validated_data)
 
     def validate_quantity(self, value):
         held = self.instance and self.instance.requested + self.instance.claimed + self.instance.picked_up

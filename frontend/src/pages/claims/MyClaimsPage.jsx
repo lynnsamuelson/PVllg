@@ -70,6 +70,11 @@ function ClaimCard({ claim, onChanged }) {
         {item.name} <Badge variant={status.badge}>{status.label}</Badge>
       </h2>
       {active && claim.held_until && <p>{holdLine(claim.held_until)}</p>}
+      {claim.status === "approved" && claim.pickup_changed && (
+        <div role="status">
+          <NoteBox>Pickup details changed. Update your calendar.</NoteBox>
+        </div>
+      )}
       {claim.status === "approved" && (
         <>
           <p>{formatPickup(item)}</p>
@@ -94,7 +99,12 @@ function ClaimCard({ claim, onChanged }) {
             </div>
           </div>
         ) : (
-          <div className="row">
+          <div className="stack">
+            {claim.status === "approved" && (
+              <Button small to={ROUTES.claimCalendar(claim.id)}>
+                Add to calendar
+              </Button>
+            )}
             <Button small variant="outline" onClick={() => setConfirming(true)}>
               Cancel claim
             </Button>

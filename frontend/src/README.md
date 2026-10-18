@@ -15,7 +15,7 @@ src/
 │   ├── resources/        ResourceDetailPage (Mock Up 22): every fact, "Not listed" for blanks  (login required)
 │   ├── profile/          ProfilePage, ProfileSetupPage (4 steps, KAN-6)  (login required)
 │   ├── org/              OrgSignupPage (Mock Up 7), OrgVerifyPage (Mock Up 8), OrgProfilePage (Mock Up 9, Verified only)  (login required)
-│   ├── claims/           MyClaimsPage (Mock Up 15): Active and Past claims, Cancel claim  (login required)
+│   ├── claims/           MyClaimsPage (Mock Up 15): Active and Past claims, Cancel claim; AddToCalendarPage (Mock Up 16)  (login required)
 │   ├── search/           SearchPage (Mock Up 12): Items and Resources tabs; search state lives in the URL  (login required)
 │   ├── items/            ItemDetailPage (Mock Ups 13-14, anyone signed in); MyItemsPage (Mock Up 21) and
 │   │                     PostItemPage (2 steps, Mock Ups 19-20; also Edit)  (givers only)
@@ -101,6 +101,8 @@ The session is an HttpOnly cookie, so the frontend never handles tokens.
 | `GET /api/items/search/` | Search near me, Items tab: `q`, `category` (essentials, feeding, parenting, housing), `radius` (5, 10, 25, 50; default 10). Live items with a pickup day not yet passed, within the radius of your ZIP, nearest first, shaped like `GET /api/items/:id/` |
 | `POST /api/claims/` | `{item}`: Claim one / Request to claim (people only). A Verified organization's item is Approved at once, a person's is Waiting; holds for 3 days. 409 when someone just took the last one |
 | `GET /api/claims/` | My claims: current (Waiting, Approved), or ended ones with `?tab=past` (an Ended claim's `end_reason`: `hold_ended`, `no_answer` or `no_show`). Each has the item, shaped like `GET /api/items/:id/` |
+| `GET /api/claims/:id/` | One of your Approved claims, with `event` (`where`, `notes`: what the calendar file holds); `pickup_changed` is true when the giver changed when or where since you claimed it or last added it to your calendar |
+| `GET /api/claims/:id/calendar.ics` | An Approved claim's pickup as a calendar file (privacy rule applied). `?reminders=day,hour` adds alarms; `?download=1` saves instead of opening |
 | `POST /api/claims/:id/cancel/` | Cancel your claim; the item goes back on the list |
 | `POST /api/claims/:id/approve/`, `/decline/`, `/picked-up/`, `/didnt-come/` | The item's giver answers a Waiting request, or marks an Approved claim picked up or not (Family didn't come). Returns `{id, status, held_until, family}` (first name only) |
 | `GET /api/items/:id/` | One item as others see it: general area, whole-mile `distance_miles`, `giver` (organization name, or "A parent nearby"), `left` (listed minus current claims), `photos` (URLs), `available` (some left and the pickup day hasn't passed), `mine`, `demo` (made-up sample data: show the Demo badge). `exact_address` and `where_to_go` are null with a `private_note` unless the viewer may see them (KAN-11) |

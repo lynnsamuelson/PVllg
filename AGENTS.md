@@ -54,7 +54,7 @@ backend/
                      data/sample-data.json: made-up demo accounts and sample items (KAN-26, migration 0003);
                      demo.py refreshes their pickup dates (admin action)
   claims/            Claim model (Waiting, Approved, Declined, Canceled, Ended, Picked up); /api/claims/ (claim, My
-                     claims, cancel: KAN-12; approve, decline, picked up: KAN-13; didn't come, expiry: KAN-14); actions.py
+                     claims, cancel: KAN-12; approve, decline, picked up: KAN-13; didn't come, expiry: KAN-14; calendar.ics: KAN-19); actions.py
                      holds every claim change
   api/               /api/health/ (public) and the Notes demo
   requirements.txt   what the VM installs

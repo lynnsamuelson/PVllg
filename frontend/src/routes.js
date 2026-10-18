@@ -17,6 +17,7 @@ export const ROUTES = {
   item: (id = ":itemId") => `/items/${id}`,
   search: "/search",
   claims: "/claims",
+  claimCalendar: (id = ":claimId") => `/claims/${id}/calendar`,
   give: "/give",
   impact: "/impact",
   resource: (id = ":resourceId") => `/resources/${id}`,

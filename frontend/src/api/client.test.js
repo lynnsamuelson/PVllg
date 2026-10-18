@@ -14,6 +14,7 @@ import {
   claimItem,
   listClaims,
   cancelClaim,
+  calendarUrl,
   approveClaim,
   declineClaim,
   markPickedUp,
@@ -94,6 +95,11 @@ describe("api client", () => {
       "/api/claims/5/picked-up/",
       "/api/claims/5/didnt-come/",
     ]);
+  });
+
+  it("builds the calendar file URL", () => {
+    expect(calendarUrl(4)).toBe("/api/claims/4/calendar.ics");
+    expect(calendarUrl(4, { reminders: ["day"], download: true })).toBe("/api/claims/4/calendar.ics?reminders=day&download=1");
   });
 
   it("edits an item as JSON and takes one down", async () => {

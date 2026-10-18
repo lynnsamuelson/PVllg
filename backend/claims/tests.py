@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -343,3 +344,107 @@ class MissedClaimTests(APITestCase):
         self.client.force_authenticate(self.family)
         self.assertEqual(self.past()[0]["end_reason"], "no_show")
         self.assertEqual(self.client.post(f"/api/claims/{claim.pk}/didnt-come/").status_code, 404)  # not the giver
+
+
+class CalendarTests(APITestCase):
+    """KAN-19: the calendar file and the Pickup details changed notice."""
+
+    def setUp(self):
+        self.family = person("taylor@example.com")
+        self.client.force_authenticate(self.family)
+        self.diapers = demo("Size 1 diapers")
+        self.bundle = demo("Baby clothes bundle, 0-3 mo")
+
+    def claim(self, item, status):
+        return Claim.objects.create(
+            item=item, claimant=self.family, status=status, held_until=timezone.now() + timedelta(days=3)
+        )
+
+    def ics(self, claim, query=""):
+        resp = self.client.get(f"/api/claims/{claim.pk}/calendar.ics{query}")
+        self.assertEqual(resp.status_code, 200, resp.content)
+        return resp, resp.content.decode().replace("\r\n ", "")  # unfold long lines
+
+    def test_logged_out_is_401(self):
+        self.assertEqual(APIClient().get("/api/claims/1/calendar.ics").status_code, 401)
+
+    def test_event_has_the_item_time_place_notes_and_reminders(self):
+        claim = self.claim(self.diapers, Claim.APPROVED)
+        resp, text = self.ics(claim, "?reminders=day,hour,bogus")
+        self.assertEqual(resp["Content-Type"], "text/calendar; charset=utf-8")
+        self.assertIn("inline", resp["Content-Disposition"])
+        self.assertIn("SUMMARY:Pick up: Size 1 diapers", text)
+        self.assertIn("LOCATION:100 Sample Way\\, Nashville\\, TN 37206", text)
+        self.assertIn("DESCRIPTION:Front desk. Ask for the Baby Closet. Bring a bag. Pack of 30. New and unopened.",
+                      text)
+        # 10 am - 2 pm in Nashville is 15:00-19:00 UTC (CDT) or 16:00-20:00 (CST).
+        self.assertRegex(text, r"DTSTART:\d{8}T1[56]0000Z")
+        self.assertRegex(text, r"DTEND:\d{8}T(19|20)0000Z")
+        self.assertIn("TRIGGER:-P1D", text)
+        self.assertIn("TRIGGER:-PT1H", text)
+        self.assertEqual(text.count("BEGIN:VALARM"), 2)
+        self.assertTrue(all(len(line.encode()) <= 75 for line in resp.content.decode().split("\r\n")))
+
+    def test_admin_line_breaks_and_sequence(self):
+        Item.objects.filter(pk=self.diapers.pk).update(what_to_bring="Bring a bag.\r\nCash not needed.")
+        claim = self.claim(self.diapers, Claim.APPROVED)
+        resp, text = self.ics(claim)
+        self.assertNotIn("\r\\n", resp.content.decode())
+        self.assertIn("Bring a bag.\\nCash not needed.", text)
+        self.assertIn("SEQUENCE:0", text)
+        Item.objects.filter(pk=self.diapers.pk).update(pickup_changed_at=timezone.now())
+        _, text = self.ics(claim)
+        self.assertNotIn("SEQUENCE:0", text)
+
+    def test_only_approved_claims_get_a_calendar(self):
+        claim = self.claim(self.bundle, Claim.WAITING)
+        self.assertEqual(self.client.get(f"/api/claims/{claim.pk}/calendar.ics").status_code, 404)
+        self.assertEqual(self.client.get(f"/api/claims/{claim.pk}/").status_code, 404)
+        Claim.objects.filter(pk=claim.pk).update(status=Claim.APPROVED)
+        resp, text = self.ics(claim, "?download=1")
+        self.assertIn("attachment", resp["Content-Disposition"])
+        self.assertIn("400 Fictional St", text)
+        event = self.client.get(f"/api/claims/{claim.pk}/").json()["event"]
+        self.assertEqual(event["where"], "400 Fictional St, Nashville, TN 37207")
+        self.assertIn("Front porch. Look for the blue bin.", event["notes"])
+
+    def test_no_exact_address_while_the_place_is_private(self):
+        claim = self.claim(self.bundle, Claim.APPROVED)
+        with mock.patch("items.privacy.can_see_exact_address", return_value=False):
+            _, text = self.ics(claim)
+        self.assertIn("LOCATION:East Nashville", text)
+        self.assertNotIn("400 Fictional", text)
+        self.assertNotIn("blue bin", text)  # Where to go is private too
+
+    def test_only_your_own_current_claims(self):
+        claim = self.claim(self.diapers, Claim.CANCELED)
+        self.assertEqual(self.client.get(f"/api/claims/{claim.pk}/calendar.ics").status_code, 404)
+        mine = self.claim(self.diapers, Claim.APPROVED)
+        self.client.force_authenticate(person("jordan@example.com"))
+        self.assertEqual(self.client.get(f"/api/claims/{mine.pk}/calendar.ics").status_code, 404)
+        self.assertEqual(self.client.get(f"/api/claims/{mine.pk}/").status_code, 404)
+
+    def test_change_notice_until_the_calendar_is_updated(self):
+        claim = self.claim(self.bundle, Claim.APPROVED)
+        self.assertFalse(self.client.get(f"/api/claims/{claim.pk}/").json()["pickup_changed"])
+        casey = User.objects.get(username="casey@demo.example")
+        self.client.force_authenticate(casey)
+        mine = self.client.get(f"/api/items/mine/{self.bundle.pk}/").json()
+        with self.assertLogs("items.views", "INFO"):
+            self.client.put(f"/api/items/mine/{self.bundle.pk}/", {**mine, "quantity": 1, "pickup_start": "16:00",
+                            "good_condition": True, "not_recalled": True}, format="json")
+        self.client.force_authenticate(self.family)
+        self.assertTrue(self.client.get(f"/api/claims/{claim.pk}/").json()["pickup_changed"])
+        self.ics(claim)
+        self.assertFalse(self.client.get(f"/api/claims/{claim.pk}/").json()["pickup_changed"])
+
+    def test_editing_only_the_details_isnt_a_pickup_change(self):
+        claim = self.claim(self.bundle, Claim.APPROVED)
+        casey = User.objects.get(username="casey@demo.example")
+        self.client.force_authenticate(casey)
+        mine = self.client.get(f"/api/items/mine/{self.bundle.pk}/").json()
+        with self.assertLogs("items.views", "INFO"):
+            self.client.put(f"/api/items/mine/{self.bundle.pk}/", {**mine, "quantity": 1, "details": "Seven pieces.",
+                            "good_condition": True, "not_recalled": True}, format="json")
+        self.client.force_authenticate(self.family)
+        self.assertFalse(self.client.get(f"/api/claims/{claim.pk}/").json()["pickup_changed"])
