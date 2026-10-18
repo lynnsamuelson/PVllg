@@ -15,6 +15,7 @@ src/
 │   ├── resources/        ResourceDetailPage (Mock Up 22): every fact, "Not listed" for blanks  (login required)
 │   ├── profile/          ProfilePage, ProfileSetupPage (4 steps, KAN-6)  (login required)
 │   ├── org/              OrgSignupPage (Mock Up 7), OrgVerifyPage (Mock Up 8), OrgProfilePage (Mock Up 9, Verified only)  (login required)
+│   ├── claims/           MyClaimsPage (Mock Up 15): Active and Past claims, Cancel claim  (login required)
 │   ├── search/           SearchPage (Mock Up 12): Items and Resources tabs; search state lives in the URL  (login required)
 │   ├── items/            ItemDetailPage (Mock Ups 13-14, anyone signed in); MyItemsPage (Mock Up 21) and
 │   │                     PostItemPage (2 steps, Mock Ups 19-20; also Edit)  (givers only)
@@ -98,7 +99,10 @@ The session is an HttpOnly cookie, so the frontend never handles tokens.
 | `POST /api/auth/org/profile/` | `{about, serves[], pickup_address, public_contact}`: a Verified organization's public profile. The address needs a ZIP code (search measures distance from it) |
 | `POST /api/items/` | Post an item (givers only), as multipart form data with up to 4 `photos` (JPEG/PNG/WebP, 5 MB each). A person's `exact_address` must end with a ZIP code; an organization's comes from its profile |
 | `GET /api/items/search/` | Search near me, Items tab: `q`, `category` (essentials, feeding, parenting, housing), `radius` (5, 10, 25, 50; default 10). Live items with a pickup day not yet passed, within the radius of your ZIP, nearest first, shaped like `GET /api/items/:id/` |
-| `GET /api/items/:id/` | One item as others see it: general area, whole-mile `distance_miles`, `giver` (organization name, or "A parent nearby"), `photos` (URLs), `available` (some left and the pickup day hasn't passed), `mine`, `demo` (made-up sample data: show the Demo badge). `exact_address` and `where_to_go` are null with a `private_note` unless the viewer may see them (KAN-11) |
+| `POST /api/claims/` | `{item}`: Claim one / Request to claim (people only). A Verified organization's item is Approved at once, a person's is Waiting; holds for 3 days. 409 when someone just took the last one |
+| `GET /api/claims/` | My claims: current (Waiting, Approved), or ended ones with `?tab=past`. Each has the item, shaped like `GET /api/items/:id/` |
+| `POST /api/claims/:id/cancel/` | Cancel your claim; the item goes back on the list |
+| `GET /api/items/:id/` | One item as others see it: general area, whole-mile `distance_miles`, `giver` (organization name, or "A parent nearby"), `left` (listed minus current claims), `photos` (URLs), `available` (some left and the pickup day hasn't passed), `mine`, `demo` (made-up sample data: show the Demo badge). `exact_address` and `where_to_go` are null with a `private_note` unless the viewer may see them (KAN-11) |
 | `GET /api/items/mine/` | Your own items (any account, so turning Give off doesn't strand them) that aren't taken down, with `exact_address` and counts `left`, `requested`, `claimed` |
 | `GET`/`PUT`/`DELETE /api/items/mine/:id/` | One of the giver's items: fill in Edit, save it (JSON, photos unchanged; givers only), take it down |
 | `GET /api/items/photos/:id/` | One photo of a live item, for anyone signed in (its giver can always see it) |

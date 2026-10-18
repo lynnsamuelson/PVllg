@@ -52,7 +52,8 @@ backend/
                      GET /api/items/search/ (Search near me, KAN-15) apply it
                      data/sample-data.json: made-up demo accounts and sample items (KAN-26, migration 0003);
                      demo.py refreshes their pickup dates (admin action)
-  claims/            Claim model (Waiting, Approved, Declined, Canceled, Ended, Picked up); endpoints in KAN-12/13
+  claims/            Claim model (Waiting, Approved, Declined, Canceled, Ended, Picked up); /api/claims/ (claim, My
+                     claims, cancel: KAN-12); actions.py holds claim_item and end_claim, which every claim change uses
   api/               /api/health/ (public) and the Notes demo
   requirements.txt   what the VM installs
   requirements-dev.txt  + test tools (coverage); use this locally and in CI
@@ -157,6 +158,9 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   items (`items.views.IsGiver`; `<RequireGiver>` on the frontend). An item's exact address is private and stored apart
   from its public general area; an organization's items use its profile address, and follow it when it changes.
   Take down sets `Item.taken_down_at` instead of deleting, so list and search items with `Item.objects.live()`.
+- **Claims change only through `claims/actions.py`.** `claim_item` locks the item so two families can't get the last
+  one; `end_claim` ends a claim as declined, canceled or ended. "Left" is never stored: it's the number listed minus
+  Waiting, Approved and Picked-up claims (`Item.objects.with_counts()`), so ending a claim puts the item back.
 - **The address privacy rule lives only in `items/privacy.py`** (KAN-11). Anything that shows an item to someone
   other than its giver (search, item details, My claims, calendar files, messages) uses `PublicItemSerializer` or
   `privacy.can_see_exact_address`, never its own check, and loads items with `Item.objects.public()`. A person's

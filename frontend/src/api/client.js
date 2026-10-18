@@ -83,6 +83,11 @@ export function searchItems(options = {}) {
 // Item details (KAN-17): one item with the address privacy rule applied (KAN-11).
 export const getItem = (id) => request(`/items/${id}/`);
 
+// Claims (KAN-12). Each claim has { id, status, held_until, item } with the item shaped like getItem's.
+export const claimItem = (itemId) => post("/claims/", { item: itemId });
+export const listClaims = (tab) => request(`/claims/${tab === "past" ? "?tab=past" : ""}`);
+export const cancelClaim = (id) => post(`/claims/${id}/cancel/`);
+
 // My items (KAN-10): the giver's own items, with exact_address and counts (left, requested, claimed).
 export const listMyItems = () => request("/items/mine/");
 export const getMyItem = (id) => request(`/items/mine/${id}/`);

@@ -1,22 +1,176 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
+from rest_framework.test import APIClient, APITestCase
 
-from items.models import Item
+from accounts.models import Profile
+from items.models import Item, local_today
 
+from . import actions
 from .models import Claim
 
 User = get_user_model()
 
 
+def person(email, usage="get", zip_code="37206"):
+    user = User.objects.create_user(username=email, first_name=email.split("@")[0].title())
+    Profile.objects.create(user=user, account_type=Profile.PERSON, usage=usage, zip_code=zip_code)
+    return user
+
+
+def demo(name):
+    """A KAN-26 demo item: Size 1 diapers (organization, 12), Baby clothes bundle, 0-3 mo (person, 1)."""
+    return Item.objects.get(name=name)
+
+
 class ClaimModelTests(TestCase):
     def test_starts_waiting_and_reads_well(self):
-        giver = User.objects.create_user(username="giver@example.com")
         family = User.objects.create_user(username="family@example.com")
-        item = Item.objects.create(
-            owner=giver, name="Crib", category="furniture", details="x", quantity=1, pickup_date="2030-01-01",
-            pickup_start="10:00", pickup_end="11:00", general_area="East Nashville", exact_address="1 A St 37206",
-            zip_code="37206",
-        )
-        claim = Claim.objects.create(item=item, claimant=family)
+        claim = Claim.objects.create(item=demo("Size 1 diapers"), claimant=family)
         self.assertEqual(claim.status, Claim.WAITING)
-        self.assertEqual(str(claim), "family@example.com → Crib (waiting)")
+        self.assertEqual(str(claim), "family@example.com → Size 1 diapers (waiting)")
+
+
+class ClaimTests(APITestCase):
+    def setUp(self):
+        self.family = person("taylor@example.com")
+        self.client.force_authenticate(self.family)
+        self.diapers = demo("Size 1 diapers")
+        self.bundle = demo("Baby clothes bundle, 0-3 mo")
+
+    def claim(self, item, user=None):
+        if user:
+            self.client.force_authenticate(user)
+        with self.assertLogs("claims.actions", "INFO"):
+            resp = self.client.post("/api/claims/", {"item": item.pk}, format="json")
+        self.assertEqual(resp.status_code, 201, resp.content)
+        return resp.json()
+
+    def refused(self, item, code=400):
+        resp = self.client.post("/api/claims/", {"item": item.pk}, format="json")
+        self.assertEqual(resp.status_code, code, resp.content)
+        return resp.json()["detail"]
+
+    def left(self, item):
+        return self.client.get(f"/api/items/{item.pk}/").json()["left"]
+
+    def test_logged_out_is_401_and_organizations_are_refused(self):
+        self.assertEqual(APIClient().post("/api/claims/", {"item": 1}, format="json").status_code, 401)
+        self.client.force_authenticate(User.objects.get(username="team@samplecommunitycloset.example"))
+        self.assertEqual(self.client.get("/api/claims/").status_code, 403)
+
+    def test_organization_item_is_approved_at_once_and_shows_the_place(self):
+        data = self.claim(self.diapers)
+        self.assertEqual(data["status"], "approved")
+        self.assertEqual(data["item"]["exact_address"], "100 Sample Way, Nashville, TN 37206")
+        held = timezone.datetime.fromisoformat(data["held_until"].replace("Z", "+00:00"))
+        self.assertAlmostEqual((held - timezone.now()).total_seconds(), timedelta(days=3).total_seconds(), delta=60)
+        self.assertEqual(self.left(self.diapers), 11)
+
+    def test_person_item_waits_and_keeps_the_place_private(self):
+        data = self.claim(self.bundle)
+        self.assertEqual(data["status"], "waiting")
+        self.assertIsNone(data["item"]["exact_address"])
+        self.assertIsNone(data["item"]["where_to_go"])
+        self.assertEqual(self.left(self.bundle), 0)
+
+    def test_the_last_one_goes_to_one_family(self):
+        self.claim(self.bundle)
+        self.client.force_authenticate(person("jordan@example.com"))
+        self.assertEqual(self.refused(self.bundle, 409), "Someone just claimed the last one. Try searching for another.")
+        self.assertNotIn("Baby clothes bundle, 0-3 mo", [i["name"] for i in self.client.get("/api/items/search/").json()])
+
+    def test_one_of_the_same_item_at_a_time(self):
+        self.claim(self.diapers)
+        self.assertIn("already have a claim", self.refused(self.diapers))
+
+    def test_cant_claim_your_own_item(self):
+        self.client.force_authenticate(User.objects.get(username="casey@demo.example"))
+        self.assertIn("You posted this item", self.refused(self.bundle))
+
+    def test_gone_or_past_items(self):
+        Item.objects.filter(pk=self.diapers.pk).update(pickup_date=local_today() - timedelta(days=1))
+        self.assertEqual(self.refused(self.diapers, 404), "This item isn't available anymore.")
+        Item.objects.filter(pk=self.bundle.pk).update(taken_down_at=timezone.now())
+        self.refused(self.bundle, 404)
+        resp = self.client.post("/api/claims/", {"item": 999999}, format="json")
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(self.client.post("/api/claims/", {}, format="json").status_code, 400)
+
+    def test_cancel_puts_it_back_and_moves_it_to_past(self):
+        claim = self.claim(self.diapers)
+        with self.assertLogs("claims.actions", "INFO"):
+            resp = self.client.post(f"/api/claims/{claim['id']}/cancel/")
+        self.assertEqual(resp.json()["status"], "canceled")
+        self.assertEqual(self.left(self.diapers), 12)
+        self.assertEqual(self.client.get("/api/claims/").json(), [])
+        self.assertEqual([c["id"] for c in self.client.get("/api/claims/?tab=past").json()], [claim["id"]])
+        self.assertEqual(self.client.post(f"/api/claims/{claim['id']}/cancel/").status_code, 400)
+        self.claim(self.diapers)  # can claim it again after canceling
+
+    def test_active_tab_and_someone_elses_claim(self):
+        mine = self.claim(self.diapers)
+        self.assertEqual([c["id"] for c in self.client.get("/api/claims/").json()], [mine["id"]])
+        self.client.force_authenticate(person("jordan@example.com"))
+        self.assertEqual(self.client.get("/api/claims/").json(), [])
+        self.assertEqual(self.client.post(f"/api/claims/{mine['id']}/cancel/").status_code, 404)
+
+    def test_taken_down_items_still_show_under_past(self):
+        claim = self.claim(self.diapers)
+        with self.assertLogs("claims.actions", "INFO"):
+            self.client.post(f"/api/claims/{claim['id']}/cancel/")
+        Item.objects.filter(pk=self.diapers.pk).update(taken_down_at=timezone.now())
+        self.assertEqual(self.client.get("/api/claims/?tab=past").json()[0]["item"]["name"], "Size 1 diapers")
+
+    def test_my_items_counts_and_edit_floor(self):
+        self.claim(self.bundle)
+        casey = User.objects.get(username="casey@demo.example")
+        self.client.force_authenticate(casey)
+        mine = next(i for i in self.client.get("/api/items/mine/").json() if i["id"] == self.bundle.pk)
+        self.assertEqual((mine["left"], mine["requested"], mine["claimed"]), (0, 1, 0))
+        resp = self.client.put(f"/api/items/mine/{self.bundle.pk}/", {**mine, "quantity": 0, "good_condition": True,
+                                                                      "not_recalled": True}, format="json")
+        self.assertEqual(resp.status_code, 400)
+        with self.assertLogs("items.views", "INFO"):
+            resp = self.client.put(f"/api/items/mine/{self.bundle.pk}/", {**mine, "quantity": 3, "good_condition": True,
+                                                                          "not_recalled": True}, format="json")
+        self.assertEqual(resp.json()["left"], 2)
+
+
+class EndClaimTests(TestCase):
+    def setUp(self):
+        self.claim = Claim.objects.create(
+            item=demo("Size 1 diapers"), claimant=person("taylor@example.com"), status=Claim.APPROVED
+        )
+
+    def test_each_ending_puts_the_item_back(self):
+        for ending in (Claim.DECLINED, Claim.CANCELED, Claim.ENDED):
+            Claim.objects.filter(pk=self.claim.pk).update(status=Claim.APPROVED)
+            with self.assertLogs("claims.actions", "INFO"):
+                self.assertTrue(actions.end_claim(self.claim, ending))
+            self.assertEqual(Item.objects.with_counts().get(pk=self.claim.item_id).left, 12)
+
+    def test_an_ended_claim_stays_ended(self):
+        with self.assertLogs("claims.actions", "INFO"):
+            actions.end_claim(self.claim, Claim.CANCELED)
+        self.assertFalse(actions.end_claim(self.claim, Claim.DECLINED))
+        self.assertEqual(Claim.objects.get(pk=self.claim.pk).status, Claim.CANCELED)
+
+    def test_picked_up_is_not_an_ending_that_puts_it_back(self):
+        with self.assertRaises(ValueError):
+            actions.end_claim(self.claim, Claim.PICKED_UP)
+
+    def test_lost_race_for_the_last_one(self):
+        item = demo("Baby clothes bundle, 0-3 mo")
+        Claim.objects.create(item=item, claimant=person("first@example.com"))  # got there first
+        with self.assertRaises(actions.ClaimRefused) as refused:
+            actions.claim_item(person("jordan@example.com"), item.pk)
+        self.assertEqual(refused.exception.code, 409)
+
+    def test_more_claims_than_listed_reads_as_none_left(self):
+        item = demo("Baby clothes bundle, 0-3 mo")
+        for n in range(2):
+            Claim.objects.create(item=item, claimant=person(f"f{n}@example.com"), status=Claim.APPROVED)
+        self.assertEqual(Item.objects.with_counts().get(pk=item.pk).left, -1)

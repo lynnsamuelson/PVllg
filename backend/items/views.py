@@ -67,7 +67,7 @@ def search_items(request):
     opts = params.validated_data
     items = (
         Item.objects.public()
-        .filter(quantity__gt=0, pickup_date__gte=local_today(), zip_code__in=privacy.zips_within(request.user, opts["radius"]))
+        .filter(left__gt=0, pickup_date__gte=local_today(), zip_code__in=privacy.zips_within(request.user, opts["radius"]))
         .exclude(owner=request.user)
     )
     if opts["category"]:
@@ -96,7 +96,7 @@ def item_detail(request, pk):
 @api_view(["GET"])
 def my_items(request):
     """My items (Mock Up 21): the giver's items that aren't taken down, newest first."""
-    items = Item.objects.live().filter(owner=request.user)
+    items = Item.objects.live().with_counts().filter(owner=request.user)
     return Response(OwnItemSerializer(items, many=True).data)
 
 
@@ -104,7 +104,7 @@ def my_items(request):
 def my_item(request, pk):
     """One of the giver's items: GET fills in Edit, PUT saves it (givers only; photos stay as they are),
     DELETE takes it down."""
-    item = get_object_or_404(Item.objects.live(), pk=pk, owner=request.user)
+    item = get_object_or_404(Item.objects.live().with_counts(), pk=pk, owner=request.user)
     if request.method == "GET":
         return Response(OwnItemSerializer(item).data)
     if request.method == "DELETE":
@@ -114,11 +114,14 @@ def my_item(request, pk):
         return Response(status=status.HTTP_204_NO_CONTENT)
     if not IsGiver().has_permission(request, None):
         return Response({"detail": IsGiver.message}, status=status.HTTP_403_FORBIDDEN)
-    serializer = OwnItemSerializer(item, data=request.data, context={"organization": verified_org(request.user)})
-    serializer.is_valid(raise_exception=True)
-    serializer.save()
+    with transaction.atomic():  # lock the item so a claim can't land between checking the count and saving it
+        Item.objects.select_for_update().filter(pk=item.pk).first()
+        item = Item.objects.with_counts().get(pk=item.pk)
+        serializer = OwnItemSerializer(item, data=request.data, context={"organization": verified_org(request.user)})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
     logger.info("item edited user_id=%s item_id=%s", request.user.pk, item.pk)
-    return Response(serializer.data)
+    return Response(OwnItemSerializer(Item.objects.with_counts().get(pk=item.pk)).data)  # fresh counts
 
 
 @api_view(["GET"])

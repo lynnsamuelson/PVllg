@@ -31,8 +31,8 @@ describe("App routes", () => {
   });
 
   it("shows coming-soon tabs with the bottom bar once signed in", () => {
-    renderAt(ROUTES.claims, PERSON);
-    expect(screen.getByRole("heading", { name: "My claims" })).toBeInTheDocument();
+    renderAt(ROUTES.impact, PERSON);
+    expect(screen.getByRole("heading", { name: "Impact" })).toBeInTheDocument();
     expect(screen.getByText(/coming soon/)).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Main" })).toBeInTheDocument();
   });

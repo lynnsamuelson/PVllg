@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import * as api from "../../api/client.js";
 import BackToResults from "../../components/BackToResults.jsx";
 import Badge from "../../components/Badge.jsx";
 import BrandHeader from "../../components/BrandHeader.jsx";
 import Button from "../../components/Button.jsx";
 import NoteBox from "../../components/NoteBox.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 import { formatMiles, formatPickup } from "../../format.js";
 import { ROUTES } from "../../routes.js";
 
@@ -25,8 +26,12 @@ function boldLabel(note) {
 // has no exact address until an approved claim, so this page only shows what it gets.
 export default function ItemDetailPage() {
   const { itemId } = useParams();
+  const { user } = useAuth();
   const [item, setItem] = useState(null);
   const [error, setError] = useState("");
+  const [claiming, setClaiming] = useState(false);
+  const [claimError, setClaimError] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     let current = true;
@@ -42,6 +47,19 @@ export default function ItemDetailPage() {
   }, [itemId]);
 
   const header = <BackToResults fallback={ROUTES.search} />;
+
+  const claim = async () => {
+    setClaiming(true);
+    setClaimError("");
+    try {
+      await api.claimItem(item.id);
+      navigate(ROUTES.claims);
+    } catch (err) {
+      setClaimError(err.message);
+      setClaiming(false);
+      api.getItem(item.id).then(setItem).catch(() => {}); // show what's left now, e.g. none after a lost race
+    }
+  };
 
   if (error) {
     return (
@@ -90,7 +108,7 @@ export default function ItemDetailPage() {
           </ul>
         )}
         <div className="card detail-card">
-          <h2>{available ? `${item.quantity} left` : "Not available"}</h2>
+          <h2>{available ? `${item.left} left` : "Not available"}</h2>
           <p>{item.details}</p>
         </div>
         <p className="checked-row">
@@ -117,14 +135,21 @@ export default function ItemDetailPage() {
           {item.what_to_bring && <p>{item.what_to_bring}</p>}
         </div>
         {item.private_note && <NoteBox>{boldLabel(item.private_note)}</NoteBox>}
-        {item.mine ? (
+        {user.account_type === "organization" && !item.mine ? null : item.mine ? (
           <Button variant="outline" to={ROUTES.editItem(item.id)}>
             This is your item. Edit it
           </Button>
         ) : (
           <>
-            {/* Claiming is built in KAN-12 and the Report sheet in KAN-22; until then they show but do nothing. */}
-            <Button disabled={!available}>{org ? "Claim one (held for 3 days)" : "Request to claim"}</Button>
+            {claimError && (
+              <p className="form-error" role="alert">
+                {claimError}
+              </p>
+            )}
+            <Button disabled={!available || claiming} onClick={claim}>
+              {org ? "Claim one (held for 3 days)" : "Request to claim"}
+            </Button>
+            {/* The Report sheet is built in KAN-22; until then the link shows but does nothing. */}
             <button type="button" className="text-link centered">
               Report a problem
             </button>
