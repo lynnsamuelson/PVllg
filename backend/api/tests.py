@@ -25,6 +25,8 @@ class LockdownTests(APITestCase):
         "/api/auth/org/verify/",
         "/api/auth/org/profile/",
         "/api/items/",
+        "/api/items/mine/",
+        "/api/items/mine/1/",
         "/api/items/photos/1/",
         "/api/resources/matches/",
     ]

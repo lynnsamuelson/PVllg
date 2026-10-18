@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, Navigate, useParams } from "react-router-dom";
 import * as api from "../../api/client.js";
 import Button from "../../components/Button.jsx";
 import Checkbox from "../../components/Checkbox.jsx";
@@ -59,8 +59,16 @@ function missing(step, form, isOrg) {
   return errors;
 }
 
+
 // Mock Ups 19-20. Behind <RequireGiver>: a Verified organization or a person with Give support.
+// With an :itemId in the URL it is Edit (KAN-10): the same form, filled in, without photos.
+// Keyed by the item so moving between /items/new and an Edit starts from a fresh form.
 export default function PostItemPage() {
+  const { itemId } = useParams();
+  return <ItemForm key={itemId ?? "new"} itemId={itemId} />;
+}
+
+function ItemForm({ itemId }) {
   const { user } = useAuth();
   const isOrg = user.account_type === "organization";
   const orgAddress = isOrg ? user.organization.pickup_address : "";
@@ -72,6 +80,29 @@ export default function PostItemPage() {
   const [saveError, setSaveError] = useState("");
   const [saving, setSaving] = useState(false);
   const [posted, setPosted] = useState(null);
+  const [loadError, setLoadError] = useState("");
+  const [loaded, setLoaded] = useState(!itemId);
+  const [next, setNext] = useState(null);
+
+  useEffect(() => {
+    if (!itemId) return;
+    api
+      .getMyItem(itemId)
+      .then((item) => {
+        // The same answers as posting; it was posted with both boxes checked, so they come back checked.
+        const answers = Object.fromEntries(Object.keys(EMPTY).map((f) => [f, item[f] ?? ""]));
+        setForm({
+          ...answers,
+          quantity: String(item.quantity),
+          pickup_start: item.pickup_start.slice(0, 5),
+          pickup_end: item.pickup_end.slice(0, 5),
+          good_condition: true,
+          not_recalled: true,
+        });
+        setLoaded(true);
+      })
+      .catch((err) => setLoadError(err.message));
+  }, [itemId]);
 
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }));
 
@@ -112,11 +143,17 @@ export default function PostItemPage() {
     setSaving(true);
     try {
       const { exact_address, ...rest } = form;
-      setPosted(await api.postItem(isOrg ? rest : form, photos));
+      const fields = isOrg ? rest : form;
+      if (itemId) {
+        const item = await api.editItem(itemId, fields);
+        setNext({ pathname: listRoute, state: { saved: item.name } });
+        return;
+      }
+      setPosted(await api.postItem(fields, photos));
     } catch (err) {
       const fields = err.fields || {};
       setErrors(fields);
-      setSaveError(`Your item wasn't posted. ${err.message}`);
+      setSaveError(`${itemId ? "Your changes weren't saved." : "Your item wasn't posted."} ${err.message}`);
       if (STEP_1_FIELDS.some((f) => f in fields)) setStep(0);
     } finally {
       setSaving(false);
@@ -130,6 +167,23 @@ export default function PostItemPage() {
     setStep(0);
     setPosted(null);
   };
+
+  if (next) return <Navigate to={next.pathname} state={next.state} replace />;
+
+  if (loadError) {
+    return (
+      <section className="stack">
+        <h1>Edit item</h1>
+        <p className="form-error" role="alert">
+          This item couldn't load. {loadError}
+        </p>
+        <Button variant="outline" to={listRoute}>
+          My items
+        </Button>
+      </section>
+    );
+  }
+  if (!loaded) return <p>Loading…</p>;
 
   if (posted) {
     return (
@@ -156,7 +210,7 @@ export default function PostItemPage() {
             ← Back
           </button>
         )}
-        <h1>Post an item</h1>
+        <h1>{itemId ? "Edit item" : "Post an item"}</h1>
       </div>
       <form onSubmit={onSubmit} className="stack" noValidate>
         <ProgressBar step={step + 1} total={2} title={step === 0 ? "About the item" : "Pickup details"} />
@@ -199,36 +253,38 @@ export default function PostItemPage() {
               onChange={(e) => set("quantity", e.target.value)}
               errors={errors.quantity}
             />
-            <div className="field">
-              <label className="photo-picker">
-                <span className="field-label">Photos (add up to 4)</span>
-                <span className="photo-picker-box">+ Add photos</span>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
-                  disabled={photos.length >= MAX_PHOTOS}
-                  onChange={addPhotos}
-                />
-              </label>
-              {photos.length > 0 && (
-                <ul className="photo-list">
-                  {photos.map((p, i) => (
-                    <li key={`${p.name}-${i}`}>
-                      {p.name}{" "}
-                      <button
-                        type="button"
-                        className="text-link"
-                        onClick={() => removePhoto(i)}
-                      >
-                        Remove
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <FieldError messages={errors.photos} />
-            </div>
+            {!itemId && (
+              <div className="field">
+                <label className="photo-picker">
+                  <span className="field-label">Photos (add up to 4)</span>
+                  <span className="photo-picker-box">+ Add photos</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    disabled={photos.length >= MAX_PHOTOS}
+                    onChange={addPhotos}
+                  />
+                </label>
+                {photos.length > 0 && (
+                  <ul className="photo-list">
+                    {photos.map((p, i) => (
+                      <li key={`${p.name}-${i}`}>
+                        {p.name}{" "}
+                        <button
+                          type="button"
+                          className="text-link"
+                          onClick={() => removePhoto(i)}
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <FieldError messages={errors.photos} />
+              </div>
+            )}
             <div className="checkbox-list">
               <Checkbox
                 label="This item is in good condition"
@@ -329,7 +385,7 @@ export default function PostItemPage() {
             </NoteBox>
             {saveError && <p className="form-error" role="alert">{saveError}</p>}
             <Button type="submit" disabled={saving || (isOrg && !orgAddress)}>
-              Post item
+              {itemId ? "Save changes" : "Post item"}
             </Button>
           </>
         )}

@@ -11,6 +11,8 @@ import {
   verifyOrgCode,
   getResourceMatches,
   postItem,
+  editItem,
+  takeDownItem,
 } from "./client.js";
 
 function jsonResponse(status, body) {
@@ -52,6 +54,21 @@ describe("api client", () => {
     expect(options.body.get("name")).toBe("Crib");
     expect(options.body.get("good_condition")).toBe("true");
     expect(options.body.getAll("photos")).toHaveLength(1);
+  });
+
+  it("edits an item as JSON and takes one down", async () => {
+    document.cookie = "csrftoken=abc123";
+    const fetch = vi.fn(async () => jsonResponse(200, { id: 7 }));
+    vi.stubGlobal("fetch", fetch);
+
+    await editItem(7, { quantity: "3" });
+    expect(fetch.mock.calls[0][0]).toBe("/api/items/mine/7/");
+    expect(fetch.mock.calls[0][1]).toMatchObject({ method: "PUT", body: '{"quantity":"3"}' });
+    expect(fetch.mock.calls[0][1].headers["Content-Type"]).toBe("application/json");
+
+    fetch.mockResolvedValueOnce({ ok: true, status: 204, statusText: "" });
+    await takeDownItem(7);
+    expect(fetch.mock.calls[1][1].method).toBe("DELETE");
   });
 
   it("fetches a CSRF cookie before the first write and sends it as X-CSRFToken", async () => {

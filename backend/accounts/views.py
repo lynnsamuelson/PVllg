@@ -267,9 +267,13 @@ def organization_profile(request):
         )
     serializer = OrganizationProfileSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    for field, value in serializer.validated_data.items():  # fields left out keep what was saved
+    profile = serializer.validated_data
+    for field, value in profile.items():  # fields left out keep what was saved
         setattr(org, field, value)
-    org.save(update_fields=list(serializer.validated_data))
+    with transaction.atomic():
+        org.save(update_fields=list(profile))
+        # The organization's items are picked up at its public address, so they follow it (KAN-9).
+        request.user.items.update(exact_address=profile["pickup_address"], zip_code=profile["zip_code"])
     logger.info("org profile saved user_id=%s", request.user.pk)
     return user_response(request.user)
 

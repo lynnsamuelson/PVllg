@@ -14,7 +14,7 @@ src/
 │   ├── resources/        ResourceDetailPage: one resource                (login required)
 │   ├── profile/          ProfilePage, ProfileSetupPage (4 steps, KAN-6)  (login required)
 │   ├── org/              OrgSignupPage (Mock Up 7), OrgVerifyPage (Mock Up 8), OrgProfilePage (Mock Up 9, Verified only)  (login required)
-│   ├── items/            PostItemPage (2 steps, Mock Ups 19-20, givers only)  (login required)
+│   ├── items/            MyItemsPage (Mock Up 21), PostItemPage (2 steps, Mock Ups 19-20; also Edit)  (givers only)
 │   ├── status/           StatusPage: dev check of API + database         (public, not in nav)
 │   ├── ComingSoonPage.jsx  Stand-in for tabs whose ticket isn't built yet (login required)
 │   └── NotFoundPage.jsx  Shown for unknown URLs
@@ -90,6 +90,8 @@ The session is an HttpOnly cookie, so the frontend never handles tokens.
 | `POST /api/auth/org/verify/` | `{code}`: right and under 15 minutes old marks the organization Verified; 5 tries per code |
 | `POST /api/auth/org/profile/` | `{about, serves[], pickup_address, public_contact}`: a Verified organization's public profile. The address needs a ZIP code (search measures distance from it) |
 | `POST /api/items/` | Post an item (givers only), as multipart form data with up to 4 `photos` (JPEG/PNG/WebP, 5 MB each). A person's `exact_address` must end with a ZIP code; an organization's comes from its profile |
+| `GET /api/items/mine/` | Your own items (any account, so turning Give off doesn't strand them) that aren't taken down, with `exact_address` and counts `left`, `requested`, `claimed` |
+| `GET`/`PUT`/`DELETE /api/items/mine/:id/` | One of the giver's items: fill in Edit, save it (JSON, photos unchanged; givers only), take it down |
 | `GET /api/items/photos/:id/` | One item photo. Only its giver for now (KAN-11/KAN-17 decide who else) |
 | `GET /api/resources/`, `/api/resources/:id/` | Resource list / detail (login required) |
 

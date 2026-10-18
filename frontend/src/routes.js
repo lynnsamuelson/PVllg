@@ -13,6 +13,7 @@ export const ROUTES = {
   orgProfile: "/org/profile",
   orgItems: "/org/items",
   postItem: "/items/new",
+  editItem: (id = ":itemId") => `/items/${id}/edit`,
   search: "/search",
   claims: "/claims",
   give: "/give",

@@ -73,6 +73,12 @@ export function postItem(fields, photos = []) {
   return request("/items/", { method: "POST", body });
 }
 
+// My items (KAN-10): the giver's own items, with exact_address and counts (left, requested, claimed).
+export const listMyItems = () => request("/items/mine/");
+export const getMyItem = (id) => request(`/items/mine/${id}/`);
+export const editItem = (id, fields) => request(`/items/mine/${id}/`, { method: "PUT", body: JSON.stringify(fields) });
+export const takeDownItem = (id) => request(`/items/mine/${id}/`, { method: "DELETE" });
+
 // Resources (login required)
 export const listResources = () => request("/resources/");
 export const getResource = (id) => request(`/resources/${id}/`);
