@@ -396,6 +396,11 @@ class PersonProfileTests(APITestCase):
             client.post("/api/auth/login/", {"email": "ada@example.com", "password": GOOD_PASSWORD}, format="json")
         self.assertEqual(client.get("/api/auth/me/").json()["user"]["profile"], ANSWERS)
 
+    def test_give_only_does_not_get(self):
+        with self.assertLogs("accounts.views", "INFO"):
+            user = self.save(usage="give").json()["user"]
+        self.assertEqual((user["gives"], user["gets"]), (True, False))
+
     def test_get_support_only_does_not_give(self):
         with self.assertLogs("accounts.views", "INFO"):
             resp = self.save(usage="get")

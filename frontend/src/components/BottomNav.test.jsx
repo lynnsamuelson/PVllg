@@ -22,6 +22,10 @@ describe("BottomNav", () => {
     expect(tabsFor({ account_type: "person", gives: true })).toEqual(["Home", "Search", "Claims", "Give", "Profile"]);
   });
 
+  it("hides Search and Claims while Get support is off", () => {
+    expect(tabsFor({ account_type: "person", gives: true, gets: false })).toEqual(["Home", "Give", "Profile"]);
+  });
+
   it("shows an organization its four tabs", () => {
     expect(tabsFor({ account_type: "organization" })).toEqual(["Items", "Claims", "Impact", "Profile"]);
   });

@@ -4,7 +4,8 @@ import NoteBox from "./NoteBox.jsx";
 import RequireVerifiedOrg from "./RequireVerifiedOrg.jsx";
 
 // Screens for givers: a Verified organization, or a person with Give support (or Both) on. Anyone else sees why.
-export default function RequireGiver({ title }) {
+// `anyPerson` lets every person through (My items: someone who turns Give off can still manage what they posted).
+export default function RequireGiver({ title, anyPerson = false }) {
   const { user } = useAuth();
   if (user.account_type === "organization") {
     return (
@@ -14,7 +15,7 @@ export default function RequireGiver({ title }) {
       />
     );
   }
-  if (user.gives) return <Outlet />;
+  if (user.gives || anyPerson) return <Outlet />;
   return (
     <section className="stack">
       <h1>{title}</h1>

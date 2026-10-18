@@ -27,10 +27,11 @@ class UserSerializer(serializers.ModelSerializer):
     organization = serializers.SerializerMethodField()
     profile = serializers.SerializerMethodField()
     gives = serializers.SerializerMethodField()
+    gets = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "name", "email", "joined", "account_type", "organization", "profile", "gives"]
+        fields = ["id", "name", "email", "joined", "account_type", "organization", "profile", "gives", "gets"]
 
     def get_account_type(self, user):
         # Accounts made before account types existed have no Profile; they signed up as people.
@@ -51,6 +52,11 @@ class UserSerializer(serializers.ModelSerializer):
             "needs": profile.needs,
             "usage": profile.usage,
         }
+
+    def get_gets(self, user):
+        """Get support on (KAN-24): Search and Claims show. Everyone gets support unless they chose Give only."""
+        profile = getattr(user, "profile", None)
+        return not (profile and profile.usage == "give")
 
     def get_gives(self, user):
         profile = getattr(user, "profile", None)

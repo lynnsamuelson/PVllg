@@ -13,7 +13,8 @@ src/
 │   ├── auth/             AccountTypePage (Mock Up 2), SignupPage, LoginPage, ForgotPasswordPage (placeholder)  (public)
 │   ├── home/             HomePage: lists resources                       (login required)
 │   ├── resources/        ResourceDetailPage (Mock Up 22): every fact, "Not listed" for blanks  (login required)
-│   ├── profile/          ProfilePage, ProfileSetupPage (4 steps, KAN-6)  (login required)
+│   ├── profile/          ProfilePage (Mock Up 25: Get/Give switches, Edit answers), ProfileSetupPage (4 steps, KAN-6);
+│   │                     both show ProfileQuestions, the shared question screens  (login required)
 │   ├── org/              OrgSignupPage (Mock Up 7), OrgVerifyPage (Mock Up 8), OrgProfilePage (Mock Up 9, Verified only)  (login required)
 │   ├── claims/           MyClaimsPage (Mock Up 15): Active and Past claims, Cancel claim; AddToCalendarPage (Mock Up 16);
 │   │                     ReportProblemPage (Mock Ups 17-18)  (login required)
@@ -26,7 +27,7 @@ src/
 │
 ├── components/           Pieces shared across pages
 │   ├── Layout.jsx        Page area + bottom bar once signed in
-│   ├── BottomNav.jsx     Signed-in tabs: person (Home, Search, Claims, Give, Profile) or organization (Items, Claims, Impact, Profile)
+│   ├── BottomNav.jsx     Signed-in tabs: person (Home, Search, Claims, Give, Profile; Give with Give support on, Search and Claims with Get support on) or organization (Items, Claims, Impact, Profile)
 │   ├── Button.jsx        Primary / outline / small button; a <Link> when given `to`
 │   ├── TextField.jsx     Label + input (text box with `multiline`, dropdown with `options`) + hint + API errors
 │   ├── ChoiceCard.jsx    Selectable card, one pick per group
@@ -39,6 +40,7 @@ src/
 │   ├── AppHeader.jsx     Small logo with the screen title beside it, top left (Mock Ups 9, 10, 21)
 │   ├── Badge.jsx         Pill badge (pending, verified, person, demo)
 │   ├── BackToResults.jsx "← Results" on details screens: back to the list that opened it (state fromList), else a fallback
+│   ├── Toggle.jsx        On/off switch, green when on (Get / Give support)
 │   ├── Tabs.jsx          Text tabs with a green underline on the active one
 │   ├── CodeInput.jsx     Six boxes for an emailed code
 │   ├── ProtectedRoute.jsx  Redirects logged-out users to /welcome

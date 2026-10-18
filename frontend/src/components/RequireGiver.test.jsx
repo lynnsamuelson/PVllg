@@ -5,12 +5,12 @@ import * as auth from "../context/AuthContext.jsx";
 import { ROUTES } from "../routes.js";
 import RequireGiver from "./RequireGiver.jsx";
 
-function renderAs(user) {
+function renderAs(user, props = {}) {
   vi.spyOn(auth, "useAuth").mockReturnValue({ user });
   render(
     <MemoryRouter initialEntries={[ROUTES.postItem]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
-        <Route element={<RequireGiver title="Post an item" />}>
+        <Route element={<RequireGiver title="Post an item" {...props} />}>
           <Route path={ROUTES.postItem} element={<p>Post form</p>} />
         </Route>
       </Routes>
@@ -39,6 +39,11 @@ describe("RequireGiver", () => {
     expect(screen.queryByText("Post form")).not.toBeInTheDocument();
     expect(screen.getByText("Posting items is for people with Give support on.")).toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("lets any person through when asked (My items)", () => {
+    renderAs(person(false), { anyPerson: true });
+    expect(screen.getByText("Post form")).toBeInTheDocument();
   });
 
   it("tells a pending organization to confirm its email", () => {

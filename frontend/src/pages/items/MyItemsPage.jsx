@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import * as api from "../../api/client.js";
 import Button from "../../components/Button.jsx";
 import NoteBox from "../../components/NoteBox.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 import { ROUTES } from "../../routes.js";
 
 // "1 listed · 1 requested", "0 left · 1 claimed", "2 left" (Mock Up 21). Never below zero.
@@ -182,6 +183,8 @@ function ItemCard({ item, onTakenDown, onChanged }) {
 
 // Mock Up 21: the Give tab (people) or Items tab (organizations). Behind <RequireGiver>.
 export default function MyItemsPage() {
+  const { user } = useAuth();
+  const canPost = user.account_type === "organization" || user.gives;
   const location = useLocation();
   const navigate = useNavigate();
   const [items, setItems] = useState(null);
@@ -229,7 +232,11 @@ export default function MyItemsPage() {
           ))}
         </ul>
       )}
-      <Button to={ROUTES.postItem}>Post an item</Button>
+      {canPost ? (
+        <Button to={ROUTES.postItem}>Post an item</Button>
+      ) : (
+        <NoteBox>Give support is off, so you can't post new items. Turn it on in Profile.</NoteBox>
+      )}
     </section>
   );
 }

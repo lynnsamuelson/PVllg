@@ -65,7 +65,7 @@ frontend/
     App.jsx          route table
     routes.js        every URL path; always use ROUTES.x
     pages/<area>/    one folder per area, one file per page
-    components/      shared UI (Layout, BottomNav, Button, TextField, ChoiceCard, Chip, Checkbox, ProgressBar, NoteBox, Logo, BrandHeader, AppHeader, Badge, Tabs, BackToResults, CodeInput, ProtectedRoute, RequireVerifiedOrg, RequireGiver, FieldError, Placeholder)
+    components/      shared UI (Layout, BottomNav, Button, TextField, ChoiceCard, Chip, Checkbox, ProgressBar, NoteBox, Logo, BrandHeader, AppHeader, Badge, Tabs, BackToResults, Toggle, CodeInput, ProtectedRoute, RequireVerifiedOrg, RequireGiver, FieldError, Placeholder)
     context/         AuthContext (current user, login/signup/logout)
     api/client.js    the ONLY place that calls fetch(); handles CSRF + 401
     logger.js        the ONLY place that calls console; use log.info/warn/error
@@ -132,7 +132,8 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   (`user.account_type` in the API); accounts made before it existed read as `person`. Use `get_user_model()`. Don't introduce a custom user model; existing
   migrations depend on the built-in one.
 - **A person's profile answers** (ZIP, stage, child age groups, roles, needs, Get/Give/Both) are fields on
-  `accounts.Profile`, saved by `POST /api/auth/profile/` and read as `user.profile` (null until set up) and `user.gives`.
+  `accounts.Profile`, saved by `POST /api/auth/profile/` and read as `user.profile` (null until set up), `user.gives`
+  and `user.gets` (the Profile tab's Give and Get switches, KAN-24).
   The age-group, role and need keys come from `resources` (`matching.AGE_GROUPS`, `ROLE_TO_SERVES`, `models.CATEGORIES`),
   so `user.profile` can be passed straight to `getResourceMatches`.
 - **CSRF:** session cookies plus the `X-CSRFToken` header. Anonymous POST endpoints that change auth state
@@ -372,6 +373,5 @@ Apache and systemd config, restarts the app, and checks health.
 - Forgot password / password reset (the page is a placeholder; email can reuse the SMTP settings)
 - Rate limiting on login
 - Error reporting service such as Sentry (hook it into `config/log.py` and `frontend/src/logger.js`)
-- Profile editing
 - Final visual design (pages carry the `Placeholder` banner)
 - HTTPS / custom domain (the site is plain HTTP on the VM IP)
