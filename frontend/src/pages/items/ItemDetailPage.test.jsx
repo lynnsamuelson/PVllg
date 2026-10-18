@@ -56,6 +56,7 @@ describe("ItemDetailPage", () => {
     expect(screen.getByRole("button", { name: "Claim one (held for 3 days)" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Report a problem" })).toBeInTheDocument();
     expect(api.getItem).toHaveBeenCalledWith("1");
+    expect(screen.queryByText(/Stay safe at pickup/)).not.toBeInTheDocument();
   });
 
   it("shows a person's item with no name, address or exact distance (Mock Up 14)", async () => {
@@ -69,6 +70,13 @@ describe("ItemDetailPage", () => {
     expect(screen.getByText(/The exact pickup place is shared only after the giver approves your request/)).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Baby clothes bundle, photo 1" })).toHaveAttribute("src", "/api/items/photos/4/");
     expect(screen.getByRole("button", { name: "Request to claim" })).toBeEnabled();
+    expect(screen.getByText(/Stay safe at pickup: go in daylight if you can.*In an emergency, call 911\./)).toBeInTheDocument();
+  });
+
+  it("leaves the safety note off the giver's own item", async () => {
+    renderPage({ ...PERSON_ITEM, mine: true });
+    expect(await screen.findByRole("link", { name: "This is your item. Edit it" })).toBeInTheDocument();
+    expect(screen.queryByText(/Stay safe at pickup/)).not.toBeInTheDocument();
   });
 
   it("claims and goes to My claims", async () => {
