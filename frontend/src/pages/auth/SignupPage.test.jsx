@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { flushSync } from "react-dom";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -24,6 +24,15 @@ describe("SignupPage", () => {
   it("shows the form for a known account type", () => {
     renderAt(`${ROUTES.signup}?type=organization`);
     expect(screen.getByRole("heading", { name: "Create your account" })).toBeInTheDocument();
+  });
+
+  it("asks an organization for its name and a person for theirs", () => {
+    renderAt(`${ROUTES.signup}?type=organization`);
+    expect(screen.getByLabelText("Organization name")).toHaveAttribute("autocomplete", "organization");
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+    cleanup();
+    renderAt(`${ROUTES.signup}?type=person`);
+    expect(screen.getByLabelText("Name")).toHaveAttribute("autocomplete", "name");
   });
 
   it.each(["", "?type=robot", "?type=constructor", "?type=__proto__"])("sends %s back to pick a type", (query) => {

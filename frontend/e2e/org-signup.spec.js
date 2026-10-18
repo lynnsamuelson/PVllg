@@ -22,12 +22,13 @@ test("an organization confirms its domain email and becomes Verified", async ({ 
   const workEmail = `hi@${domain}`;
 
   await page.goto("/signup?type=organization");
-  await page.getByLabel("Name", { exact: true }).fill("Sample Community Closet");
+  await page.getByLabel("Organization name", { exact: true }).fill("Sample Community Closet");
   await page.getByLabel("Email", { exact: true }).fill(`lead@${domain}`);
   await page.getByLabel(/^Password/).fill(PASSWORD);
   await page.getByLabel("Confirm password").fill(PASSWORD);
   await page.getByRole("button", { name: "Sign up" }).click();
   await expect(page.getByRole("heading", { name: "Tell us about your organization" })).toBeVisible();
+  await expect(page.getByLabel("Organization name")).toHaveValue("Sample Community Closet");
 
   await page.getByLabel("Website").fill(`https://www.${domain}`);
   await page.getByLabel("Work email").fill("closet@gmail.com");

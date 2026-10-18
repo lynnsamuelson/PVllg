@@ -73,7 +73,7 @@ describe("SearchPage", () => {
 
   it("starts from the URL, so Back from details keeps the search", async () => {
     vi.spyOn(api, "getResourceMatches").mockResolvedValue([
-      { id: 5, title: "TennCare Diaper Benefit", category: "Diapers", area_type: "statewide", limits: "Under 2" },
+      { id: 5, title: "TennCare Diaper Benefit", category: "Diapers", area_type: "statewide", limits: "Under 2", reason: "May be a good fit" },
       { id: 6, title: "Davidson County WIC", category: "Food", area_type: "local", distance_miles: 3, limits: "" },
       { id: 7, title: "Nashville Diaper Connection", category: "Diapers", area_type: "local", distance_miles: null, area_served: "Nashville area" },
     ]);
@@ -83,6 +83,7 @@ describe("SearchPage", () => {
     expect(screen.getByRole("radio", { name: "Feeding" })).toHaveAttribute("aria-checked", "true");
     expect(await screen.findByText("Diapers · Statewide")).toBeInTheDocument();
     expect(screen.getByText("Food · About 3 miles")).toBeInTheDocument();
+    expect(screen.getByText("May be a good fit")).toBeInTheDocument();
     expect(screen.getByText("Diapers · Nashville area")).toBeInTheDocument();
     expect(api.getResourceMatches).toHaveBeenCalledWith(PROFILE, { q: "wic", category: "feeding", radius: "50" });
   });

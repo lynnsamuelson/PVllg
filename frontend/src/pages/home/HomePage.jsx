@@ -52,6 +52,7 @@ function ResourceCard({ resource }) {
         {resource.category}
         {resource.referral && ` · ${resource.referral}`}
       </p>
+      {resource.reason && <p className="result-card-line">{resource.reason}</p>}
     </Link>
   );
 }

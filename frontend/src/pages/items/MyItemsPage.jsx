@@ -149,8 +149,9 @@ function ItemCard({ item, onTakenDown, onChanged }) {
       {item.claims.map((claim) => (
         <ClaimRow key={`${claim.id}-${claim.status}`} claim={claim} onAnswered={onChanged} />
       ))}
-      {/* As on Mock Up 21, an item with open requests or claims is answered first, not edited or taken down. */}
-      {item.claims.length > 0 ? null : confirming ? (
+      {/* Edit stays, so a giver can change pickup details after a claim (KAN-19). As on Mock Up 21, an item with open
+          requests or claims is answered first, not taken down. */}
+      {confirming ? (
         <div className="stack">
           <p>Are you sure? Families won't find {item.name} anymore.</p>
           <div className="row">
@@ -167,9 +168,11 @@ function ItemCard({ item, onTakenDown, onChanged }) {
           <Button small variant="outline" to={ROUTES.editItem(item.id)}>
             Edit
           </Button>
-          <Button small variant="outline" onClick={() => setConfirming(true)}>
-            Take down
-          </Button>
+          {item.claims.length === 0 && (
+            <Button small variant="outline" onClick={() => setConfirming(true)}>
+              Take down
+            </Button>
+          )}
         </div>
       )}
       {error && (

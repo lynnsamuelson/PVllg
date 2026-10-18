@@ -7,6 +7,8 @@ const result = (page, name) => page.getByRole("link").filter({ has: page.getByRo
 test("a family opens a resource from search and goes back to the same results", async ({ page }) => {
   await signupPerson(page, { zip: "37206", usage: "Get support" });
   await page.goto("/search?tab=resources&radius=50");
+  await expect(result(page, "Nashville Diaper Connection")).toContainText(/Matches .+|May be a good fit/);
+  await expect(page.getByText(/you qualify/i)).toHaveCount(0);
   await result(page, "Nashville Diaper Connection").click();
 
   await expect(page.getByRole("heading", { level: 1, name: "Nashville Diaper Connection" })).toBeVisible();

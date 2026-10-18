@@ -212,6 +212,7 @@ export default function ItemDetailPage() {
           )}
           {item.where_to_go && <p>{item.where_to_go}</p>}
           {item.what_to_bring && <p>{item.what_to_bring}</p>}
+          {org && item.public_contact && <p>{item.public_contact}</p>}
         </div>
         {item.private_note && <NoteBox>{boldLabel(item.private_note)}</NoteBox>}
         {!org && !item.mine && (

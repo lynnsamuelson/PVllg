@@ -52,6 +52,34 @@ test("a family adds an approved pickup to their calendar and hears when it chang
   await expect(card(page, name)).not.toContainText("Pickup details changed.");
 });
 
+test("a giver edits the pickup time from My items after a claim, and the family hears", async ({ browser }) => {
+  const org = await newPage(browser);
+  await signupVerifiedOrg(org);
+  await saveOrgProfile(org);
+  const name = `Onesies ${Date.now()}`;
+  await postItem(org, { name, quantity: 2 });
+  const id = await myItemId(org, "/org/items", name);
+
+  const page = await newPage(browser);
+  await signupPerson(page, { zip: "37208", usage: "Get support" });
+  await claimItem(page, id);
+  await expect(card(page, name)).toContainText("Approved");
+  await expect(card(page, name)).not.toContainText("Pickup details changed.");
+
+  await org.goto("/org/items");
+  await expect(card(org, name)).toContainText("Approved");
+  await expect(card(org, name).getByRole("button", { name: "Take down" })).toHaveCount(0);
+  await card(org, name).getByRole("link", { name: "Edit" }).click();
+  await org.getByRole("button", { name: "Next: pickup details" }).click();
+  await org.getByLabel("To", { exact: true }).fill("20:00");
+  await org.getByRole("button", { name: "Save changes" }).click();
+  await expect(org.getByText(`Saved ${name}.`)).toBeVisible();
+
+  await page.goto("/claims");
+  await expect(card(page, name)).toContainText("5 - 8 pm");
+  await expect(card(page, name)).toContainText("Pickup details changed. Update your calendar.");
+});
+
 test("a waiting request can't go in a calendar", async ({ browser }) => {
   const giver = await newPage(browser);
   await signupPerson(giver, { zip: "37206", usage: "Give support" });
