@@ -85,10 +85,12 @@ function ItemForm({ itemId }) {
   const [next, setNext] = useState(null);
 
   useEffect(() => {
-    if (!itemId) return;
+    if (!itemId) return undefined;
+    let current = true; // a reply that comes after a newer load (or after leaving) must not overwrite the form
     api
       .getMyItem(itemId)
       .then((item) => {
+        if (!current) return;
         // The same answers as posting; it was posted with both boxes checked, so they come back checked.
         const answers = Object.fromEntries(Object.keys(EMPTY).map((f) => [f, item[f] ?? ""]));
         setForm({
@@ -101,7 +103,10 @@ function ItemForm({ itemId }) {
         });
         setLoaded(true);
       })
-      .catch((err) => setLoadError(err.message));
+      .catch((err) => current && setLoadError(err.message));
+    return () => {
+      current = false;
+    };
   }, [itemId]);
 
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }));
