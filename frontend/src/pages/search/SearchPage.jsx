@@ -7,7 +7,7 @@ import Chip from "../../components/Chip.jsx";
 import NoteBox from "../../components/NoteBox.jsx";
 import Tabs from "../../components/Tabs.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { formatMiles } from "../../format.js";
+import { formatMiles, resourceArea } from "../../format.js";
 import { ROUTES } from "../../routes.js";
 
 const TABS = [
@@ -32,7 +32,7 @@ const about = (miles) => formatMiles(miles);
 function ItemCard({ item }) {
   return (
     <li>
-      <Link to={ROUTES.item(item.id)} state={{ fromSearch: true }} className="card result-card">
+      <Link to={ROUTES.item(item.id)} state={{ fromList: true }} className="card result-card">
         <h2>{item.name}</h2>
         <p className="result-card-line">
           {item.giver}{" "}
@@ -52,17 +52,10 @@ function ItemCard({ item }) {
   );
 }
 
-// Statewide and national programs are never called nearby; local ones show a rounded distance or their area.
-function resourceArea(r) {
-  if (r.area_type === "statewide") return "Statewide";
-  if (r.area_type === "national") return "National";
-  return r.distance_miles != null ? about(r.distance_miles) : r.area_served || "Area not listed";
-}
-
 function ResourceCard({ resource }) {
   return (
     <li>
-      <Link to={ROUTES.resource(resource.id)} className="card result-card">
+      <Link to={ROUTES.resource(resource.id)} state={{ fromList: true }} className="card result-card">
         <h2>{resource.title}</h2>
         <p className="result-card-line">
           {resource.category} · {resourceArea(resource)}

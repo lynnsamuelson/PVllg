@@ -12,7 +12,7 @@ src/
 │   ├── welcome/          WelcomePage (Mock Up 1)                         (public)
 │   ├── auth/             AccountTypePage (Mock Up 2), SignupPage, LoginPage, ForgotPasswordPage (placeholder)  (public)
 │   ├── home/             HomePage: lists resources                       (login required)
-│   ├── resources/        ResourceDetailPage: one resource                (login required)
+│   ├── resources/        ResourceDetailPage (Mock Up 22): every fact, "Not listed" for blanks  (login required)
 │   ├── profile/          ProfilePage, ProfileSetupPage (4 steps, KAN-6)  (login required)
 │   ├── org/              OrgSignupPage (Mock Up 7), OrgVerifyPage (Mock Up 8), OrgProfilePage (Mock Up 9, Verified only)  (login required)
 │   ├── search/           SearchPage (Mock Up 12): Items and Resources tabs; search state lives in the URL  (login required)
@@ -36,6 +36,7 @@ src/
 │   ├── BrandHeader.jsx   Logo with "PVill" under it, top of most screens
 │   ├── AppHeader.jsx     Small logo with the screen title beside it, top left (Mock Ups 9, 10, 21)
 │   ├── Badge.jsx         Pill badge (pending, verified, person, demo)
+│   ├── BackToResults.jsx "← Results" on details screens: back to the list that opened it (state fromList), else a fallback
 │   ├── Tabs.jsx          Text tabs with a green underline on the active one
 │   ├── CodeInput.jsx     Six boxes for an emailed code
 │   ├── ProtectedRoute.jsx  Redirects logged-out users to /welcome

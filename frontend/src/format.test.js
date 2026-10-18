@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDate, formatMiles, formatPickup, formatWindow } from "./format.js";
+import { formatDate, formatLongDate, formatMiles, formatPickup, formatWindow, resourceArea } from "./format.js";
 
 describe("format", () => {
   it("writes dates in the local day, not UTC", () => {
@@ -25,5 +25,16 @@ describe("formatMiles", () => {
     expect(formatMiles(0)).toBe("About 1 mile");
     expect(formatMiles(3)).toBe("About 3 miles");
     expect(formatMiles(3, { lower: true })).toBe("about 3 miles");
+  });
+});
+
+describe("resource helpers", () => {
+  it("writes the long date and where a resource works", () => {
+    expect(formatLongDate("2026-10-17")).toBe("Oct 17, 2026");
+    expect(resourceArea({ area_type: "statewide", area_served: "Tennessee" })).toBe("Statewide");
+    expect(resourceArea({ area_type: "national" })).toBe("National");
+    expect(resourceArea({ area_type: "local", distance_miles: 0 })).toBe("About 1 mile");
+    expect(resourceArea({ area_type: "local", area_served: "Davidson County" })).toBe("Davidson County");
+    expect(resourceArea({ area_type: "local" })).toBe("Area not listed");
   });
 });

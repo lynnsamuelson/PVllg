@@ -37,7 +37,9 @@ export default function HomePage() {
             <li key={r.id} className="card">
               <span className="tag">{r.category}</span>
               <h3>
-                <Link to={ROUTES.resource(r.id)}>{r.title}</Link>
+                <Link to={ROUTES.resource(r.id)} state={{ fromList: true }}>
+                  {r.title}
+                </Link>
               </h3>
               <p>{r.summary}</p>
             </li>
