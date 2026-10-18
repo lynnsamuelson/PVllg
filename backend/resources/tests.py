@@ -146,3 +146,14 @@ class MatchingUnitTests(SimpleTestCase):
         both = Resource(title="Z", categories=["essentials", "feeding"], area_type="local", zip_code="37201")
         results = match_resources([both], {"zip": "37206", "needs": ["essentials", "feeding"]})
         self.assertEqual(results[0]["reason"], "Matches Diapers, Feeding and your area")
+
+
+class AreaNameTests(SimpleTestCase):
+    def test_area_names(self):
+        from resources.matching import area_name
+
+        self.assertEqual(area_name("37206"), "Nashville / Davidson County")
+        self.assertEqual(area_name("37013"), "Nashville / Davidson County")  # Antioch
+        self.assertEqual(area_name("37075"), "Hendersonville")
+        self.assertEqual(area_name("90210"), "ZIP 90210")
+        self.assertEqual(area_name(""), "")

@@ -137,7 +137,8 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   (`user.account_type` in the API); accounts made before it existed read as `person`. Use `get_user_model()`. Don't introduce a custom user model; existing
   migrations depend on the built-in one.
 - **A person's profile answers** (ZIP, stage, child age groups, roles, needs, Get/Give/Both) are fields on
-  `accounts.Profile`, saved by `POST /api/auth/profile/` and read as `user.profile` (null until set up), `user.gives`
+  `accounts.Profile`, saved by `POST /api/auth/profile/` and read as `user.profile` (null until set up; with `area`,
+  the ZIP's area name from `resources.matching.area_name`), `user.gives`
   and `user.gets` (the Profile tab's Give and Get switches, KAN-24).
   The age-group, role and need keys come from `resources` (`matching.AGE_GROUPS`, `ROLE_TO_SERVES`, `models.CATEGORIES`),
   so `user.profile` can be passed straight to `getResourceMatches`.

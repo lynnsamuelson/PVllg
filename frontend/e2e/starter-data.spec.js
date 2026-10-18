@@ -2,16 +2,18 @@ import { expect, test } from "@playwright/test";
 import { PASSWORD, signupPerson } from "./helpers.js";
 
 // KAN-26: the 12 starter resources replace the placeholders, and demo accounts can't be signed into.
-test("a person sees the starter resources on Home, with their details", async ({ page }) => {
+// (Home stopped listing every resource in KAN-25, so this reads the list and opens resource pages directly.)
+test("the 12 starter resources replace the placeholders, with their details", async ({ page }) => {
   await signupPerson(page);
-  const resources = page.getByRole("heading", { level: 3 });
-  await expect(resources).toHaveCount(12);
-  await expect(page.getByRole("link", { name: "Getting started guide" })).toHaveCount(0);
+  const resources = await (await page.request.get("/api/resources/")).json();
+  const titles = resources.map((r) => r.title);
+  expect(titles).toHaveLength(12);
+  expect(titles).not.toContain("Getting started guide");
 
-  await page.getByRole("link", { name: "Foster Families Assistance Network (FFAN)" }).click();
+  const id = (title) => resources.find((r) => r.title === title).id;
+  await page.goto(`/resources/${id("Foster Families Assistance Network (FFAN)")}`);
   await expect(page.getByRole("heading", { level: 1, name: "Foster Families Assistance Network (FFAN)" })).toBeVisible();
-  await page.goBack();
-  await expect(page.getByRole("link", { name: "MySimilac Rewards" })).toBeVisible();
+  await page.goto(`/resources/${id("MySimilac Rewards")}`);
   await expect(page.getByText(/It is not free formula\./)).toBeVisible();
 });
 

@@ -56,6 +56,7 @@ test("a person finishes the 4 profile steps, and the answers stay after signing 
   const me = await (await page.request.get("/api/auth/me/")).json();
   expect(me.user.profile).toEqual({
     zip: "37206",
+    area: "Nashville / Davidson County",
     stage: "parenting",
     arrival_month: "",
     ages: ["1_2yrs"],

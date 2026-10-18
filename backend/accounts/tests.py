@@ -388,13 +388,15 @@ class PersonProfileTests(APITestCase):
             resp = self.save()
         self.assertEqual(resp.status_code, 200, resp.content)
         self.assertIn("profile saved user_id=", logs.output[0])
-        self.assertEqual(resp.json()["user"]["profile"], ANSWERS)
+        self.assertEqual(resp.json()["user"]["profile"], {**ANSWERS, "area": "Nashville / Davidson County"})
         self.assertTrue(resp.json()["user"]["gives"])
 
         client = APIClient()
         with self.assertLogs("accounts.views", "INFO"):
             client.post("/api/auth/login/", {"email": "ada@example.com", "password": GOOD_PASSWORD}, format="json")
-        self.assertEqual(client.get("/api/auth/me/").json()["user"]["profile"], ANSWERS)
+        self.assertEqual(
+            client.get("/api/auth/me/").json()["user"]["profile"], {**ANSWERS, "area": "Nashville / Davidson County"}
+        )
 
     def test_give_only_does_not_get(self):
         with self.assertLogs("accounts.views", "INFO"):

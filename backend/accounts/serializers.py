@@ -8,7 +8,7 @@ from django.core.validators import validate_email
 from django.db import transaction
 from rest_framework import serializers
 
-from resources.matching import AGE_GROUPS, ROLE_TO_SERVES
+from resources.matching import AGE_GROUPS, ROLE_TO_SERVES, area_name
 from resources.models import CATEGORIES, SERVES
 
 from .models import Profile
@@ -45,6 +45,7 @@ class UserSerializer(serializers.ModelSerializer):
             return None
         return {
             "zip": profile.zip_code,
+            "area": area_name(profile.zip_code),
             "stage": profile.stage,
             "arrival_month": profile.arrival_month,
             "ages": profile.ages,
