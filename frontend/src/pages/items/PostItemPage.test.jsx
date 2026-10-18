@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { StrictMode } from "react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as api from "../../api/client.js";
@@ -193,6 +194,27 @@ describe("PostItemPage editing", () => {
     click("button", "Save changes");
     expect(await screen.findByText("Your changes weren't saved. Failed to fetch")).toBeInTheDocument();
     expect(screen.getByLabelText("General area (shown to everyone)")).toHaveValue("Downtown");
+  });
+
+  it("ignores a load that answers after a newer one, so it can't undo what was typed", async () => {
+    const replies = [];
+    vi.spyOn(api, "getMyItem").mockImplementation(() => new Promise((resolve) => replies.push(resolve)));
+    vi.spyOn(auth, "useAuth").mockReturnValue({ user: PERSON });
+    render(
+      // StrictMode runs the load effect twice, as the dev server does.
+      <StrictMode>
+        <MemoryRouter initialEntries={[ROUTES.editItem(7)]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <Routes>
+            <Route path={ROUTES.editItem()} element={<PostItemPage />} />
+          </Routes>
+        </MemoryRouter>
+      </StrictMode>
+    );
+    expect(replies).toHaveLength(2);
+    await act(async () => replies[1](SAVED));
+    type("How many?", "3");
+    await act(async () => replies[0](SAVED));
+    expect(screen.getByLabelText("How many?")).toHaveValue(3);
   });
 
   it("says when the item couldn't load", async () => {
