@@ -11,7 +11,7 @@ src/
 ├── pages/                One folder per area; one file per page
 │   ├── welcome/          WelcomePage (Mock Up 1)                         (public)
 │   ├── auth/             AccountTypePage (Mock Up 2), SignupPage, LoginPage, ForgotPasswordPage (placeholder)  (public)
-│   ├── home/             HomePage: lists resources                       (login required)
+│   ├── home/             HomePage (Mock Up 11): welcome, Your journey, two picks for you  (login required)
 │   ├── resources/        ResourceDetailPage (Mock Up 22): every fact, "Not listed" for blanks; Reach out demo sheet (Mock Up 23)  (login required)
 │   ├── profile/          ProfilePage (Mock Up 25: Get/Give switches, Edit answers), ProfileSetupPage (4 steps, KAN-6);
 │   │                     both show ProfileQuestions, the shared question screens  (login required)

@@ -50,6 +50,26 @@ ZIP_CENTERS = {
     "45202": (39.10, -84.51),  # Cincinnati, OH
 }
 
+# The area a ZIP is in, for "Nashville / Davidson County" under Welcome on Home (KAN-25). Davidson County ZIPs are
+# the ones listed first in ZIP_CENTERS; the nearby ones are named by town.
+DAVIDSON_ZIPS = {
+    "37013", "37072", "37076", "37080", "37115", "37138", "37189", "37201", "37203", "37204", "37205", "37206",
+    "37207", "37208", "37209", "37210", "37211", "37212", "37214", "37215", "37216", "37217", "37218", "37219",
+    "37220", "37221", "37228",
+}
+NEARBY_TOWNS = {
+    "37027": "Brentwood", "37064": "Franklin", "37066": "Gallatin", "37075": "Hendersonville", "37087": "Lebanon",
+    "37122": "Mount Juliet", "37130": "Murfreesboro",
+}
+
+
+def area_name(zip_code):
+    """ "Nashville / Davidson County", a nearby town, or "ZIP 37xxx" for a ZIP we don't know."""
+    if zip_code in DAVIDSON_ZIPS:
+        return "Nashville / Davidson County"
+    return NEARBY_TOWNS.get(zip_code, f"ZIP {zip_code}" if zip_code else "")
+
+
 # Child age groups from the profile (KAN-6), as [min, max] months.
 AGE_GROUPS = {
     "under_3mo": (0, 2),
