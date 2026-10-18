@@ -84,7 +84,7 @@ if os.environ.get("DB_HOST"):
 else:
     DATABASES = {
         "default": {
-            "ENGINE": "django.db.backends.sqlite3",
+            "ENGINE": "config.sqlite",  # SQLite that locks at the start of a transaction; see config/sqlite/base.py
             "NAME": os.environ.get("SQLITE_PATH", BASE_DIR / "db.sqlite3"),
         }
     }
