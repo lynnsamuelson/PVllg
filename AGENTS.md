@@ -80,6 +80,7 @@ python manage.py runserver        # http://127.0.0.1:8000
 python manage.py test             # quick test run
 coverage run manage.py test && coverage report   # what CI runs; fails below fail_under
 python manage.py makemigrations   # commit the generated files
+python manage.py seed_test_accounts  # create/reset the product owners' test accounts (README → Test accounts)
 ```
 
 **Frontend** (from `frontend/`, Node 20+):

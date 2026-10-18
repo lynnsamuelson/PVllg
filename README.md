@@ -112,6 +112,8 @@ describes, update them in the same PR. The PR checklist asks you to confirm it. 
 | `npm run e2e` says `Executable doesn't exist` | Run `npx playwright install chromium` in `frontend/`. |
 | `npm run e2e` can't start the backend | It uses `backend/.venv/bin/python`. Create the venv (step 3) first. |
 
+Want ready-made accounts? Run `python manage.py seed_test_accounts` in `backend/` (see [Test accounts](#test-accounts)).
+
 Want the Django admin locally? Run `python manage.py createsuperuser` in `backend/`, then open http://localhost:5173/admin/.
 
 ---
@@ -193,6 +195,27 @@ To create a Django admin user on the VM:
 ssh opc@207.211.189.5
 cd /opt/hackathon-app/backend && ENV_FILE=../.env ../venv/bin/python manage.py createsuperuser
 ```
+
+### Test accounts
+
+`python manage.py seed_test_accounts` creates three accounts for product owners, all with one password (from
+`TEST_ACCOUNT_PASSWORD`, or it asks):
+
+| Email | What it is |
+| --- | --- |
+| `person@pvill.test` | Person |
+| `org@pvill.test` | Verified organization (Example Community Closet) |
+| `neworg@pvill.test` | Organization that hasn't done the email check, for trying it with a real work email |
+
+Running it again resets them, including the password. On the VM:
+
+```bash
+ssh opc@207.211.189.5
+cd /opt/hackathon-app/backend && ENV_FILE=../.env ../venv/bin/python manage.py seed_test_accounts
+```
+
+To try the email check again with the same work email, open Django admin → Organizations, tick the organization,
+and choose **Reset email check**. The account stays; it goes back to entering its details.
 
 ## VM access for teammates
 

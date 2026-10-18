@@ -1,3 +1,4 @@
+import os
 import re
 import smtplib
 from datetime import timedelta
@@ -5,6 +6,7 @@ from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.core.management import CommandError, call_command
 from django.utils import timezone
 from rest_framework.test import APIClient, APITestCase
 
@@ -333,3 +335,49 @@ class OrganizationVerificationTests(APITestCase):
         self.assertEqual(self.verify_result.json()["code"], ["That code has expired. Send a new code."])
         org = self.org()
         self.assertEqual((org.domain, org.status), ("victimfoodbank.org", "pending"))
+
+
+class SeedTestAccountsTests(APITestCase):
+    def seed(self, password=GOOD_PASSWORD):
+        with mock.patch.dict(os.environ, {"TEST_ACCOUNT_PASSWORD": password}):
+            call_command("seed_test_accounts", stdout=mock.Mock())
+
+    def me(self, email):
+        self.assertTrue(self.client.login(username=email, password=GOOD_PASSWORD))
+        return self.client.get("/api/auth/me/").json()["user"]
+
+    def test_creates_each_account(self):
+        self.seed()
+        self.assertEqual(self.me("person@pvill.test")["account_type"], "person")
+        self.assertEqual(self.me("org@pvill.test")["organization"]["status"], "verified")
+        new_org = self.me("neworg@pvill.test")
+        self.assertEqual(new_org["account_type"], "organization")
+        self.assertIsNone(new_org["organization"])
+
+    def test_running_again_resets_them(self):
+        self.seed()
+        user = User.objects.get(username="neworg@pvill.test")
+        Organization.objects.create(user=user, name="Garden", website="garden.org", domain="garden.org", work_email="info@garden.org")
+        self.seed("another-long-password-7")
+        user.refresh_from_db()
+        self.assertFalse(Organization.objects.filter(user=user).exists())
+        self.assertTrue(user.check_password("another-long-password-7"))
+        self.assertEqual(User.objects.filter(username__endswith="@pvill.test").count(), 3)
+
+    def test_needs_a_password(self):
+        with mock.patch.dict(os.environ, {"TEST_ACCOUNT_PASSWORD": ""}), mock.patch("getpass.getpass", return_value=""):
+            with self.assertRaises(CommandError):
+                call_command("seed_test_accounts")
+
+
+class ResetEmailCheckAdminTests(APITestCase):
+    def test_reset_removes_the_organization(self):
+        admin = User.objects.create_superuser("admin@example.com", "admin@example.com", GOOD_PASSWORD)
+        org_user = User.objects.create_user("org@garden.org", "org@garden.org", GOOD_PASSWORD)
+        org = Organization.objects.create(user=org_user, name="Garden", website="garden.org", domain="garden.org", work_email="info@garden.org")
+        self.client.force_login(admin)
+        resp = self.client.post(
+            "/admin/accounts/organization/", {"action": "reset_email_check", "_selected_action": [org.pk]}, follow=True
+        )
+        self.assertContains(resp, "Reset 1 organization(s).")
+        self.assertFalse(Organization.objects.filter(pk=org.pk).exists())
