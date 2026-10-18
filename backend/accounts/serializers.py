@@ -1,12 +1,15 @@
 """Accounts use Django's built-in User, with the (lowercased) email stored as the username."""
+import re
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import validate_email
 from django.db import transaction
 from rest_framework import serializers
 
 from resources.matching import AGE_GROUPS, ROLE_TO_SERVES
-from resources.models import CATEGORIES
+from resources.models import CATEGORIES, SERVES
 
 from .models import Profile
 
@@ -57,7 +60,16 @@ class UserSerializer(serializers.ModelSerializer):
         org = getattr(user, "organization", None)
         if org is None:
             return None
-        return {"name": org.name, "website": org.website, "work_email": org.work_email, "status": org.status}
+        return {
+            "name": org.name,
+            "website": org.website,
+            "work_email": org.work_email,
+            "status": org.status,
+            "about": org.about,
+            "serves": org.serves,
+            "pickup_address": org.pickup_address,
+            "public_contact": org.public_contact,
+        }
 
 
 class SignupSerializer(serializers.Serializer):
@@ -184,6 +196,46 @@ class PersonProfileSerializer(serializers.Serializer):
         if attrs["stage"] == "parenting":
             attrs["arrival_month"] = ""
         return attrs
+
+
+ORG_SERVES = [key for key in SERVES if key != "adoptive"]  # the three "Who we serve" chips on Mock Up 9
+
+
+def address_zip(address):
+    """The ZIP code ending an address ("..., TN 37206" or "37206-1234"), or None."""
+    match = re.search(r"(?<![\d-])(\d{5})(?:-\d{4})?\s*$", address, re.ASCII)
+    return match.group(1) if match else None
+
+
+class OrganizationProfileSerializer(serializers.Serializer):
+    """Organization profile (Mock Up 9). The address must be the organization's, never a person's home."""
+
+    about = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    serves = serializers.ListField(child=serializers.ChoiceField(choices=ORG_SERVES), required=False)
+    pickup_address = serializers.CharField(max_length=255)
+    public_contact = serializers.CharField(max_length=150)
+
+    def validate_serves(self, value):
+        return [s for s in ORG_SERVES if s in value]  # one of each, in chip order
+
+    def validate_pickup_address(self, value):
+        # Search measures distance from the ZIP code, so the address needs one.
+        if not address_zip(value):
+            raise serializers.ValidationError("End the address with its ZIP code, like 123 Example St, Nashville, TN 37206.")
+        return value
+
+    def validate_public_contact(self, value):
+        if "@" in value:
+            try:
+                validate_email(value)
+            except DjangoValidationError:
+                raise serializers.ValidationError("Enter an email or phone number.")
+        elif not re.fullmatch(r"\+?[\d\s().-]+", value, re.ASCII) or not 10 <= len(re.sub(r"\D", "", value, flags=re.ASCII)) <= 15:
+            raise serializers.ValidationError("Enter an email or phone number.")
+        return value
+
+    def validate(self, attrs):
+        return {**attrs, "zip_code": address_zip(attrs["pickup_address"])}
 
 
 class OrganizationCodeSerializer(serializers.Serializer):

@@ -25,6 +25,7 @@ export default function ProfilePage() {
         <dt>Member since</dt>
         <dd>{new Date(user.joined).toLocaleDateString()}</dd>
       </dl>
+      {user.organization?.status === "verified" && <Button to={ROUTES.orgProfile}>Organization profile</Button>}
       <Button variant="outline" onClick={onLogout}>
         Sign out
       </Button>

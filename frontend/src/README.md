@@ -13,7 +13,7 @@ src/
 │   ├── home/             HomePage: lists resources                       (login required)
 │   ├── resources/        ResourceDetailPage: one resource                (login required)
 │   ├── profile/          ProfilePage, ProfileSetupPage (4 steps, KAN-6)  (login required)
-│   ├── org/              OrgSignupPage (Mock Up 7), OrgVerifyPage (Mock Up 8)  (login required)
+│   ├── org/              OrgSignupPage (Mock Up 7), OrgVerifyPage (Mock Up 8), OrgProfilePage (Mock Up 9, Verified only)  (login required)
 │   ├── status/           StatusPage: dev check of API + database         (public, not in nav)
 │   ├── ComingSoonPage.jsx  Stand-in for tabs whose ticket isn't built yet (login required)
 │   └── NotFoundPage.jsx  Shown for unknown URLs
@@ -22,18 +22,19 @@ src/
 │   ├── Layout.jsx        Page area + bottom bar once signed in
 │   ├── BottomNav.jsx     Signed-in tabs: person (Home, Search, Claims, Give, Profile) or organization (Items, Claims, Impact, Profile)
 │   ├── Button.jsx        Primary / outline / small button; a <Link> when given `to`
-│   ├── TextField.jsx     Label + input + hint + API errors
+│   ├── TextField.jsx     Label + input (or text box with `multiline`) + hint + API errors
 │   ├── ChoiceCard.jsx    Selectable card, one pick per group
-│   ├── Chip.jsx          Pill choice, one pick per group
+│   ├── Chip.jsx          Pill choice, one pick per group (or several with `multiple`)
 │   ├── Checkbox.jsx      Checkbox row (green box with a white check)
 │   ├── ProgressBar.jsx   STEP n OF 4 and the green bar
 │   ├── NoteBox.jsx       Peach-tint note
 │   ├── Logo.jsx          PVill mark
 │   ├── BrandHeader.jsx   Logo with "PVill" under it, top of most screens
+│   ├── AppHeader.jsx     Small logo with the screen title beside it, top left (Mock Ups 9, 10, 21)
 │   ├── Badge.jsx         Pill badge (pending, verified)
 │   ├── CodeInput.jsx     Six boxes for an emailed code
 │   ├── ProtectedRoute.jsx  Redirects logged-out users to /welcome
-│   ├── RequireVerifiedOrg.jsx  Shows only Verified organizations its routes; tells everyone else why
+│   ├── RequireVerifiedOrg.jsx  Shows only Verified organizations its routes; tells everyone else why (`title`, `pendingNote`, `othersNote`)
 │   ├── FieldError.jsx    Shows API validation messages under a form field
 │   ├── Placeholder.jsx   Yellow "placeholder" banner — delete when pages are designed
 │   └── ErrorBoundary.jsx Logs render crashes and shows a fallback instead of a blank page
@@ -54,7 +55,7 @@ Unit tests sit next to the file they test as `<name>.test.js(x)`. Browser tests 
 
 ```
 /welcome ──► Get started ──► /signup/type ──► /signup?type=person ──► /profile/setup (KAN-6)
-   │                                     └──► /signup?type=organization ──► /org/signup ──► /org/verify ──► /org/items
+   │                                     └──► /signup?type=organization ──► /org/signup ──► /org/verify ──► /org/profile
    └──► Sign in ──► /login ──► / (person) or /org/items (organization)
 ```
 
@@ -85,6 +86,7 @@ The session is an HttpOnly cookie, so the frontend never handles tokens.
 | `POST /api/auth/org/` | `{name, website, work_email}`: checks the email is on the website's domain and not free email, then emails a 6-digit code (organizations only) |
 | `POST /api/auth/org/resend/` | New code; the old one stops working. At most one every 30 seconds and 5 a day |
 | `POST /api/auth/org/verify/` | `{code}`: right and under 15 minutes old marks the organization Verified; 5 tries per code |
+| `POST /api/auth/org/profile/` | `{about, serves[], pickup_address, public_contact}`: a Verified organization's public profile. The address needs a ZIP code (search measures distance from it) |
 | `GET /api/resources/`, `/api/resources/:id/` | Resource list / detail (login required) |
 
 Forgot password is still a placeholder.

@@ -25,4 +25,16 @@ describe("ProfilePage", () => {
     expect(await screen.findByText("Welcome screen")).toBeInTheDocument();
     expect(logout).toHaveBeenCalled();
   });
+
+  it("links a verified organization to its organization profile", () => {
+    vi.spyOn(auth, "useAuth").mockReturnValue({
+      user: { name: "Closet", email: "lead@closet.org", joined: "2026-10-01T12:00:00Z", organization: { status: "verified" } },
+    });
+    render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <ProfilePage />
+      </MemoryRouter>
+    );
+    expect(screen.getByRole("link", { name: "Organization profile" })).toHaveAttribute("href", ROUTES.orgProfile);
+  });
 });

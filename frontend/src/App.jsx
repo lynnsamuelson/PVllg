@@ -15,6 +15,7 @@ import ProfilePage from "./pages/profile/ProfilePage.jsx";
 import ProfileSetupPage from "./pages/profile/ProfileSetupPage.jsx";
 import OrgSignupPage from "./pages/org/OrgSignupPage.jsx";
 import OrgVerifyPage from "./pages/org/OrgVerifyPage.jsx";
+import OrgProfilePage from "./pages/org/OrgProfilePage.jsx";
 import StatusPage from "./pages/status/StatusPage.jsx";
 import ComingSoonPage from "./pages/ComingSoonPage.jsx";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
@@ -48,6 +49,17 @@ export default function App() {
           <Route path={ROUTES.impact} element={<ComingSoonPage title="Impact" />} />
           <Route element={<RequireVerifiedOrg />}>
             <Route path={ROUTES.postItem} element={<ComingSoonPage title="Post an item" />} />
+          </Route>
+          <Route
+            element={
+              <RequireVerifiedOrg
+                title="Organization profile"
+                pendingNote="You can set up your organization's profile once its email is confirmed."
+                othersNote="Only verified organizations have this profile."
+              />
+            }
+          >
+            <Route path={ROUTES.orgProfile} element={<OrgProfilePage />} />
           </Route>
         </Route>
 

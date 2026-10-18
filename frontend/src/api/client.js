@@ -60,6 +60,8 @@ export const startOrgVerification = (name, website, workEmail) =>
   post("/auth/org/", { name, website, work_email: workEmail }).then((d) => d.user);
 export const resendOrgCode = () => post("/auth/org/resend/").then((d) => d.user);
 export const verifyOrgCode = (code) => post("/auth/org/verify/", { code }).then((d) => d.user);
+// Organization profile (KAN-8), Verified only. profile = { about, serves[], pickup_address, public_contact }.
+export const saveOrgProfile = (profile) => post("/auth/org/profile/", profile).then((d) => d.user);
 
 // Resources (login required)
 export const listResources = () => request("/resources/");

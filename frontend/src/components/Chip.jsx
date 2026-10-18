@@ -1,7 +1,13 @@
-// Pill choice in a group where only one can be picked. Wrap the group in role="radiogroup".
-export default function Chip({ children, selected, onSelect }) {
+// Pill choice. In a one-pick group wrap the chips in role="radiogroup"; with `multiple`, in role="group".
+export default function Chip({ children, selected, onSelect, multiple = false }) {
   return (
-    <button type="button" role="radio" aria-checked={selected} className={`chip${selected ? " selected" : ""}`} onClick={onSelect}>
+    <button
+      type="button"
+      role={multiple ? "checkbox" : "radio"}
+      aria-checked={selected}
+      className={`chip${selected ? " selected" : ""}`}
+      onClick={onSelect}
+    >
       {children}
     </button>
   );
