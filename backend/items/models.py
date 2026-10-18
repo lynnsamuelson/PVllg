@@ -77,6 +77,8 @@ class Item(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     taken_down_at = models.DateTimeField(null=True, blank=True)  # set by Take down (KAN-10); hidden from search
     pickup_changed_at = models.DateTimeField(null=True, blank=True)  # last edit to when/where (KAN-19 change notice)
+    paused_at = models.DateTimeField(null=True, blank=True)  # a family reported a pickup problem (KAN-20)
+    paused_reason = models.CharField(max_length=30, blank=True)  # the reason they chose; the giver sees only this
 
     objects = ItemQuerySet.as_manager()
 

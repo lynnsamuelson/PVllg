@@ -88,6 +88,10 @@ export const claimItem = (itemId) => post("/claims/", { item: itemId });
 export const listClaims = (tab) => request(`/claims/${tab === "past" ? "?tab=past" : ""}`);
 export const cancelClaim = (id) => post(`/claims/${id}/cancel/`);
 export const getClaim = (id) => request(`/claims/${id}/`);
+// Report a pickup problem (KAN-20). Returns { reason, category } for the thank-you screen.
+export const reportProblem = (id, reason, note) => post(`/claims/${id}/report/`, { reason, note });
+// The giver says a paused item is still there ("Yes, it is available"). Returns the item as on My items.
+export const markAvailable = (itemId) => post(`/items/mine/${itemId}/available/`);
 // Add to calendar (KAN-19): the .ics file's URL. reminders = ["day", "hour"]; download saves it instead of opening it.
 export function calendarUrl(id, { reminders = [], download = false } = {}) {
   const params = new URLSearchParams();

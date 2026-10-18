@@ -43,6 +43,7 @@ describe("pastReason", () => {
     expect(pastReason({ status: "ended", end_reason: "hold_ended" })).toBe("The hold ended.");
     expect(pastReason({ status: "ended", end_reason: "no_answer" })).toBe("The giver didn't answer in time.");
     expect(pastReason({ status: "ended", end_reason: "no_show" })).toBe("The giver marked it not picked up.");
+    expect(pastReason({ status: "ended", end_reason: "problem" })).toBe("You reported a problem.");
     expect(pastReason({ status: "ended", end_reason: "constructor" })).toBe("This claim ended.");
     expect(pastReason({ status: "declined" })).toBe("The giver declined.");
     expect(pastReason({ status: "canceled" })).toBeNull();
@@ -67,6 +68,12 @@ describe("MyClaimsPage", () => {
     expect(screen.getAllByRole("button", { name: "Cancel claim" })).toHaveLength(2);
     expect(screen.getByRole("link", { name: "Add to calendar" })).toHaveAttribute("href", ROUTES.claimCalendar(1));
     expect(api.listClaims).toHaveBeenCalledWith("active");
+  });
+
+  it("offers Problem with pickup inside the window", async () => {
+    vi.spyOn(api, "listClaims").mockResolvedValue([{ ...APPROVED, can_report: true }]);
+    renderPage();
+    expect(await screen.findByRole("link", { name: "Problem with pickup" })).toHaveAttribute("href", ROUTES.claimReport(1));
   });
 
   it("says when the giver changed the pickup details", async () => {

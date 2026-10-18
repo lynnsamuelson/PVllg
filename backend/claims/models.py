@@ -16,10 +16,12 @@ class Claim(models.Model):
     HOLD_ENDED = "hold_ended"  # the 3-day hold passed with no pickup
     NO_ANSWER = "no_answer"  # a request on a person's item had no answer for 2 days
     NO_SHOW = "no_show"  # the giver tapped Family didn't come
+    PROBLEM = "problem"  # the family reported a pickup problem (KAN-20)
     REASONS = [
         (HOLD_ENDED, "The hold ended"),  # the family's Past tab words these in MyClaimsPage.jsx
         (NO_ANSWER, "The giver didn't answer in time"),
         (NO_SHOW, "The giver marked it not picked up"),
+        (PROBLEM, "You reported a problem"),
     ]
 
     ACTIVE = [WAITING, APPROVED]  # current claims (My claims: Active)
@@ -51,3 +53,28 @@ class Claim(models.Model):
 
     def __str__(self):
         return f"{self.claimant} → {self.item} ({self.status})"
+
+
+class PickupReport(models.Model):
+    """A family's report that pickup went wrong (KAN-20, Mock Up 17). The giver sees only the reason; the note is
+    for the PVill team, who read reports in the Django admin."""
+
+    REASONS = [
+        ("not_there", "The item wasn't there"),
+        ("nobody_or_wrong_place", "Nobody was there, or the place was wrong"),
+        ("not_as_described", "The item isn't what was described"),
+        ("damaged_or_unsafe", "The item looks damaged or unsafe"),
+        ("felt_unsafe", "I felt uncomfortable or unsafe"),
+        ("other", "Something else"),
+    ]
+
+    claim = models.OneToOneField(Claim, on_delete=models.CASCADE, related_name="report")
+    reason = models.CharField(max_length=30, choices=REASONS)
+    note = models.CharField(max_length=200, blank=True)  # only for the PVill team
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_reason_display()} ({self.claim.item})"

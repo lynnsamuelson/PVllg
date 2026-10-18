@@ -51,6 +51,7 @@ test("a person's item keeps the giver and the place private, and the giver sees 
   await giver.goto("/give");
   await giver.getByRole("listitem").filter({ has: giver.getByRole("heading", { name }) }).getByRole("button", { name: "Take down" }).click();
   await giver.getByRole("button", { name: "Yes, take down" }).click();
+  await expect(giver.getByRole("heading", { name })).toHaveCount(0);
   await family.reload();
   await expect(family.getByText("This item isn't available anymore.")).toBeVisible();
 });

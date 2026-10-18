@@ -70,7 +70,7 @@ def search_items(request):
     opts = params.validated_data
     items = (
         Item.objects.public()
-        .filter(left__gt=0, pickup_date__gte=local_today(), zip_code__in=privacy.zips_within(request.user, opts["radius"]))
+        .filter(left__gt=0, pickup_date__gte=local_today(), paused_at__isnull=True, zip_code__in=privacy.zips_within(request.user, opts["radius"]))
         .exclude(owner=request.user)
     )
     if opts["category"]:
@@ -136,6 +136,15 @@ def my_item(request, pk):
         serializer.save()
     logger.info("item edited user_id=%s item_id=%s", request.user.pk, item.pk)
     return Response(OwnItemSerializer(own_items().get(pk=item.pk)).data)  # fresh counts
+
+
+@api_view(["POST"])
+def item_available(request, pk):
+    """The giver confirms a paused item is still there (KAN-20, "Yes, it is available"): it shows in search again."""
+    item = get_object_or_404(Item.objects.live(), pk=pk, owner=request.user, paused_at__isnull=False)
+    Item.objects.filter(pk=item.pk).update(paused_at=None, paused_reason="")
+    logger.info("item unpaused user_id=%s item_id=%s", request.user.pk, item.pk)
+    return Response(OwnItemSerializer(own_items().get(pk=item.pk)).data)
 
 
 @api_view(["GET"])

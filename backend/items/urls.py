@@ -8,5 +8,6 @@ urlpatterns = [
     path("search/", views.search_items),
     path("mine/", views.my_items),
     path("mine/<int:pk>/", views.my_item),
+    path("mine/<int:pk>/available/", views.item_available),
     path("photos/<int:pk>/", views.item_photo),
 ]

@@ -88,6 +88,41 @@ function ClaimRow({ claim, onAnswered }) {
   );
 }
 
+// A family reported a pickup problem (KAN-20): the item is out of search until the giver says it's still there.
+// Not in the mockups yet (KAN-4), so it's built from the shared NoteBox and Button.
+function PausedNotice({ item, onChanged }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const available = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      await api.markAvailable(item.id);
+      await onChanged();
+    } catch (err) {
+      setError(err.message);
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div className="stack">
+      <NoteBox>
+        <strong>Paused.</strong> A family reported: &quot;{item.paused}.&quot;
+      </NoteBox>
+      <Button small onClick={available} disabled={busy}>
+        Yes, it is available
+      </Button>
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ItemCard({ item, onTakenDown, onChanged }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -109,6 +144,7 @@ function ItemCard({ item, onTakenDown, onChanged }) {
     <li className="card item-card">
       <h2>{item.name}</h2>
       <p className="item-card-counts">{countsLine(item)}</p>
+      {item.paused && <PausedNotice item={item} onChanged={onChanged} />}
       {item.claims.map((claim) => (
         <ClaimRow key={`${claim.id}-${claim.status}`} claim={claim} onAnswered={onChanged} />
       ))}

@@ -7,6 +7,7 @@ urlpatterns = [
     path("<int:pk>/", views.claim_detail),
     path("<int:pk>/calendar.ics", views.claim_calendar),
     path("<int:pk>/cancel/", views.cancel_claim),
+    path("<int:pk>/report/", views.report_problem),
     path("<int:pk>/approve/", views.approve_claim),
     path("<int:pk>/decline/", views.decline_claim),
     path("<int:pk>/picked-up/", views.picked_up),
