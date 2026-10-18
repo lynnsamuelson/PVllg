@@ -27,7 +27,8 @@ class ItemQuerySet(models.QuerySet):
 
     def public(self):
         """live() with what the privacy rule reads about the giver, so lists don't query per item."""
-        return self.live().select_related("owner__profile", "owner__organization")
+        photo_ids = models.Prefetch("photos", queryset=ItemPhoto.objects.only("pk", "item_id"))
+        return self.live().select_related("owner__profile", "owner__organization").prefetch_related(photo_ids)
 
 
 class Item(models.Model):

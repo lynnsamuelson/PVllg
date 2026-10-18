@@ -94,13 +94,16 @@ class PublicItemSerializer(serializers.ModelSerializer):
     exact_address = serializers.SerializerMethodField()
     where_to_go = serializers.SerializerMethodField()
     private_note = serializers.SerializerMethodField()
+    photos = serializers.SerializerMethodField()
+    available = serializers.SerializerMethodField()
+    mine = serializers.SerializerMethodField()
 
     class Meta:
         model = Item
         fields = [
-            "id", "name", "category", "details", "quantity", "pickup_date", "pickup_start", "pickup_end",
+            "id", "name", "category", "details", "quantity", "photos", "pickup_date", "pickup_start", "pickup_end",
             "general_area", "what_to_bring", "giver", "from_organization", "demo", "distance_miles", "exact_address",
-            "where_to_go", "private_note",
+            "where_to_go", "private_note", "available", "mine",
         ]
 
     def to_representation(self, item):
@@ -132,6 +135,17 @@ class PublicItemSerializer(serializers.ModelSerializer):
 
     def get_private_note(self, item):
         return None if self._visible else privacy.PRIVATE_NOTE
+
+    def get_available(self, item):
+        """Can it still be claimed: some left and its pickup day hasn't passed."""
+        return item.quantity > 0 and item.pickup_date >= local_today()
+
+    def get_mine(self, item):
+        return item.owner_id == self.context["request"].user.pk
+
+    def get_photos(self, item):
+        # Prefetched as ids only (Item.objects.public() doesn't load photo data).
+        return [f"/api/items/photos/{photo.pk}/" for photo in item.photos.all()]
 
 
 # Search chips (Mock Up 12) -> item categories. Housing has no items; its results are resources.
