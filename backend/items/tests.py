@@ -441,3 +441,77 @@ class StarterResourceTests(APITestCase):
         self.assertIn("not an emergency shelter", grace.limits)
         self.assertEqual(str(grace.last_checked), "2026-10-17")
         self.assertFalse(Resource.objects.filter(title="Help center").exists())
+
+
+class SearchItemsTests(APITestCase):
+    """KAN-15: Search near me, Items tab. Uses the demo items (KAN-26) around Nashville."""
+
+    def setUp(self):
+        self.family = make_person("family@example.com", "get")
+        self.family.profile.zip_code = "37206"
+        self.family.profile.save()
+        self.client.force_authenticate(self.family)
+
+    def names(self, query=""):
+        resp = self.client.get(f"/api/items/search/?{query}")
+        self.assertEqual(resp.status_code, 200, resp.content)
+        return [i["name"] for i in resp.json()]
+
+    def test_logged_out_is_401(self):
+        self.assertEqual(APIClient().get("/api/items/search/").status_code, 401)
+
+    def test_nearest_first_within_the_radius(self):
+        data = self.client.get("/api/items/search/").json()
+        miles = [i["distance_miles"] for i in data]
+        self.assertEqual(miles, sorted(miles))
+        self.assertTrue(all(m <= 10 for m in miles))
+        self.assertEqual(data[0]["name"].split()[0], "Size")  # Sample Community Closet is in 37206
+        self.assertIn("Size 1 diapers", self.names("radius=5"))
+        self.assertNotIn("Size 3 diapers", self.names("radius=5"))  # 37211 is about 8 miles away
+
+    def test_typing_and_chips(self):
+        # Matches names, details and the category (wipes are in "Diapers & wipes").
+        self.assertEqual(
+            set(self.names("q=diapers")), {"Size 1 diapers", "Size 2 diapers", "Size 3 diapers", "Baby wipes multipack"}
+        )
+        self.assertEqual(self.names("q=bottle"), ["Bottle starter kit"])
+        self.assertEqual(self.names("category=feeding"), ["Bottle starter kit"])
+        self.assertEqual(self.names("category=parenting&radius=50"), ["Pack and play"])
+        self.assertEqual(self.names("category=housing"), [])
+
+    def test_person_items_stay_private(self):
+        bundle = next(i for i in self.client.get("/api/items/search/").json() if i["name"].startswith("Baby clothes"))
+        self.assertIsNone(bundle["exact_address"])
+        self.assertEqual(bundle["giver"], "Casey")
+        self.assertFalse(bundle["from_organization"])
+
+    def test_taken_down_and_own_items_and_unknown_distance_dont_show(self):
+        Item.objects.filter(name="Size 1 diapers").update(taken_down_at=timezone.now())
+        Item.objects.filter(name="Size 2 diapers").update(zip_code="99999")
+        self.assertNotIn("Size 1 diapers", self.names())
+        self.assertNotIn("Size 2 diapers", self.names())
+        casey = User.objects.get(username="casey@demo.example")
+        self.client.force_authenticate(casey)
+        self.assertNotIn("Baby clothes bundle, 0-3 mo", self.names("radius=50"))
+
+    def test_past_pickups_dont_show(self):
+        Item.objects.filter(name="Size 1 diapers").update(pickup_date=local_today() - timedelta(days=1))
+        self.assertNotIn("Size 1 diapers", self.names())
+
+    def test_words_match_category_labels(self):
+        self.assertLessEqual({"Umbrella stroller", "Baby clothes bundle, 0-3 mo"}, set(self.names("q=gear&radius=50")))
+        self.assertEqual(self.names("q=supplies"), ["Bottle starter kit"])
+
+    def test_no_zip_means_no_results(self):
+        self.family.profile.zip_code = ""
+        self.family.profile.save()
+        self.assertEqual(self.names(), [])
+
+    def test_radius_is_a_strict_cutoff(self):
+        with mock.patch("items.privacy.zips_within", return_value=["37206"]), \
+                mock.patch("items.privacy.miles_between", return_value=10.4):
+            self.assertEqual(self.names("radius=10"), [])
+
+    def test_bad_options(self):
+        self.assertEqual(self.client.get("/api/items/search/?radius=7").status_code, 400)
+        self.assertEqual(self.client.get("/api/items/search/?category=toys").status_code, 400)

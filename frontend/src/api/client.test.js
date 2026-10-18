@@ -11,6 +11,7 @@ import {
   verifyOrgCode,
   getResourceMatches,
   postItem,
+  searchItems,
   editItem,
   takeDownItem,
 } from "./client.js";
@@ -54,6 +55,13 @@ describe("api client", () => {
     expect(options.body.get("name")).toBe("Crib");
     expect(options.body.get("good_condition")).toBe("true");
     expect(options.body.getAll("photos")).toHaveLength(1);
+  });
+
+  it("sends only the search options that are set", async () => {
+    const fetch = vi.fn(async () => jsonResponse(200, []));
+    vi.stubGlobal("fetch", fetch);
+    await searchItems({ q: "diapers", category: "", radius: "25" });
+    expect(fetch.mock.calls[0][0]).toBe("/api/items/search/?q=diapers&radius=25");
   });
 
   it("edits an item as JSON and takes one down", async () => {

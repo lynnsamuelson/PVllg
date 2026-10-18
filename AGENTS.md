@@ -48,7 +48,8 @@ backend/
   items/             Item + ItemPhoto models; POST /api/items/ (Post an item, KAN-9), /api/items/mine/ (My items,
                      edit, take down: KAN-10), photos served by
                      GET /api/items/photos/<id>/ (stored in the database, so the VM needs no media folder)
-                     privacy.py is the address privacy rule (KAN-11); GET /api/items/<id>/ applies it
+                     privacy.py is the address privacy rule (KAN-11); GET /api/items/<id>/ and
+                     GET /api/items/search/ (Search near me, KAN-15) apply it
                      data/sample-data.json: made-up demo accounts and sample items (KAN-26, migration 0003);
                      demo.py refreshes their pickup dates (admin action)
   claims/            Claim model (Waiting, Approved, Declined, Canceled, Ended, Picked up); endpoints in KAN-12/13
@@ -62,7 +63,7 @@ frontend/
     App.jsx          route table
     routes.js        every URL path; always use ROUTES.x
     pages/<area>/    one folder per area, one file per page
-    components/      shared UI (Layout, BottomNav, Button, TextField, ChoiceCard, Chip, Checkbox, ProgressBar, NoteBox, Logo, BrandHeader, AppHeader, Badge, CodeInput, ProtectedRoute, RequireVerifiedOrg, RequireGiver, FieldError, Placeholder)
+    components/      shared UI (Layout, BottomNav, Button, TextField, ChoiceCard, Chip, Checkbox, ProgressBar, NoteBox, Logo, BrandHeader, AppHeader, Badge, Tabs, CodeInput, ProtectedRoute, RequireVerifiedOrg, RequireGiver, FieldError, Placeholder)
     context/         AuthContext (current user, login/signup/logout)
     api/client.js    the ONLY place that calls fetch(); handles CSRF + 401
     logger.js        the ONLY place that calls console; use log.info/warn/error

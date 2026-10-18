@@ -134,6 +134,21 @@ class PublicItemSerializer(serializers.ModelSerializer):
         return None if self._visible else privacy.PRIVATE_NOTE
 
 
+# Search chips (Mock Up 12) -> item categories. Housing has no items; its results are resources.
+CHIP_CATEGORIES = {
+    "essentials": ["diapers", "clothes"],
+    "feeding": ["feeding"],
+    "parenting": ["furniture"],
+    "housing": [],
+}
+
+
+class ItemSearchSerializer(serializers.Serializer):
+    q = serializers.CharField(required=False, default="", allow_blank=True, max_length=100)
+    category = serializers.ChoiceField(list(CHIP_CATEGORIES), required=False, default="", allow_blank=True)
+    radius = serializers.ChoiceField([5, 10, 25, 50], required=False, default=10)
+
+
 class OwnItemSerializer(ItemSerializer):
     """An item as its giver sees it on My items and Edit (KAN-10): with the exact address and the counts.
     Claims arrive in KAN-12; until then nothing is requested or claimed and every item is left."""
