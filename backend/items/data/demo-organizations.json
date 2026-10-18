@@ -1,0 +1,114 @@
+{
+  "_readme": [
+    "PVill demo organizations, part 3. Adds to sample-data.json (KAN-26) and demo-families.json; changes nothing in them.",
+    "EVERYTHING in this file is made up. No real organization or address. Websites and emails use .example.",
+    "Street addresses are fictional. ZIP codes are real Nashville ZIPs so distance and ranking work.",
+    "Both organizations are Verified when loaded. Pickup dates are relative, as in sample-data.json."
+  ],
+  "organizations": [
+    {
+      "id": "sample-kinship-care-collective",
+      "name": "Sample Kinship Care Collective",
+      "badge": "Verified (demo)",
+      "website": "samplekinshipcare.example",
+      "demoEmail": "team@samplekinshipcare.example",
+      "about": "A made-up group that helps grandparents and relatives raising children with clothes and school basics.",
+      "whoWeServe": ["Kinship caregivers", "Foster families"],
+      "publicAddress": "600 Placeholder Blvd, Nashville, TN 37208",
+      "zip": "37208",
+      "publicContact": "team@samplekinshipcare.example"
+    },
+    {
+      "id": "example-young-parents-center",
+      "name": "Example Young Parents Center",
+      "badge": "Verified (demo)",
+      "website": "exampleyoungparents.example",
+      "demoEmail": "team@exampleyoungparents.example",
+      "about": "A made-up center for young and first-time parents, including young people leaving foster care.",
+      "whoWeServe": ["New parents", "Foster families"],
+      "publicAddress": "700 Madeup Ave, Nashville, TN 37209",
+      "zip": "37209",
+      "publicContact": "team@exampleyoungparents.example"
+    }
+  ],
+  "items": [
+    {
+      "id": "item-15",
+      "giver": "sample-kinship-care-collective",
+      "name": "Toddler pajama sets, 2T-4T",
+      "category": "Clothes and gear",
+      "details": "Two-piece cotton sets. New with tags.",
+      "quantity": 8,
+      "pickupDayOffset": 3,
+      "pickupWindow": "11:00 am - 3:00 pm",
+      "generalArea": "North Nashville",
+      "whereToGo": "Community room on the first floor.",
+      "whatToBring": "Bring a bag."
+    },
+    {
+      "id": "item-16",
+      "giver": "sample-kinship-care-collective",
+      "name": "Toddler shoes, sizes 5-8",
+      "category": "Clothes and gear",
+      "details": "Sneakers with hook-and-loop straps. Gently used and cleaned.",
+      "quantity": 6,
+      "pickupDayOffset": 3,
+      "pickupWindow": "11:00 am - 3:00 pm",
+      "generalArea": "North Nashville",
+      "whereToGo": "Community room on the first floor.",
+      "whatToBring": "Know your child's shoe size."
+    },
+    {
+      "id": "item-17",
+      "giver": "sample-kinship-care-collective",
+      "name": "Kids' backpacks",
+      "category": "Other approved item",
+      "details": "Preschool-size backpacks. New. Each has a pencil case inside.",
+      "quantity": 10,
+      "pickupDayOffset": 4,
+      "pickupWindow": "11:00 am - 3:00 pm",
+      "generalArea": "North Nashville",
+      "whereToGo": "Community room on the first floor.",
+      "whatToBring": "Nothing needed."
+    },
+    {
+      "id": "item-18",
+      "giver": "example-young-parents-center",
+      "name": "Baby sleep sacks, 0-6 mo",
+      "category": "Clothes and gear",
+      "details": "Wearable blankets for safe sleep. New in package.",
+      "quantity": 6,
+      "pickupDayOffset": 2,
+      "pickupWindow": "3:00 pm - 6:00 pm",
+      "generalArea": "West Nashville",
+      "whereToGo": "Front office. Ask for the parent desk.",
+      "whatToBring": "Nothing needed."
+    },
+    {
+      "id": "item-19",
+      "giver": "example-young-parents-center",
+      "name": "Swaddle blankets, set of 3",
+      "category": "Clothes and gear",
+      "details": "Soft muslin swaddles. Washed. No stains or tears.",
+      "quantity": 8,
+      "pickupDayOffset": 2,
+      "pickupWindow": "3:00 pm - 6:00 pm",
+      "generalArea": "West Nashville",
+      "whereToGo": "Front office. Ask for the parent desk.",
+      "whatToBring": "Bring a bag."
+    },
+    {
+      "id": "item-20",
+      "giver": "example-young-parents-center",
+      "name": "Baby play mat",
+      "category": "Other approved item",
+      "details": "Padded play mat with a toy arch. Gently used. Wiped clean. Checked for recalls.",
+      "quantity": 3,
+      "pickupDayOffset": 5,
+      "pickupWindow": "3:00 pm - 6:00 pm",
+      "generalArea": "West Nashville",
+      "whereToGo": "Front office. Ask for the parent desk.",
+      "whatToBring": "You will need a car. It is bulky."
+    }
+  ]
+}
