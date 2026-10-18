@@ -722,3 +722,16 @@ button.text-link {
   justify-content: space-between;
   color: var(--color-plum-muted);
 }
+
+/* Report a pickup problem (Mock Up 17). Its one-pick reasons are radios in .checkbox-row, drawn like checkboxes. */
+.centered-text {
+  text-align: center;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

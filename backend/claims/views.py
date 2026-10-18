@@ -10,11 +10,12 @@ from rest_framework.response import Response
 from accounts.views import IsPerson
 from items import privacy
 from items.models import Item, ItemPhoto
+from items.serializers import CHIP_CATEGORIES
 
 from . import actions, calendar
 from .models import Claim
 from .giver import RequestSerializer
-from .serializers import ClaimSerializer, NewClaimSerializer
+from .serializers import ClaimSerializer, NewClaimSerializer, ReportSerializer
 
 
 def my_claims_queryset(user):
@@ -112,6 +113,22 @@ def claim_calendar(request, pk):
     resp["Content-Disposition"] = f'{disposition}; filename="pvill-pickup-{claim.pk}.ics"'
     Claim.objects.filter(pk=claim.pk).update(calendar_added_at=now)
     return resp
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsPerson])
+def report_problem(request, pk):
+    """Report a pickup problem (Mock Up 17): {reason, note}. Releases the claim and pauses the item (KAN-20)."""
+    body = ReportSerializer(data=request.data)
+    body.is_valid(raise_exception=True)
+    actions.expire_overdue()  # a hold that already ran out ends as "The hold ended", not as a report
+    claim = get_object_or_404(Claim.objects.select_related("item"), pk=pk, claimant=request.user)
+    try:
+        report = actions.report_problem(claim, body.validated_data["reason"], body.validated_data.get("note", ""))
+    except actions.ClaimRefused as refused:
+        return Response({"detail": str(refused)}, status=refused.code)
+    chip = next((c for c, categories in CHIP_CATEGORIES.items() if claim.item.category in categories), "")
+    return Response({"reason": report.get_reason_display(), "chip": chip}, status=status.HTTP_201_CREATED)
 
 
 @api_view(["POST"])

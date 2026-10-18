@@ -4,6 +4,7 @@ from rest_framework import serializers
 from accounts.serializers import address_zip
 
 from claims.giver import RequestSerializer
+from claims.models import PickupReport
 
 from . import privacy
 from .models import CATEGORIES, PICKUP_FIELDS, Item, local_today
@@ -145,7 +146,7 @@ class PublicItemSerializer(serializers.ModelSerializer):
 
     def get_available(self, item):
         """Can it still be claimed: some left and its pickup day hasn't passed."""
-        return item.left > 0 and item.pickup_date >= local_today()
+        return item.left > 0 and item.pickup_date >= local_today() and not item.paused_at
 
     def get_mine(self, item):
         return item.owner_id == self.context["request"].user.pk
@@ -179,10 +180,19 @@ class OwnItemSerializer(ItemSerializer):
     requested = serializers.IntegerField(read_only=True)
     claimed = serializers.IntegerField(read_only=True)
     claims = serializers.SerializerMethodField()
+    paused = serializers.SerializerMethodField()
 
     class Meta(ItemSerializer.Meta):
         # No photos: My items doesn't show them, and listing them costs a query per item.
-        fields = [*(f for f in ItemSerializer.Meta.fields if f != "photos"), "left", "requested", "claimed", "claims"]
+        fields = [
+            *(f for f in ItemSerializer.Meta.fields if f != "photos"), "left", "requested", "claimed", "claims", "paused"
+        ]
+
+    def get_paused(self, item):
+        """The reason a family chose when they reported a problem (KAN-20), or null. Never their name or note."""
+        if not item.paused_at:
+            return None
+        return dict(PickupReport.REASONS).get(item.paused_reason, "Something else")
 
     def get_claims(self, item):
         """Current claims (Waiting requests to answer, Approved ones to mark picked up), first names only.

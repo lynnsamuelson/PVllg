@@ -28,6 +28,7 @@ const ENDED_BECAUSE = {
   hold_ended: "The hold ended.",
   no_answer: "The giver didn't answer in time.",
   no_show: "The giver marked it not picked up.",
+  problem: "You reported a problem.",
 };
 // null when the badge (Canceled, Picked up) already says it all.
 export function pastReason(claim) {
@@ -103,6 +104,11 @@ function ClaimCard({ claim, onChanged }) {
             {claim.status === "approved" && (
               <Button small to={ROUTES.claimCalendar(claim.id)}>
                 Add to calendar
+              </Button>
+            )}
+            {claim.can_report && (
+              <Button small variant="outline" to={ROUTES.claimReport(claim.id)}>
+                Problem with pickup
               </Button>
             )}
             <Button small variant="outline" onClick={() => setConfirming(true)}>

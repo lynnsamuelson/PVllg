@@ -18,6 +18,7 @@ export const ROUTES = {
   search: "/search",
   claims: "/claims",
   claimCalendar: (id = ":claimId") => `/claims/${id}/calendar`,
+  claimReport: (id = ":claimId") => `/claims/${id}/report`,
   give: "/give",
   impact: "/impact",
   resource: (id = ":resourceId") => `/resources/${id}`,

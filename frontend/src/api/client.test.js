@@ -14,6 +14,8 @@ import {
   claimItem,
   listClaims,
   cancelClaim,
+  reportProblem,
+  markAvailable,
   calendarUrl,
   approveClaim,
   declineClaim,
@@ -95,6 +97,17 @@ describe("api client", () => {
       "/api/claims/5/picked-up/",
       "/api/claims/5/didnt-come/",
     ]);
+  });
+
+  it("reports a pickup problem and marks an item available", async () => {
+    document.cookie = "csrftoken=abc123";
+    const fetch = vi.fn(async () => jsonResponse(200, {}));
+    vi.stubGlobal("fetch", fetch);
+    await reportProblem(4, "not_there", "");
+    expect(fetch.mock.calls[0][0]).toBe("/api/claims/4/report/");
+    expect(fetch.mock.calls[0][1].body).toBe('{"reason":"not_there","note":""}');
+    await markAvailable(7);
+    expect(fetch.mock.calls[1][0]).toBe("/api/items/mine/7/available/");
   });
 
   it("builds the calendar file URL", () => {

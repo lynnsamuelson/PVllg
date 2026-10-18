@@ -22,6 +22,7 @@ import MyItemsPage from "./pages/items/MyItemsPage.jsx";
 import SearchPage from "./pages/search/SearchPage.jsx";
 import MyClaimsPage from "./pages/claims/MyClaimsPage.jsx";
 import AddToCalendarPage from "./pages/claims/AddToCalendarPage.jsx";
+import ReportProblemPage from "./pages/claims/ReportProblemPage.jsx";
 import ItemDetailPage from "./pages/items/ItemDetailPage.jsx";
 import StatusPage from "./pages/status/StatusPage.jsx";
 import ComingSoonPage from "./pages/ComingSoonPage.jsx";
@@ -53,6 +54,7 @@ export default function App() {
           <Route path={ROUTES.item()} element={<ItemDetailPage />} />
           <Route path={ROUTES.claims} element={<MyClaimsPage />} />
           <Route path={ROUTES.claimCalendar()} element={<AddToCalendarPage />} />
+          <Route path={ROUTES.claimReport()} element={<ReportProblemPage />} />
 
           <Route path={ROUTES.impact} element={<ComingSoonPage title="Impact" />} />
           <Route element={<RequireGiver title="Post an item" />}>

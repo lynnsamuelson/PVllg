@@ -148,6 +148,24 @@ describe("MyItemsPage", () => {
     expect(await screen.findByText("This claim isn't approved.")).toBeInTheDocument();
   });
 
+  it("shows a paused item with the reason, and puts it back", async () => {
+    vi.spyOn(api, "listMyItems").mockResolvedValueOnce([{ ...CRIB, paused: "The item wasn't there" }]).mockResolvedValueOnce([CRIB]);
+    const available = vi.spyOn(api, "markAvailable").mockResolvedValue(CRIB);
+    renderPage();
+    expect(await screen.findByText(/A family reported: "The item wasn't there."/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Yes, it is available" }));
+    await waitFor(() => expect(screen.queryByText(/Paused/)).not.toBeInTheDocument());
+    expect(available).toHaveBeenCalledWith(7);
+  });
+
+  it("says when putting a paused item back fails", async () => {
+    vi.spyOn(api, "listMyItems").mockResolvedValue([{ ...CRIB, paused: "Something else" }]);
+    vi.spyOn(api, "markAvailable").mockRejectedValue(new Error("Failed to fetch"));
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Yes, it is available" }));
+    expect(await screen.findByText("Failed to fetch")).toBeInTheDocument();
+  });
+
   it("says Saved after an edit", async () => {
     vi.spyOn(api, "listMyItems").mockResolvedValue([CRIB]);
     renderPage({ saved: "Crib" });

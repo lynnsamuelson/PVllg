@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest import mock
 
 from django.contrib.auth import get_user_model
+from django.db import DatabaseError
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient, APITestCase
@@ -448,3 +449,100 @@ class CalendarTests(APITestCase):
                             "good_condition": True, "not_recalled": True}, format="json")
         self.client.force_authenticate(self.family)
         self.assertFalse(self.client.get(f"/api/claims/{claim.pk}/").json()["pickup_changed"])
+
+
+class PickupProblemTests(APITestCase):
+    """KAN-20: a family reports a pickup problem; the claim is released, the item paused, the giver told the reason."""
+
+    def setUp(self):
+        self.family = person("taylor@example.com")
+        self.family.first_name = "Taylor Smith"
+        self.family.save()
+        self.bundle = demo("Baby clothes bundle, 0-3 mo")
+        Item.objects.filter(pk=self.bundle.pk).update(pickup_date=local_today(), pickup_start="00:00", pickup_end="23:59")
+        self.claim = Claim.objects.create(
+            item=self.bundle, claimant=self.family, status=Claim.APPROVED, held_until=timezone.now() + timedelta(days=3)
+        )
+        self.client.force_authenticate(self.family)
+
+    def report(self, expect=201, **body):
+        resp = self.client.post(f"/api/claims/{self.claim.pk}/report/", {"reason": "not_there", **body}, format="json")
+        self.assertEqual(resp.status_code, expect, resp.content)
+        return resp.json()
+
+    def test_logged_out_is_401(self):
+        self.assertEqual(APIClient().post(f"/api/claims/{self.claim.pk}/report/", {}, format="json").status_code, 401)
+
+    def test_report_releases_the_claim_pauses_the_item_and_saves_it_for_the_team(self):
+        self.assertTrue(self.client.get("/api/claims/").json()[0]["can_report"])
+        with self.assertLogs("claims.actions", "INFO"):
+            data = self.report(note="Porch was empty at 5:30.")
+        self.assertEqual(data, {"reason": "The item wasn't there", "chip": "essentials"})
+        claim = Claim.objects.get(pk=self.claim.pk)
+        self.assertEqual((claim.status, claim.end_reason), (Claim.ENDED, Claim.PROBLEM))
+        self.assertEqual(claim.report.note, "Porch was empty at 5:30.")
+        self.assertIsNotNone(Item.objects.get(pk=self.bundle.pk).paused_at)
+        self.assertEqual(self.client.get("/api/claims/?tab=past").json()[0]["end_reason"], "problem")
+        self.assertFalse(self.client.get(f"/api/items/{self.bundle.pk}/").json()["available"])
+        self.assertNotIn(self.bundle.pk, [i["id"] for i in self.client.get("/api/items/search/?radius=50").json()])
+
+    def test_giver_sees_only_the_reason_and_can_unpause(self):
+        with self.assertLogs("claims.actions", "INFO"):
+            self.report(note="Secret note for the team")
+        casey = User.objects.get(username="casey@demo.example")
+        self.client.force_authenticate(casey)
+        mine = next(i for i in self.client.get("/api/items/mine/").json() if i["id"] == self.bundle.pk)
+        self.assertEqual(mine["paused"], "The item wasn't there")
+        self.assertNotIn("Secret", str(mine))
+        self.assertNotIn("Taylor", str(mine))
+        with self.assertLogs("items.views", "INFO"):
+            resp = self.client.post(f"/api/items/mine/{self.bundle.pk}/available/")
+        self.assertIsNone(resp.json()["paused"])
+        self.assertEqual(self.client.post(f"/api/items/mine/{self.bundle.pk}/available/").status_code, 404)
+        self.client.force_authenticate(self.family)
+        self.assertTrue(self.client.get(f"/api/items/{self.bundle.pk}/").json()["available"])
+
+    def test_paused_items_cant_be_claimed_or_approved(self):
+        Item.objects.filter(pk=self.bundle.pk).update(paused_at=timezone.now(), quantity=2)
+        self.client.force_authenticate(person("jordan@example.com"))
+        resp = self.client.post("/api/claims/", {"item": self.bundle.pk}, format="json")
+        self.assertEqual(resp.status_code, 404)
+        waiting = Claim.objects.create(item=self.bundle, claimant=person("morgan@example.com"))
+        self.assertFalse(actions.approve_claim(waiting))
+
+    def test_admin_lists_reports_without_adding_and_unpauses_items(self):
+        with self.assertLogs("claims.actions", "INFO"):
+            self.report()
+        admin_user = User.objects.create_superuser(username="admin@example.com", password="x")
+        self.client.force_login(admin_user)
+        self.assertContains(self.client.get("/admin/claims/pickupreport/"), "Baby clothes bundle")
+        self.assertEqual(self.client.get("/admin/claims/pickupreport/add/").status_code, 403)
+        resp = self.client.post("/admin/items/item/", {"action": "unpause", "_selected_action": [self.bundle.pk]},
+                                follow=True)
+        self.assertContains(resp, "Put 1 paused item(s) back in search.")
+        self.assertIsNone(Item.objects.get(pk=self.bundle.pk).paused_at)
+
+    def test_only_inside_the_window_and_only_approved(self):
+        Item.objects.filter(pk=self.bundle.pk).update(pickup_date=local_today() + timedelta(days=2))
+        self.assertIn("pickup window", self.report(expect=400)["detail"])
+        self.assertFalse(self.client.get("/api/claims/").json()[0]["can_report"])
+        Item.objects.filter(pk=self.bundle.pk).update(pickup_date=local_today() - timedelta(days=3))
+        self.report(expect=400)
+        Item.objects.filter(pk=self.bundle.pk).update(pickup_date=local_today())
+        Claim.objects.filter(pk=self.claim.pk).update(status=Claim.WAITING)
+        self.report(expect=400)
+
+    def test_bad_answers(self):
+        self.assertIn("reason", self.report(expect=400, reason="angry"))
+        self.assertIn("note", self.report(expect=400, note="x" * 201))
+
+    def test_only_your_own_claim(self):
+        self.client.force_authenticate(person("jordan@example.com"))
+        self.report(expect=404)
+
+    def test_failed_report_saves_nothing(self):
+        with mock.patch("claims.actions.PickupReport.objects.create", side_effect=DatabaseError("boom")), \
+                self.assertRaises(DatabaseError), self.assertLogs("django.request", "ERROR"):
+            self.report()
+        self.assertEqual(Claim.objects.get(pk=self.claim.pk).status, Claim.APPROVED)
+        self.assertIsNone(Item.objects.get(pk=self.bundle.pk).paused_at)

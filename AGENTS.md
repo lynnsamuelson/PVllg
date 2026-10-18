@@ -53,7 +53,7 @@ backend/
                      data/sample-data.json: made-up demo accounts and sample items (KAN-26, migration 0003);
                      demo.py refreshes their pickup dates (admin action)
   claims/            Claim model (Waiting, Approved, Declined, Canceled, Ended, Picked up); /api/claims/ (claim, My
-                     claims, cancel: KAN-12; approve, decline, picked up: KAN-13; didn't come, expiry: KAN-14; calendar.ics: KAN-19); actions.py
+                     claims, cancel: KAN-12; approve, decline, picked up: KAN-13; didn't come, expiry: KAN-14; calendar.ics: KAN-19; report: KAN-20, read in admin → Pickup reports); actions.py
                      holds every claim change
   api/               /api/health/ (public) and the Notes demo
   requirements.txt   what the VM installs
@@ -157,6 +157,8 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   items (`items.views.IsGiver`; `<RequireGiver>` on the frontend). An item's exact address is private and stored apart
   from its public general area; an organization's items use its profile address, and follow it when it changes.
   Take down sets `Item.taken_down_at` instead of deleting, so list and search items with `Item.objects.live()`.
+  A pickup problem report pauses an item (`Item.paused_at`): it stays live for its giver but leaves search and can't
+  be claimed until the giver taps "Yes, it is available". The giver sees only the reason, never the family or note.
 - **Claims change only through `claims/actions.py`.** `claim_item` locks the item so two families can't get the last
   one; `approve_claim`, `decline_claim` and `mark_picked_up` are the giver's answers; `end_claim` ends a claim as declined, canceled or
   ended (with `Claim.end_reason`). There is no scheduler: views that show claims or counts call

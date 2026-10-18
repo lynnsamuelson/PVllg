@@ -9,7 +9,7 @@ from config.log import get_logger
 from items import privacy
 from items.models import LOCAL_TZ, Item, local_today
 
-from .models import Claim
+from .models import Claim, PickupReport
 
 logger = get_logger(__name__)
 
@@ -39,7 +39,7 @@ def claim_item(user, item_id):
     waits for the giver (KAN-13). The item row is locked so two families can't both get the last one."""
     with transaction.atomic():
         item = Item.objects.select_for_update().filter(pk=item_id).live().first()
-        if item is None or item.pickup_date < local_today():
+        if item is None or item.pickup_date < local_today() or item.paused_at:
             raise ClaimRefused("This item isn't available anymore.", 404)
         if item.owner_id == user.pk:
             raise ClaimRefused("You posted this item, so you can't claim it.")
@@ -60,8 +60,8 @@ def claim_item(user, item_id):
 def approve_claim(claim):
     """The giver says yes (KAN-13): a Waiting claim becomes Approved, which shows the family the exact place.
     Returns False if the claim wasn't Waiting anymore (for example the family canceled first) or its item can't be
-    picked up anymore (taken down, or its pickup day has passed)."""
-    live = Item.objects.live().filter(pk=claim.item_id, pickup_date__gte=local_today())
+    picked up anymore (taken down, its pickup day has passed, or it's paused after a problem report)."""
+    live = Item.objects.live().filter(pk=claim.item_id, pickup_date__gte=local_today(), paused_at__isnull=True)
     if not live.exists():
         return False
     held = hold_until(live.get())  # the family's hold starts again at approval
@@ -100,6 +100,35 @@ def expire_overdue():
         Claim.objects.filter(status=Claim.WAITING, created_at__lt=now - ANSWER_WITHIN), Claim.ENDED, Claim.NO_ANSWER
     )
     end_claims(Claim.objects.filter(status=Claim.APPROVED, held_until__lt=now - GRACE), Claim.ENDED, Claim.HOLD_ENDED)
+
+
+REPORT_AFTER = timedelta(days=1)  # Problem with pickup shows until a day after the window ends (proposed in KAN-20)
+
+
+def report_window(item):
+    """(opens, closes): from the start of the pickup window until a day after it ends."""
+    opens = datetime.combine(item.pickup_date, item.pickup_start, tzinfo=LOCAL_TZ)
+    closes = datetime.combine(item.pickup_date, item.pickup_end, tzinfo=LOCAL_TZ) + REPORT_AFTER
+    return opens, closes
+
+
+def can_report(claim, now=None):
+    opens, closes = report_window(claim.item)
+    return claim.status == Claim.APPROVED and opens <= (now or timezone.now()) <= closes
+
+
+def report_problem(claim, reason, note):
+    """The family reports that pickup went wrong (KAN-20): saves the report, ends the claim through end_claim and
+    pauses the item until the giver says it's available. Raises ClaimRefused outside the window."""
+    if not can_report(claim):
+        raise ClaimRefused("You can report a problem from the start of the pickup window until a day after it ends.")
+    with transaction.atomic():
+        if not end_claim(claim, Claim.ENDED, only_from=[Claim.APPROVED], reason=Claim.PROBLEM):
+            raise ClaimRefused("This claim isn't approved anymore.")
+        report = PickupReport.objects.create(claim=claim, reason=reason, note=note)
+        Item.objects.filter(pk=claim.item_id).update(paused_at=timezone.now(), paused_reason=reason)
+    logger.info("pickup problem reported claim_id=%s reason=%s", claim.pk, reason)
+    return report
 
 
 def decline_claim(claim):
