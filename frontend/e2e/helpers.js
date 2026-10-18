@@ -83,7 +83,7 @@ export async function saveOrgProfile(page, address = "100 Sample Way, Nashville,
 export const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAwS2OUAAAAABJRU5ErkJggg==", "base64");
 
 // Posts an item through both steps and checks the Posted screen. Organizations have no exact address.
-export async function postItem(page, { name, quantity = 1, area = "East Nashville", address = "12 Sample Ave, Nashville, TN 37206", photo = false, date = isoDate(1) }) {
+export async function postItem(page, { name, quantity = 1, area = "East Nashville", address = "12 Sample Ave, Nashville, TN 37206", photo = false, date = isoDate(1), from = "17:00", to = "19:00" }) {
   await page.goto("/items/new");
   await page.getByLabel("Item name").fill(name);
   await page.getByLabel("Category").selectOption({ label: "Furniture" });
@@ -94,8 +94,8 @@ export async function postItem(page, { name, quantity = 1, area = "East Nashvill
   await page.getByRole("checkbox", { name: "I checked that it is not recalled" }).check();
   await page.getByRole("button", { name: "Next: pickup details" }).click();
   await page.getByLabel("Date", { exact: true }).fill(date);
-  await page.getByLabel("From", { exact: true }).fill("17:00");
-  await page.getByLabel("To", { exact: true }).fill("19:00");
+  await page.getByLabel("From", { exact: true }).fill(from);
+  await page.getByLabel("To", { exact: true }).fill(to);
   await page.getByLabel("General area (shown to everyone)").fill(area);
   const exact = page.getByLabel("Exact address (private until you approve)");
   if (await exact.count()) await exact.fill(address);
