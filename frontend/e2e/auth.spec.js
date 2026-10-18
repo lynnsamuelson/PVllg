@@ -79,6 +79,7 @@ test("signing up with a used email says what went wrong", async ({ page }) => {
   await signup(page, /A person/, "Ada", email);
   await tabs(page).getByText("Profile", { exact: true }).click();
   await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/welcome$/);
 
   await signup(page, /A person/, "Ada", email);
   await expect(page.getByText("An account with this email already exists.")).toBeVisible();
