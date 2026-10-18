@@ -5,12 +5,12 @@ import * as auth from "../context/AuthContext.jsx";
 import { ROUTES } from "../routes.js";
 import RequireVerifiedOrg from "./RequireVerifiedOrg.jsx";
 
-function renderAs(user) {
+function renderAs(user, props = {}) {
   vi.spyOn(auth, "useAuth").mockReturnValue({ user });
   render(
     <MemoryRouter initialEntries={[ROUTES.postItem]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
-        <Route element={<RequireVerifiedOrg />}>
+        <Route element={<RequireVerifiedOrg {...props} />}>
           <Route path={ROUTES.postItem} element={<p>Post form</p>} />
         </Route>
       </Routes>
@@ -36,6 +36,12 @@ describe("RequireVerifiedOrg", () => {
   it("sends an organization that never started to sign-up", () => {
     renderAs(org(null));
     expect(screen.getByRole("link", { name: "Confirm your email" })).toHaveAttribute("href", ROUTES.orgSignup);
+  });
+
+  it("takes a title and notes for other screens", () => {
+    renderAs(org({ status: "pending" }), { title: "Organization profile", pendingNote: "Confirm first." });
+    expect(screen.getByRole("heading", { name: "Organization profile" })).toBeInTheDocument();
+    expect(screen.getByText("Confirm first.")).toBeInTheDocument();
   });
 
   it("keeps people out", () => {

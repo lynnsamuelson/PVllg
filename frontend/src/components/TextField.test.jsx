@@ -15,4 +15,9 @@ describe("TextField", () => {
     expect(screen.getByText("An account with this email already exists.")).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toHaveAttribute("aria-invalid", "true");
   });
+
+  it("is a text box when multiline", () => {
+    render(<TextField label="About us" multiline />);
+    expect(screen.getByLabelText("About us").tagName).toBe("TEXTAREA");
+  });
 });

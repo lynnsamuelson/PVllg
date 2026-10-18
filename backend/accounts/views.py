@@ -21,6 +21,7 @@ from .models import Organization, Profile
 from .serializers import (
     LoginSerializer,
     OrganizationCodeSerializer,
+    OrganizationProfileSerializer,
     OrganizationSerializer,
     PersonProfileSerializer,
     SignupSerializer,
@@ -251,6 +252,24 @@ def organization_verify(request):
     ):
         return code_expired()
     logger.info("org verified user_id=%s", request.user.pk)
+    return user_response(request.user)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsOrganization])
+def organization_profile(request):
+    """Saves a Verified organization's public profile (Mock Up 9)."""
+    org = Organization.objects.filter(user=request.user, verified_at__isnull=False).first()
+    if org is None:
+        return Response(
+            {"detail": "Confirm your organization's email first."}, status=status.HTTP_403_FORBIDDEN
+        )
+    serializer = OrganizationProfileSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    for field, value in serializer.validated_data.items():  # fields left out keep what was saved
+        setattr(org, field, value)
+    org.save(update_fields=list(serializer.validated_data))
+    logger.info("org profile saved user_id=%s", request.user.pk)
     return user_response(request.user)
 
 

@@ -43,6 +43,13 @@ class Organization(models.Model):
     send_window_start = models.DateTimeField(null=True, blank=True)  # start of the current day for the send cap
     send_count = models.PositiveSmallIntegerField(default=0)
 
+    # Public profile (KAN-8). Shown to families on this organization's items.
+    about = models.TextField(max_length=500, blank=True)
+    serves = models.JSONField(default=list, blank=True)  # keys of resources.models.SERVES
+    pickup_address = models.CharField(max_length=255, blank=True)
+    zip_code = models.CharField(max_length=5, blank=True)  # from pickup_address, for search distance (KAN-15)
+    public_contact = models.CharField(max_length=150, blank=True)
+
     @property
     def status(self):
         return "verified" if self.verified_at else "pending"

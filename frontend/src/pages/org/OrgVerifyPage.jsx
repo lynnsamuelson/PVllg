@@ -59,7 +59,7 @@ export default function OrgVerifyPage() {
       {verified ? (
         <div className="stack">
           <StatusCard verified />
-          <Button to={ROUTES.orgItems}>Continue</Button>
+          <Button to={ROUTES.orgProfile}>Continue</Button>
         </div>
       ) : (
         <form onSubmit={onConfirm} className="stack">

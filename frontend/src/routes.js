@@ -10,6 +10,7 @@ export const ROUTES = {
   profileSetup: "/profile/setup",
   orgSignup: "/org/signup",
   orgVerify: "/org/verify",
+  orgProfile: "/org/profile",
   orgItems: "/org/items",
   postItem: "/org/items/new",
   search: "/search",

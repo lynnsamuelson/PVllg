@@ -54,7 +54,7 @@ frontend/
     App.jsx          route table
     routes.js        every URL path; always use ROUTES.x
     pages/<area>/    one folder per area, one file per page
-    components/      shared UI (Layout, BottomNav, Button, TextField, ChoiceCard, Chip, Checkbox, ProgressBar, NoteBox, Logo, BrandHeader, Badge, CodeInput, ProtectedRoute, RequireVerifiedOrg, FieldError, Placeholder)
+    components/      shared UI (Layout, BottomNav, Button, TextField, ChoiceCard, Chip, Checkbox, ProgressBar, NoteBox, Logo, BrandHeader, AppHeader, Badge, CodeInput, ProtectedRoute, RequireVerifiedOrg, FieldError, Placeholder)
     context/         AuthContext (current user, login/signup/logout)
     api/client.js    the ONLY place that calls fetch(); handles CSRF + 401
     logger.js        the ONLY place that calls console; use log.info/warn/error
@@ -141,7 +141,9 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   `user.organization.status` in the API: `pending` or `verified`, `null` before they start). For testing, admin →
   Organizations → **Mark verified** skips the code (README → Test accounts). Anything only Verified organizations may
   do must check `organization.verified_at` on the backend; on the frontend, wrap the route in
-  `<RequireVerifiedOrg>`. Email goes through `django.core.mail` (`EMAIL_*` settings; the console without `EMAIL_HOST`).
+  `<RequireVerifiedOrg>`. A Verified organization's public profile (about, who it serves, pickup address, public contact)
+  is on `accounts.Organization` too, saved by `POST /api/auth/org/profile/`; `zip_code` is taken from the address
+  (which must end with it) for search to measure distance from. Email goes through `django.core.mail` (`EMAIL_*` settings; the console without `EMAIL_HOST`).
 - **More than one write per request goes in `transaction.atomic()`** (for example a `User` plus its `Profile`), so a
   failure halfway can't leave a half-made record. Test it: make the second write fail and assert nothing was saved.
 - **Migrations run against the shared production database on deploy.** Avoid destructive changes (dropping or

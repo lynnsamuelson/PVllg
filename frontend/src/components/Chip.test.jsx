@@ -23,6 +23,15 @@ describe("Chip", () => {
     render(<Chip selected>Both</Chip>);
     expect(screen.getByRole("radio", { name: "Both" })).toHaveClass("chip selected");
   });
+
+  it("is a checkbox in a group where several can be picked", () => {
+    render(
+      <Chip multiple selected>
+        Foster families
+      </Chip>
+    );
+    expect(screen.getByRole("checkbox", { name: "Foster families" })).toHaveAttribute("aria-checked", "true");
+  });
 });
 
 describe("Checkbox", () => {

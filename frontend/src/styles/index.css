@@ -201,7 +201,8 @@ a {
   font-weight: bold;
   font-size: var(--text-label);
 }
-.field input {
+.field input,
+.field textarea {
   background: var(--color-white);
   border: 1px solid var(--color-rose);
   border-radius: var(--radius-button);
@@ -217,7 +218,8 @@ a {
   flex: 1;
 }
 input,
-button {
+button,
+textarea {
   font: inherit;
   padding: 0.4rem 0.6rem;
 }
@@ -281,6 +283,23 @@ button {
 }
 .ok { color: #1a7f37; }
 .bad { color: #cf222e; }
+
+/* Small leaf mark and title at the top left (Mock Ups 9, 10, 21). */
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.app-header h1 {
+  font-size: var(--text-card-title);
+  margin: 0;
+}
+.saved {
+  color: var(--color-green);
+  font-weight: bold;
+  margin: 0;
+}
 
 .brand-header {
   display: flex;

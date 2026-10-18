@@ -447,6 +447,104 @@ class PersonProfileTests(APITestCase):
         self.assertFalse(Profile.objects.filter(user=user).exists())
 
 
+ORG_PROFILE = {
+    "about": "We share diapers and baby clothes with families in Davidson County.",
+    "serves": ["foster", "parents"],
+    "pickup_address": "123 Example St, Nashville, TN 37206",
+    "public_contact": "info@samplecommunitycloset.org",
+}
+
+
+class OrganizationProfileTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="lead@samplecommunitycloset.org", password=GOOD_PASSWORD)
+        Profile.objects.create(user=self.user, account_type=Profile.ORGANIZATION)
+        self.org = Organization.objects.create(
+            user=self.user,
+            name="Sample Community Closet",
+            website="samplecommunitycloset.org",
+            domain="samplecommunitycloset.org",
+            work_email="lead@samplecommunitycloset.org",
+            verified_at=timezone.now(),
+        )
+        self.client.force_authenticate(self.user)
+
+    def save(self, **overrides):
+        return self.client.post("/api/auth/org/profile/", {**ORG_PROFILE, **overrides}, format="json")
+
+    def assert_field_error(self, field, **overrides):
+        resp = self.save(**overrides)
+        self.assertEqual(resp.status_code, 400, resp.content)
+        self.assertIn(field, resp.json())
+
+    def test_logged_out_is_401(self):
+        self.assertEqual(APIClient().post("/api/auth/org/profile/", ORG_PROFILE, format="json").status_code, 401)
+
+    def test_people_are_refused(self):
+        person = User.objects.create_user(username="ada@example.com", password=GOOD_PASSWORD)
+        self.client.force_authenticate(person)
+        self.assertEqual(self.save().status_code, 403)
+
+    def test_pending_or_unstarted_organizations_are_refused(self):
+        self.org.verified_at = None
+        self.org.save()
+        self.assertEqual(self.save().status_code, 403)
+        self.org.delete()
+        self.assertEqual(self.save().status_code, 403)
+
+    def test_saves_and_returns_the_profile(self):
+        with self.assertLogs("accounts.views", "INFO"):
+            resp = self.save()
+        self.assertEqual(resp.status_code, 200, resp.content)
+        org = resp.json()["user"]["organization"]
+        self.assertEqual(org["about"], ORG_PROFILE["about"])
+        self.assertEqual(org["serves"], ["parents", "foster"])
+        self.assertEqual(org["pickup_address"], ORG_PROFILE["pickup_address"])
+        self.assertEqual(org["public_contact"], ORG_PROFILE["public_contact"])
+        self.org.refresh_from_db()
+        self.assertEqual(self.org.zip_code, "37206")
+
+    def test_can_change_it_later(self):
+        with self.assertLogs("accounts.views", "INFO"):
+            self.save()
+            resp = self.save(about="", serves=[], pickup_address="9 Sample Ave, Nashville 37208-1234",
+                             public_contact="+1 (615) 555-0100")
+        org = resp.json()["user"]["organization"]
+        self.assertEqual((org["about"], org["serves"], org["public_contact"]), ("", [], "+1 (615) 555-0100"))
+        self.org.refresh_from_db()
+        self.assertEqual(self.org.zip_code, "37208")
+
+    def test_address_and_contact_required(self):
+        self.assert_field_error("pickup_address", pickup_address="")
+        self.assert_field_error("public_contact", public_contact="")
+
+    def test_address_needs_a_zip(self):
+        self.assert_field_error("pickup_address", pickup_address="123 Example St, Nashville")
+        self.assert_field_error("pickup_address", pickup_address="12345 Main St, Nashville, TN")
+        self.assert_field_error("pickup_address", pickup_address="1 Main St, Nashville \u0663\u0667\u0662\u0660\u0666")
+
+    def test_leaving_fields_out_keeps_them(self):
+        with self.assertLogs("accounts.views", "INFO"):
+            self.save()
+            resp = self.client.post("/api/auth/org/profile/", {
+                "pickup_address": "9 Sample Ave, Nashville, TN 37208", "public_contact": ORG_PROFILE["public_contact"],
+            }, format="json")
+        org = resp.json()["user"]["organization"]
+        self.assertEqual((org["about"], org["serves"]), (ORG_PROFILE["about"], ["parents", "foster"]))
+
+    def test_contact_must_be_email_or_phone(self):
+        self.assert_field_error("public_contact", public_contact="call us")
+        self.assert_field_error("public_contact", public_contact="info@")
+        self.assert_field_error("public_contact", public_contact="555-0100")
+        self.assert_field_error("public_contact", public_contact="call 6155550100 after 5pm")
+
+    def test_only_the_three_groups(self):
+        self.assert_field_error("serves", serves=["adoptive"])
+
+    def test_about_is_short(self):
+        self.assert_field_error("about", about="x" * 501)
+
+
 class EnsureAdminTests(APITestCase):
     def run_it(self, **env):
         with mock.patch.dict(os.environ, env):

@@ -12,4 +12,5 @@ urlpatterns = [
     path("org/", views.organization),
     path("org/resend/", views.organization_resend),
     path("org/verify/", views.organization_verify),
+    path("org/profile/", views.organization_profile),
 ]

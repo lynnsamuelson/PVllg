@@ -56,7 +56,7 @@ describe("OrgVerifyPage", () => {
     expect(screen.getByRole("heading", { name: "Email confirmed" })).toBeInTheDocument();
     expect(screen.getByText("Verified")).toBeInTheDocument();
     expect(screen.queryByText("Pending")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Continue" })).toHaveAttribute("href", ROUTES.orgItems);
+    expect(screen.getByRole("link", { name: "Continue" })).toHaveAttribute("href", ROUTES.orgProfile);
   });
 
   it("says so when the code is wrong and lets them try again", async () => {
