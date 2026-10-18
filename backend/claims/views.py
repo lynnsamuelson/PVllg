@@ -11,6 +11,7 @@ from items.models import Item, ItemPhoto
 
 from . import actions
 from .models import Claim
+from .giver import RequestSerializer
 from .serializers import ClaimSerializer, NewClaimSerializer
 
 
@@ -47,6 +48,30 @@ def claims(request):
         return Response({"detail": str(refused)}, status=refused.code)
     claim = my_claims_queryset(request.user).get(pk=claim.pk)
     return Response(ClaimSerializer(claim, context=context(request)).data, status=status.HTTP_201_CREATED)
+
+
+def answer(request, pk, action, refusal):
+    """The giver of the claimed item answers (KAN-13); nobody else can. Replies with the claim as the giver sees it
+    (the family's first name only)."""
+    claim = get_object_or_404(Claim.objects.select_related("claimant"), pk=pk, item__owner=request.user)
+    if not action(claim):
+        return Response({"detail": refusal}, status=status.HTTP_400_BAD_REQUEST)
+    return Response(RequestSerializer(claim).data)
+
+
+@api_view(["POST"])
+def approve_claim(request, pk):
+    return answer(request, pk, actions.approve_claim, "This request can't be approved anymore.")
+
+
+@api_view(["POST"])
+def decline_claim(request, pk):
+    return answer(request, pk, actions.decline_claim, "This request isn't waiting anymore.")
+
+
+@api_view(["POST"])
+def picked_up(request, pk):
+    return answer(request, pk, actions.mark_picked_up, "This claim isn't approved.")
 
 
 @api_view(["POST"])

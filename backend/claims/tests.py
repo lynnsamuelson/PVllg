@@ -174,3 +174,79 @@ class EndClaimTests(TestCase):
         for n in range(2):
             Claim.objects.create(item=item, claimant=person(f"f{n}@example.com"), status=Claim.APPROVED)
         self.assertEqual(Item.objects.with_counts().get(pk=item.pk).left, -1)
+
+
+class GiverAnswerTests(APITestCase):
+    """KAN-13: the giver approves or declines a request, and marks an approved claim picked up."""
+
+    def setUp(self):
+        self.bundle = demo("Baby clothes bundle, 0-3 mo")
+        self.casey = User.objects.get(username="casey@demo.example")
+        self.family = person("taylor@example.com")
+        self.family.first_name = "Taylor Smith"
+        self.family.save()
+        self.claim = Claim.objects.create(item=self.bundle, claimant=self.family)
+
+    def answer(self, action, user=None, expect=200):
+        self.client.force_authenticate(user or self.casey)
+        resp = self.client.post(f"/api/claims/{self.claim.pk}/{action}/")
+        self.assertEqual(resp.status_code, expect, resp.content)
+        return resp.json()
+
+    def family_sees(self):
+        self.client.force_authenticate(self.family)
+        return self.client.get(f"/api/items/{self.bundle.pk}/").json()
+
+    def test_logged_out_is_401(self):
+        self.assertEqual(APIClient().post(f"/api/claims/{self.claim.pk}/approve/").status_code, 401)
+
+    def test_giver_sees_the_request_with_the_first_name_only(self):
+        self.client.force_authenticate(self.casey)
+        mine = next(i for i in self.client.get("/api/items/mine/").json() if i["id"] == self.bundle.pk)
+        self.assertEqual(mine["claims"], [{"id": self.claim.pk, "status": "waiting", "held_until": None, "family": "Taylor"}])
+        self.assertNotIn("Smith", str(mine))
+        self.assertNotIn("taylor@example.com", str(mine))
+
+    def test_approve_shows_the_family_the_place(self):
+        self.assertIsNone(self.family_sees()["exact_address"])
+        with self.assertLogs("claims.actions", "INFO"):
+            data = self.answer("approve")
+        self.assertEqual((data["status"], data["family"]), ("approved", "Taylor"))
+        self.assertEqual(self.family_sees()["exact_address"], "400 Fictional St, Nashville, TN 37207")
+        self.answer("approve", expect=400)  # already answered
+
+    def test_decline_ends_the_claim_and_puts_the_item_back(self):
+        with self.assertLogs("claims.actions", "INFO"):
+            self.assertEqual(self.answer("decline")["status"], "declined")
+        self.assertIsNone(self.family_sees()["exact_address"])
+        self.assertEqual(self.family_sees()["left"], 1)
+        self.client.force_authenticate(self.family)
+        self.assertEqual(self.client.get("/api/claims/?tab=past").json()[0]["status"], "declined")
+
+    def test_mark_picked_up(self):
+        self.answer("picked-up", expect=400)  # not approved yet
+        with self.assertLogs("claims.actions", "INFO"):
+            self.answer("approve")
+            self.assertEqual(self.answer("picked-up")["status"], "picked_up")
+        self.client.force_authenticate(self.casey)
+        mine = next(i for i in self.client.get("/api/items/mine/").json() if i["id"] == self.bundle.pk)
+        self.assertEqual((mine["left"], mine["claims"]), (0, []))  # picked up still counts as taken
+        self.assertIsNone(self.family_sees()["exact_address"])  # the claim is over
+
+    def test_an_approved_claim_cant_be_declined(self):
+        with self.assertLogs("claims.actions", "INFO"):
+            self.answer("approve")
+        self.answer("decline", expect=400)
+        self.assertEqual(Claim.objects.get(pk=self.claim.pk).status, Claim.APPROVED)
+
+    def test_cant_approve_on_a_taken_down_or_past_item(self):
+        Item.objects.filter(pk=self.bundle.pk).update(taken_down_at=timezone.now())
+        self.answer("approve", expect=400)
+        Item.objects.filter(pk=self.bundle.pk).update(taken_down_at=None, pickup_date=local_today() - timedelta(days=1))
+        self.answer("approve", expect=400)
+        self.assertEqual(Claim.objects.get(pk=self.claim.pk).status, Claim.WAITING)
+
+    def test_only_the_giver_can_answer(self):
+        self.answer("approve", user=self.family, expect=404)
+        self.answer("decline", user=person("jordan@example.com"), expect=404)
+        self.assertEqual(Claim.objects.get(pk=self.claim.pk).status, Claim.WAITING)

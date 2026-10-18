@@ -2,6 +2,8 @@ from rest_framework import serializers
 
 from accounts.serializers import address_zip
 
+from claims.giver import RequestSerializer
+
 from . import privacy
 from .models import CATEGORIES, Item, local_today
 
@@ -175,10 +177,16 @@ class OwnItemSerializer(ItemSerializer):
     left = serializers.IntegerField(read_only=True)
     requested = serializers.IntegerField(read_only=True)
     claimed = serializers.IntegerField(read_only=True)
+    claims = serializers.SerializerMethodField()
 
     class Meta(ItemSerializer.Meta):
         # No photos: My items doesn't show them, and listing them costs a query per item.
-        fields = [*(f for f in ItemSerializer.Meta.fields if f != "photos"), "left", "requested", "claimed"]
+        fields = [*(f for f in ItemSerializer.Meta.fields if f != "photos"), "left", "requested", "claimed", "claims"]
+
+    def get_claims(self, item):
+        """Current claims (Waiting requests to answer, Approved ones to mark picked up), first names only.
+        own_items() prefetches only current claims, oldest first."""
+        return RequestSerializer(item.claims.all(), many=True).data
 
     def validate_quantity(self, value):
         held = self.instance and self.instance.requested + self.instance.claimed + self.instance.picked_up

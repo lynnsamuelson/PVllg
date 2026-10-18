@@ -14,6 +14,9 @@ import {
   claimItem,
   listClaims,
   cancelClaim,
+  approveClaim,
+  declineClaim,
+  markPickedUp,
   searchItems,
   editItem,
   takeDownItem,
@@ -80,6 +83,14 @@ describe("api client", () => {
     expect(fetch.mock.calls[2][0]).toBe("/api/claims/");
     await cancelClaim(5);
     expect(fetch.mock.calls[3][0]).toBe("/api/claims/5/cancel/");
+    await approveClaim(5);
+    await declineClaim(5);
+    await markPickedUp(5);
+    expect(fetch.mock.calls.slice(4).map((c) => c[0])).toEqual([
+      "/api/claims/5/approve/",
+      "/api/claims/5/decline/",
+      "/api/claims/5/picked-up/",
+    ]);
   });
 
   it("edits an item as JSON and takes one down", async () => {

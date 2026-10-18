@@ -48,12 +48,41 @@ def claim_item(user, item_id):
     return claim
 
 
-def end_claim(claim, status):
-    """Ends an active claim as declined, canceled or ended, which puts its item back. Returns False if the claim had
-    already ended (for example two taps at once), True otherwise."""
+def approve_claim(claim):
+    """The giver says yes (KAN-13): a Waiting claim becomes Approved, which shows the family the exact place.
+    Returns False if the claim wasn't Waiting anymore (for example the family canceled first) or its item can't be
+    picked up anymore (taken down, or its pickup day has passed)."""
+    live = Item.objects.live().filter(pk=claim.item_id, pickup_date__gte=local_today())
+    if not live.exists():
+        return False
+    approved = Claim.objects.filter(pk=claim.pk, status=Claim.WAITING).update(status=Claim.APPROVED)
+    if approved:
+        claim.status = Claim.APPROVED
+        logger.info("claim approved claim_id=%s", claim.pk)
+    return bool(approved)
+
+
+def mark_picked_up(claim):
+    """The giver confirms the family came (KAN-13): an Approved claim is done and its item counts as picked up.
+    Returns False if the claim wasn't Approved."""
+    done = Claim.objects.filter(pk=claim.pk, status=Claim.APPROVED).update(status=Claim.PICKED_UP)
+    if done:
+        claim.status = Claim.PICKED_UP
+        logger.info("claim picked up claim_id=%s", claim.pk)
+    return bool(done)
+
+
+def decline_claim(claim):
+    """The giver says no (KAN-13): ends a Waiting request as Declined. An Approved claim can't be declined."""
+    return end_claim(claim, Claim.DECLINED, only_from=[Claim.WAITING])
+
+
+def end_claim(claim, status, only_from=Claim.ACTIVE):
+    """Ends a claim that is in one of `only_from` as declined, canceled or ended, which puts its item back. Returns
+    False if the claim wasn't (for example it already ended, or two taps at once), True otherwise."""
     if status not in ENDINGS:
         raise ValueError(f"end_claim can't end a claim as {status!r}")
-    ended = Claim.objects.filter(pk=claim.pk, status__in=Claim.ACTIVE).update(status=status)
+    ended = Claim.objects.filter(pk=claim.pk, status__in=only_from).update(status=status)
     if ended:
         claim.status = status
         logger.info("claim ended claim_id=%s status=%s", claim.pk, status)
