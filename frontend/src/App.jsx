@@ -1,7 +1,9 @@
 import { Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import RequireGiver from "./components/RequireGiver.jsx";
 import RequireVerifiedOrg from "./components/RequireVerifiedOrg.jsx";
+import Button from "./components/Button.jsx";
 import { ROUTES } from "./routes.js";
 
 import WelcomePage from "./pages/welcome/WelcomePage.jsx";
@@ -16,6 +18,7 @@ import ProfileSetupPage from "./pages/profile/ProfileSetupPage.jsx";
 import OrgSignupPage from "./pages/org/OrgSignupPage.jsx";
 import OrgVerifyPage from "./pages/org/OrgVerifyPage.jsx";
 import OrgProfilePage from "./pages/org/OrgProfilePage.jsx";
+import PostItemPage from "./pages/items/PostItemPage.jsx";
 import StatusPage from "./pages/status/StatusPage.jsx";
 import ComingSoonPage from "./pages/ComingSoonPage.jsx";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
@@ -44,11 +47,25 @@ export default function App() {
           {/* Filled in by their own tickets: KAN-15, KAN-12, KAN-9, KAN-10, KAN-23 */}
           <Route path={ROUTES.search} element={<ComingSoonPage title="Search near me" />} />
           <Route path={ROUTES.claims} element={<ComingSoonPage title="My claims" />} />
-          <Route path={ROUTES.give} element={<ComingSoonPage title="Give" />} />
-          <Route path={ROUTES.orgItems} element={<ComingSoonPage title="My items" />} />
+          <Route
+            path={ROUTES.give}
+            element={
+              <ComingSoonPage title="Give">
+                <Button to={ROUTES.postItem}>Post an item</Button>
+              </ComingSoonPage>
+            }
+          />
+          <Route
+            path={ROUTES.orgItems}
+            element={
+              <ComingSoonPage title="My items">
+                <Button to={ROUTES.postItem}>Post an item</Button>
+              </ComingSoonPage>
+            }
+          />
           <Route path={ROUTES.impact} element={<ComingSoonPage title="Impact" />} />
-          <Route element={<RequireVerifiedOrg />}>
-            <Route path={ROUTES.postItem} element={<ComingSoonPage title="Post an item" />} />
+          <Route element={<RequireGiver title="Post an item" />}>
+            <Route path={ROUTES.postItem} element={<PostItemPage />} />
           </Route>
           <Route
             element={

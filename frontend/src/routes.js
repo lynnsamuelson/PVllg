@@ -12,7 +12,7 @@ export const ROUTES = {
   orgVerify: "/org/verify",
   orgProfile: "/org/profile",
   orgItems: "/org/items",
-  postItem: "/org/items/new",
+  postItem: "/items/new",
   search: "/search",
   claims: "/claims",
   give: "/give",

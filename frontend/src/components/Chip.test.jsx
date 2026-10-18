@@ -49,4 +49,9 @@ describe("ProgressBar", () => {
     expect(screen.getByText("Step 2 of 4")).toBeInTheDocument();
     expect(screen.getByRole("progressbar", { name: "Step 2 of 4" }).firstChild).toHaveStyle({ width: "50%" });
   });
+
+  it("adds the step's title when given", () => {
+    render(<ProgressBar step={1} total={2} title="About the item" />);
+    expect(screen.getByText("Step 1 of 2 · About the item")).toBeInTheDocument();
+  });
 });

@@ -1,0 +1,99 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+from rest_framework import serializers
+
+from accounts.serializers import address_zip
+
+from .models import CATEGORIES, Item
+
+MAX_PHOTOS = 4
+MAX_PHOTO_BYTES = 5 * 1024 * 1024
+TICKS = "Check both boxes to post."
+LOCAL_TZ = ZoneInfo("America/Chicago")  # the demo area is Middle Tennessee; the server runs in UTC
+
+
+def photo_type(head):
+    """The image type from a file's first bytes, or None if it isn't a JPEG, PNG or WebP."""
+    if head.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if head.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+class ItemSerializer(serializers.ModelSerializer):
+    """Post an item (Mock Ups 19-20). `exact_address` is required from people; organizations use their profile's."""
+
+    good_condition = serializers.BooleanField(write_only=True)
+    not_recalled = serializers.BooleanField(write_only=True)
+    quantity = serializers.IntegerField(min_value=1, max_value=99)
+    # Write-only: a person's exact address is private (KAN-11 decides who may see it).
+    exact_address = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
+    photos = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Item
+        fields = [
+            "id", "name", "category", "details", "quantity", "good_condition", "not_recalled", "photos",
+            "pickup_date", "pickup_start", "pickup_end", "general_area", "exact_address", "where_to_go",
+            "what_to_bring", "created_at",
+        ]
+        read_only_fields = ["created_at"]
+
+    def get_photos(self, item):
+        return [f"/api/items/photos/{pk}/" for pk in item.photos.values_list("pk", flat=True)]
+
+    def validate_good_condition(self, value):
+        if not value:
+            raise serializers.ValidationError(TICKS)
+        return value
+
+    def validate_not_recalled(self, value):
+        if not value:
+            raise serializers.ValidationError(TICKS)
+        return value
+
+    def validate_pickup_date(self, value):
+        if value < datetime.now(LOCAL_TZ).date():
+            raise serializers.ValidationError("Pick a date that hasn't passed.")
+        return value
+
+    def validate(self, attrs):
+        if attrs["pickup_end"] <= attrs["pickup_start"]:
+            raise serializers.ValidationError({"pickup_end": ["End the window after it starts."]})
+        org = self.context["organization"]
+        if org:
+            attrs["exact_address"] = org.pickup_address
+            attrs["zip_code"] = address_zip(org.pickup_address)
+        else:
+            address = attrs.get("exact_address", "").strip()
+            if not address:
+                raise serializers.ValidationError({"exact_address": ["Add the exact address."]})
+            if not address_zip(address):
+                raise serializers.ValidationError(
+                    {"exact_address": ["End the address with its ZIP code, like 12 Sample Ave, Nashville, TN 37206."]}
+                )
+            attrs["exact_address"] = address
+            attrs["zip_code"] = address_zip(address)
+        attrs.pop("good_condition")
+        attrs.pop("not_recalled")
+        return attrs
+
+
+def check_photos(files):
+    """[(content_type, bytes)] for the uploaded photos, or raises a ValidationError keyed `photos`."""
+    if len(files) > MAX_PHOTOS:
+        raise serializers.ValidationError({"photos": [f"Add up to {MAX_PHOTOS} photos."]})
+    photos = []
+    for f in files:
+        if f.size > MAX_PHOTO_BYTES:
+            raise serializers.ValidationError({"photos": [f"{f.name} is too big. Use photos under 5 MB."]})
+        data = f.read()
+        kind = photo_type(data[:12])
+        if not kind:
+            raise serializers.ValidationError({"photos": [f"{f.name} isn't a photo. Use JPEG, PNG or WebP."]})
+        photos.append((kind, data))
+    return photos

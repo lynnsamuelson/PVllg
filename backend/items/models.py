@@ -1,0 +1,47 @@
+from django.conf import settings
+from django.db import models
+
+# Item categories on Post an item (Mock Up 19).
+CATEGORIES = {
+    "clothes": "Clothes & gear",
+    "diapers": "Diapers & wipes",
+    "feeding": "Feeding supplies",
+    "furniture": "Furniture",
+    "other": "Other approved item",
+}
+
+
+class Item(models.Model):
+    """Something a giver posted (KAN-9). The exact address is private; KAN-11 decides who may see it."""
+
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="items")
+    name = models.CharField(max_length=100)
+    category = models.CharField(max_length=20, choices=list(CATEGORIES.items()))
+    details = models.TextField(max_length=1000)  # brand, size, age range, condition
+    quantity = models.PositiveSmallIntegerField()
+    pickup_date = models.DateField()
+    pickup_start = models.TimeField()
+    pickup_end = models.TimeField()
+    general_area = models.CharField(max_length=100)  # shown to everyone, e.g. East Nashville
+    exact_address = models.CharField(max_length=255)  # a person's is private; an organization's is its public address
+    zip_code = models.CharField(max_length=5)  # from exact_address, for search distance (KAN-15)
+    where_to_go = models.CharField(max_length=200, blank=True)
+    what_to_bring = models.CharField(max_length=500, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.name
+
+
+class ItemPhoto(models.Model):
+    """Up to 4 per item. Kept in the database so the VM needs no media folder or web server change."""
+
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name="photos")
+    content_type = models.CharField(max_length=20)
+    data = models.BinaryField()
+
+    class Meta:
+        ordering = ["id"]
