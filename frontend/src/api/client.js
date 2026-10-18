@@ -80,6 +80,9 @@ export function searchItems(options = {}) {
   return request(`/items/search/?${params}`);
 }
 
+// Impact numbers for an organization (KAN-23): the last 30 days, plus `organization` and `demo`.
+export const getImpact = () => request("/items/impact/");
+
 // Item details (KAN-17): one item with the address privacy rule applied (KAN-11).
 export const getItem = (id) => request(`/items/${id}/`);
 // Report a problem on an item page (KAN-22). reason = not_as_described | recalled_or_unsafe | asked_personal_info | other.

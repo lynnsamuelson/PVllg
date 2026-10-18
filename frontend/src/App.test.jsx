@@ -30,10 +30,10 @@ describe("App routes", () => {
     expect(screen.getByText("If an account exists for ada@example.com, a reset link would be sent.")).toBeInTheDocument();
   });
 
-  it("shows coming-soon tabs with the bottom bar once signed in", () => {
+  it("shows signed-in tabs with the bottom bar", () => {
     renderAt(ROUTES.impact, PERSON);
     expect(screen.getByRole("heading", { name: "Impact" })).toBeInTheDocument();
-    expect(screen.getByText(/coming soon/)).toBeInTheDocument();
+    expect(screen.getByText("Impact numbers are for organizations.")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Main" })).toBeInTheDocument();
   });
 

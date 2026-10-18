@@ -49,7 +49,9 @@ backend/
                      edit, take down: KAN-10), photos served by
                      GET /api/items/photos/<id>/ (stored in the database, so the VM needs no media folder)
                      privacy.py is the address privacy rule (KAN-11); GET /api/items/<id>/ and
-                     GET /api/items/search/ (Search near me, KAN-15) apply it
+                     GET /api/items/search/ (Search near me, KAN-15) apply it; impact.py counts an
+                     organization's last 30 days (GET /api/items/impact/, KAN-23; savings values are placeholders; demo organizations
+                     show Mock Up 10's Example data)
                      data/sample-data.json: made-up demo accounts and sample items (KAN-26, migration 0003);
                      demo.py refreshes their pickup dates (admin action)
   claims/            Claim model (Waiting, Approved, Declined, Canceled, Ended, Picked up); /api/claims/ (claim, My
@@ -257,7 +259,7 @@ list it here.
 Spacing and shape: `--space-side` 16px screen padding, `--space-card-gap` 9px between cards, `--radius-button` 12px,
 `--radius-card` 14px, `--radius-pill` for chips and badges, `--radius-checkbox` 3px. Type: titles bold `--text-title`, body `--text-body`,
 small `--text-small`, labels bold `--text-label`, choice-card titles bold `--text-card-title`, the PVill name on
-Welcome `--text-display`. Figma uses Arimo, which has the same letter widths as Arial; `--font-brand` stays Arial
+Welcome `--text-display`, Impact tile numbers bold `--text-stat`. Figma uses Arimo, which has the same letter widths as Arial; `--font-brand` stays Arial
 until Arimo is loaded.
 
 **Components** (build each once in `components/`, then reuse; don't restyle per page):

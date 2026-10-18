@@ -18,6 +18,7 @@ src/
 │   ├── org/              OrgSignupPage (Mock Up 7), OrgVerifyPage (Mock Up 8), OrgProfilePage (Mock Up 9, Verified only)  (login required)
 │   ├── claims/           MyClaimsPage (Mock Up 15): Active and Past claims, Cancel claim; AddToCalendarPage (Mock Up 16);
 │   │                     ReportProblemPage (Mock Ups 17-18)  (login required)
+│   ├── impact/           ImpactPage (Mock Up 10): an organization's last 30 days in six tiles  (login required)
 │   ├── search/           SearchPage (Mock Up 12): Items and Resources tabs; search state lives in the URL  (login required)
 │   ├── items/            ItemDetailPage (Mock Ups 13-14, anyone signed in); MyItemsPage (Mock Up 21) and
 │   │                     PostItemPage (2 steps, Mock Ups 19-20; also Edit)  (givers only)
@@ -110,6 +111,7 @@ The session is an HttpOnly cookie, so the frontend never handles tokens.
 | `POST /api/claims/:id/cancel/` | Cancel your claim; the item goes back on the list |
 | `POST /api/claims/:id/approve/`, `/decline/`, `/picked-up/`, `/didnt-come/` | The item's giver answers a Waiting request, or marks an Approved claim picked up or not (Family didn't come). Returns `{id, status, held_until, family}` (first name only) |
 | `POST /api/items/:id/report/` | `{reason}`: Report a problem on an item page. Saved for the PVill team (admin → Item reports); the item doesn't change |
+| `GET /api/items/impact/` | Organizations only: `families_helped`, `items_posted`, `items_claimed`, `items_picked_up`, `returned_to_list`, `estimated_savings` for the last 30 days, plus `organization` and `demo` (show Example data) |
 | `GET /api/items/:id/` | One item as others see it: general area, whole-mile `distance_miles`, `giver` (organization name, or "A parent nearby"), `left` (listed minus current claims), `photos` (URLs), `available` (some left, the pickup day hasn't passed, and not paused by a problem report), `mine`, `demo` (made-up sample data: show the Demo badge). `exact_address` and `where_to_go` are null with a `private_note` unless the viewer may see them (KAN-11) |
 | `GET /api/items/mine/` | Your own items (any account, so turning Give off doesn't strand them) that aren't taken down, with `exact_address` and counts `left`, `requested`, `claimed`, and `claims` (current ones: `{id, status, held_until, family}`), and `paused` (the reported reason, or null) |
 | `GET`/`PUT`/`DELETE /api/items/mine/:id/` | One of the giver's items: fill in Edit, save it (JSON, photos unchanged; givers only), take it down |
