@@ -188,6 +188,7 @@ Apache serves the React build and proxies `/api/` and `/admin/` to gunicorn on `
 | `EMAIL_HOST` | secret | SMTP server for organization codes (e.g. OCI Email Delivery). **Leave unset and codes print to `journalctl`** |
 | `EMAIL_PORT` / `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` | secret | SMTP port (default 587) and credentials |
 | `DEFAULT_FROM_EMAIL` | secret | From address, on a domain approved for sending, e.g. `PVill <no-reply@example.org>` |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | secret | First Django admin login; the next deploy creates it if it doesn't exist |
 
 To create a Django admin user on the VM:
 
@@ -198,24 +199,22 @@ cd /opt/hackathon-app/backend && ENV_FILE=../.env ../venv/bin/python manage.py c
 
 ### Test accounts
 
-`python manage.py seed_test_accounts` creates three accounts for product owners, all with one password (from
-`TEST_ACCOUNT_PASSWORD`, or it asks):
+Product owners test in the browser, without SSH. You need a Django admin login (`/admin/`). The first one comes
+from the `ADMIN_EMAIL` and `ADMIN_PASSWORD` GitHub secrets: the next deploy creates it if it doesn't exist (and never
+changes it after that). Sign in with it, then give others access from admin.
 
-| Email | What it is |
-| --- | --- |
-| `person@pvill.test` | Person |
-| `org@pvill.test` | Verified organization (Example Community Closet) |
-| `neworg@pvill.test` | Organization that hasn't done the email check, for trying it with a real work email |
+- **Make an account:** sign up on the site as a person or an organization, like a real user.
+- **Verify an organization without the email code:** enter the organization's details on the site (it shows as
+  Pending), then open admin → Organizations, tick it, and choose **Mark verified**. Refresh the site.
+- **Try the email check again:** admin → Organizations, tick it, choose **Reset email check**. The account stays;
+  it goes back to entering its details.
+- **Sign in as an existing account:** admin → Users → the account → **change password** (under Password), then sign
+  in with it in a private window.
+- **Give someone admin access:** admin → Users → their account → tick **Staff status** and **Superuser status**.
 
-Running it again resets them, including the password. On the VM:
-
-```bash
-ssh opc@207.211.189.5
-cd /opt/hackathon-app/backend && ENV_FILE=../.env ../venv/bin/python manage.py seed_test_accounts
-```
-
-To try the email check again with the same work email, open Django admin → Organizations, tick the organization,
-and choose **Reset email check**. The account stays; it goes back to entering its details.
+`python manage.py seed_test_accounts` also creates `person@pvill.test`, `org@pvill.test` (verified) and
+`neworg@pvill.test` with one password (from `TEST_ACCOUNT_PASSWORD`, or it asks), and resets them when run again.
+It's handy locally; on the VM it needs SSH.
 
 ## VM access for teammates
 

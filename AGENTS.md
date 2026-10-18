@@ -292,7 +292,7 @@ approval (KAN-11).
 
 **Pipeline** (`.github/workflows/ci-deploy.yml`, deploy job): builds React, tars `backend/`, `deploy/` and
 `frontend/dist`, writes a `.env` from secrets, copies both to the VM over SSH, and runs `deploy/remote-deploy.sh`.
-That script installs Python deps, runs `migrate` and `collectstatic`, publishes the React build, installs the
+That script installs Python deps, runs `migrate`, `ensure_admin` and `collectstatic`, publishes the React build, installs the
 Apache and systemd config, restarts the app, and checks health.
 
 **GitHub configuration.** Never put these values in code.
@@ -303,6 +303,7 @@ Apache and systemd config, restarts the app, and checks health.
 | `VM_SSH_KEY`, `VM_KNOWN_HOSTS` | secret | Deploy key + host key for SSH |
 | `DJANGO_SECRET_KEY` | secret | Django secret |
 | `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | secret | HeatWave app user (not admin) |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | secret | First Django admin login, created on deploy if it doesn't exist (`manage.py ensure_admin`). Unset: skipped |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` | secret | SMTP for organization codes (e.g. OCI Email Delivery on 587). Unset: emails go to `journalctl` |
 
 **On the VM** (Oracle Linux 9, user `opc`, SELinux enforcing). Paths still use the original placeholder name

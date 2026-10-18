@@ -370,7 +370,25 @@ class SeedTestAccountsTests(APITestCase):
                 call_command("seed_test_accounts")
 
 
-class ResetEmailCheckAdminTests(APITestCase):
+class EnsureAdminTests(APITestCase):
+    def run_it(self, **env):
+        with mock.patch.dict(os.environ, env):
+            call_command("ensure_admin", stdout=mock.Mock())
+
+    def test_creates_admin_once(self):
+        self.run_it(ADMIN_EMAIL=" Owner@Example.com ", ADMIN_PASSWORD=GOOD_PASSWORD)
+        admin = User.objects.get(username="owner@example.com")
+        self.assertTrue(admin.is_superuser and admin.is_staff)
+        self.run_it(ADMIN_EMAIL="owner@example.com", ADMIN_PASSWORD="a-different-password-9")
+        admin.refresh_from_db()
+        self.assertTrue(admin.check_password(GOOD_PASSWORD))
+
+    def test_skips_without_settings(self):
+        self.run_it(ADMIN_EMAIL="owner@example.com", ADMIN_PASSWORD="")
+        self.assertFalse(User.objects.exists())
+
+
+class OrganizationAdminTests(APITestCase):
     def test_reset_removes_the_organization(self):
         admin = User.objects.create_superuser("admin@example.com", "admin@example.com", GOOD_PASSWORD)
         org_user = User.objects.create_user("org@garden.org", "org@garden.org", GOOD_PASSWORD)
@@ -381,3 +399,18 @@ class ResetEmailCheckAdminTests(APITestCase):
         )
         self.assertContains(resp, "Reset 1 organization(s).")
         self.assertFalse(Organization.objects.filter(pk=org.pk).exists())
+
+    def test_mark_verified_skips_the_code(self):
+        admin = User.objects.create_superuser("admin@example.com", "admin@example.com", GOOD_PASSWORD)
+        org_user = User.objects.create_user("org@garden.org", "org@garden.org", GOOD_PASSWORD)
+        org = Organization.objects.create(
+            user=org_user, name="Garden", website="garden.org", domain="garden.org", work_email="info@garden.org", code_hash="x"
+        )
+        self.client.force_login(admin)
+        resp = self.client.post(
+            "/admin/accounts/organization/", {"action": "mark_verified", "_selected_action": [org.pk]}, follow=True
+        )
+        self.assertContains(resp, "Marked 1 organization(s) verified.")
+        org.refresh_from_db()
+        self.assertEqual(org.status, "verified")
+        self.assertEqual(org.code_hash, "")
