@@ -87,6 +87,10 @@ export const getItem = (id) => request(`/items/${id}/`);
 export const claimItem = (itemId) => post("/claims/", { item: itemId });
 export const listClaims = (tab) => request(`/claims/${tab === "past" ? "?tab=past" : ""}`);
 export const cancelClaim = (id) => post(`/claims/${id}/cancel/`);
+// The giver's answers (KAN-13). Each returns { id, status, held_until, family } with the family's first name only.
+export const approveClaim = (id) => post(`/claims/${id}/approve/`);
+export const declineClaim = (id) => post(`/claims/${id}/decline/`);
+export const markPickedUp = (id) => post(`/claims/${id}/picked-up/`);
 
 // My items (KAN-10): the giver's own items, with exact_address and counts (left, requested, claimed).
 export const listMyItems = () => request("/items/mine/");

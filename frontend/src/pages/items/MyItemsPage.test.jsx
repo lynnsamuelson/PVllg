@@ -1,11 +1,19 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as api from "../../api/client.js";
 import { ROUTES } from "../../routes.js";
 import MyItemsPage, { countsLine } from "./MyItemsPage.jsx";
 
-const CRIB = { id: 7, name: "Crib", left: 2, requested: 0, claimed: 0 };
+const CRIB = { id: 7, name: "Crib", quantity: 2, left: 2, requested: 0, claimed: 0, claims: [] };
+const BUNDLE = {
+  id: 8, name: "Baby clothes bundle", quantity: 1, left: 0, requested: 1, claimed: 0,
+  claims: [{ id: 30, status: "waiting", family: "Taylor" }],
+};
+const STROLLER = {
+  id: 9, name: "Stroller", quantity: 1, left: 0, requested: 0, claimed: 1,
+  claims: [{ id: 31, status: "approved", family: "Jordan" }],
+};
 
 function renderPage(state) {
   render(
@@ -20,7 +28,9 @@ afterEach(() => vi.restoreAllMocks());
 describe("countsLine", () => {
   it("shows what's left, then requests and claims when there are any, never below zero", () => {
     expect(countsLine(CRIB)).toBe("2 left");
-    expect(countsLine({ left: -1, requested: 1, claimed: 1 })).toBe("0 left · 1 requested · 1 claimed");
+    expect(countsLine({ quantity: 1, left: 0, requested: 1, claimed: 0 })).toBe("1 listed · 1 requested");
+    expect(countsLine({ quantity: 3, left: 1, requested: 1, claimed: 1 })).toBe("3 listed · 1 requested · 1 claimed · 1 left");
+    expect(countsLine({ quantity: 1, left: -1, requested: 0, claimed: 1 })).toBe("0 left · 1 claimed");
   });
 });
 
@@ -86,6 +96,41 @@ describe("MyItemsPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Yes, take down" }));
     expect(await screen.findByText("It wasn't taken down. Failed to fetch")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Crib" })).toBeInTheDocument();
+  });
+
+  it("shows a request with the family's first name, and Approve reloads the list", async () => {
+    const list = vi.spyOn(api, "listMyItems").mockResolvedValueOnce([BUNDLE]).mockResolvedValueOnce([
+      { ...BUNDLE, requested: 0, claimed: 1, claims: [{ id: 30, status: "approved", family: "Taylor" }] },
+    ]);
+    const approve = vi.spyOn(api, "approveClaim").mockResolvedValue({ id: 30, status: "approved" });
+    renderPage();
+    expect(await screen.findByText("Taylor")).toBeInTheDocument();
+    expect(screen.getByText("1 listed · 1 requested")).toBeInTheDocument();
+    expect(screen.getByText("Approving shares your exact pickup details.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    expect(await screen.findByText("Approved for Taylor")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mark picked up" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Take down" })).not.toBeInTheDocument();
+    expect(approve).toHaveBeenCalledWith(30);
+    expect(list).toHaveBeenCalledTimes(2);
+  });
+
+  it("declines a request", async () => {
+    vi.spyOn(api, "listMyItems").mockResolvedValueOnce([BUNDLE]).mockResolvedValueOnce([{ ...BUNDLE, claims: [] }]);
+    const decline = vi.spyOn(api, "declineClaim").mockResolvedValue({ id: 30, status: "declined" });
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Decline" }));
+    await waitFor(() => expect(screen.queryByText("Taylor")).not.toBeInTheDocument());
+    expect(decline).toHaveBeenCalledWith(30);
+  });
+
+  it("marks an approved claim picked up, and says when an answer fails", async () => {
+    vi.spyOn(api, "listMyItems").mockResolvedValue([STROLLER]);
+    vi.spyOn(api, "markPickedUp").mockRejectedValue(new Error("This claim isn't approved."));
+    renderPage();
+    expect(await screen.findByText("0 left · 1 claimed")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Mark picked up" }));
+    expect(await screen.findByText("This claim isn't approved.")).toBeInTheDocument();
   });
 
   it("says Saved after an edit", async () => {

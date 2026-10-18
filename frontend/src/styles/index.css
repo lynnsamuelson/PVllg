@@ -704,3 +704,18 @@ button.text-link {
   color: var(--color-plum-muted);
   margin: 0;
 }
+
+/* A family's request on My items (Mock Up 21): peach note with the first name in bold. */
+.request-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.request-box strong {
+  font-size: var(--text-card-title);
+}
+.claim-row {
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-plum-muted);
+}

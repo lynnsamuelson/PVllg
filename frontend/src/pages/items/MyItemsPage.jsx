@@ -7,13 +7,68 @@ import { ROUTES } from "../../routes.js";
 
 // "1 listed · 1 requested", "0 left · 1 claimed", "2 left" (Mock Up 21). Never below zero.
 export function countsLine(item) {
-  const parts = [`${Math.max(item.left, 0)} left`];
-  if (item.requested > 0) parts.push(`${item.requested} requested`);
+  const left = Math.max(item.left, 0);
+  if (item.requested === 0) return [`${left} left`, ...(item.claimed > 0 ? [`${item.claimed} claimed`] : [])].join(" · ");
+  const parts = [`${item.quantity} listed`, `${item.requested} requested`];
   if (item.claimed > 0) parts.push(`${item.claimed} claimed`);
+  if (left > 0) parts.push(`${left} left`);
   return parts.join(" · ");
 }
 
-function ItemCard({ item, onTakenDown }) {
+// A family's claim on this item, as the giver sees it: a Waiting request to answer (Mock Up 21) or an Approved
+// claim to mark picked up. Only the family's first name ever shows.
+function ClaimRow({ claim, onAnswered }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const answer = async (call) => {
+    setBusy(true);
+    setError("");
+    try {
+      await call(claim.id);
+      await onAnswered();
+    } catch (err) {
+      setError(err.message);
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div className="stack">
+      {claim.status === "waiting" ? (
+        <>
+          <div className="note-box request-box">
+            <strong>{claim.family}</strong>
+            <span>wants this item.</span>
+            <span>Approving shares your exact pickup details.</span>
+          </div>
+          <div className="row">
+            <Button small onClick={() => answer(api.approveClaim)} disabled={busy}>
+              Approve
+            </Button>
+            <Button small variant="outline" onClick={() => answer(api.declineClaim)} disabled={busy}>
+              Decline
+            </Button>
+          </div>
+        </>
+      ) : (
+        <div className="row claim-row">
+          <span>Approved for {claim.family}</span>
+          <Button small variant="outline" onClick={() => answer(api.markPickedUp)} disabled={busy}>
+            Mark picked up
+          </Button>
+        </div>
+      )}
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ItemCard({ item, onTakenDown, onChanged }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -34,7 +89,11 @@ function ItemCard({ item, onTakenDown }) {
     <li className="card item-card">
       <h2>{item.name}</h2>
       <p className="item-card-counts">{countsLine(item)}</p>
-      {confirming ? (
+      {item.claims.map((claim) => (
+        <ClaimRow key={`${claim.id}-${claim.status}`} claim={claim} onAnswered={onChanged} />
+      ))}
+      {/* As on Mock Up 21, an item with open requests or claims is answered first, not edited or taken down. */}
+      {item.claims.length > 0 ? null : confirming ? (
         <div className="stack">
           <p>Are you sure? Families won't find {item.name} anymore.</p>
           <div className="row">
@@ -78,11 +137,17 @@ export default function MyItemsPage() {
     if (location.state?.saved) navigate(location.pathname, { replace: true, state: null });
   }, [location, navigate]);
 
-  useEffect(() => {
+  const load = () =>
     api
       .listMyItems()
-      .then(setItems)
+      .then((data) => {
+        setItems(data);
+        setError("");
+      })
       .catch((err) => setError(err.message));
+
+  useEffect(() => {
+    load();
   }, []);
 
   return (
@@ -99,7 +164,12 @@ export default function MyItemsPage() {
       {items?.length > 0 && (
         <ul className="item-list">
           {items.map((item) => (
-            <ItemCard key={item.id} item={item} onTakenDown={(id) => setItems((xs) => xs.filter((i) => i.id !== id))} />
+            <ItemCard
+              key={item.id}
+              item={item}
+              onTakenDown={(id) => setItems((xs) => xs.filter((i) => i.id !== id))}
+              onChanged={load}
+            />
           ))}
         </ul>
       )}

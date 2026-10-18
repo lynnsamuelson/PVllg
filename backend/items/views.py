@@ -1,5 +1,5 @@
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -9,6 +9,7 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
 from accounts.models import Profile
+from claims.models import Claim
 from config.log import get_logger
 
 from . import privacy
@@ -92,11 +93,19 @@ def item_detail(request, pk):
     return Response(PublicItemSerializer(item, context={"request": request}).data)
 
 
+def own_items():
+    """Items with counts and their claims' families loaded, for My items and Edit."""
+    claims = Prefetch(
+        "claims", queryset=Claim.objects.filter(status__in=Claim.ACTIVE).select_related("claimant").order_by("created_at")
+    )
+    return Item.objects.live().with_counts().prefetch_related(claims)
+
+
 # My items only needs a login: someone who turns Give support off can still see and take down what they posted.
 @api_view(["GET"])
 def my_items(request):
     """My items (Mock Up 21): the giver's items that aren't taken down, newest first."""
-    items = Item.objects.live().with_counts().filter(owner=request.user)
+    items = own_items().filter(owner=request.user)
     return Response(OwnItemSerializer(items, many=True).data)
 
 
@@ -104,7 +113,7 @@ def my_items(request):
 def my_item(request, pk):
     """One of the giver's items: GET fills in Edit, PUT saves it (givers only; photos stay as they are),
     DELETE takes it down."""
-    item = get_object_or_404(Item.objects.live().with_counts(), pk=pk, owner=request.user)
+    item = get_object_or_404(own_items(), pk=pk, owner=request.user)
     if request.method == "GET":
         return Response(OwnItemSerializer(item).data)
     if request.method == "DELETE":
@@ -121,7 +130,7 @@ def my_item(request, pk):
         serializer.is_valid(raise_exception=True)
         serializer.save()
     logger.info("item edited user_id=%s item_id=%s", request.user.pk, item.pk)
-    return Response(OwnItemSerializer(Item.objects.with_counts().get(pk=item.pk)).data)  # fresh counts
+    return Response(OwnItemSerializer(own_items().get(pk=item.pk)).data)  # fresh counts
 
 
 @api_view(["GET"])

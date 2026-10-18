@@ -100,8 +100,9 @@ The session is an HttpOnly cookie, so the frontend never handles tokens.
 | `POST /api/claims/` | `{item}`: Claim one / Request to claim (people only). A Verified organization's item is Approved at once, a person's is Waiting; holds for 3 days. 409 when someone just took the last one |
 | `GET /api/claims/` | My claims: current (Waiting, Approved), or ended ones with `?tab=past`. Each has the item, shaped like `GET /api/items/:id/` |
 | `POST /api/claims/:id/cancel/` | Cancel your claim; the item goes back on the list |
+| `POST /api/claims/:id/approve/`, `/decline/`, `/picked-up/` | The item's giver answers a Waiting request, or marks an Approved claim picked up. Returns `{id, status, held_until, family}` (first name only) |
 | `GET /api/items/:id/` | One item as others see it: general area, whole-mile `distance_miles`, `giver` (organization name, or "A parent nearby"), `left` (listed minus current claims), `photos` (URLs), `available` (some left and the pickup day hasn't passed), `mine`, `demo` (made-up sample data: show the Demo badge). `exact_address` and `where_to_go` are null with a `private_note` unless the viewer may see them (KAN-11) |
-| `GET /api/items/mine/` | Your own items (any account, so turning Give off doesn't strand them) that aren't taken down, with `exact_address` and counts `left`, `requested`, `claimed` |
+| `GET /api/items/mine/` | Your own items (any account, so turning Give off doesn't strand them) that aren't taken down, with `exact_address` and counts `left`, `requested`, `claimed`, and `claims` (current ones: `{id, status, held_until, family}`) |
 | `GET`/`PUT`/`DELETE /api/items/mine/:id/` | One of the giver's items: fill in Edit, save it (JSON, photos unchanged; givers only), take it down |
 | `GET /api/items/photos/:id/` | One photo of a live item, for anyone signed in (its giver can always see it) |
 | `GET /api/resources/`, `/api/resources/:id/` | Resource list / detail (login required) |
