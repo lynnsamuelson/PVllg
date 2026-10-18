@@ -8,4 +8,5 @@ urlpatterns = [
     path("<int:pk>/approve/", views.approve_claim),
     path("<int:pk>/decline/", views.decline_claim),
     path("<int:pk>/picked-up/", views.picked_up),
+    path("<int:pk>/didnt-come/", views.didnt_come),
 ]

@@ -23,6 +23,19 @@ const STATUS = {
   picked_up: { label: "Picked up", badge: "verified" },
 };
 
+// Why a claim is in Past (KAN-14). Keys match claims.models.Claim.REASONS and its statuses.
+const ENDED_BECAUSE = {
+  hold_ended: "The hold ended.",
+  no_answer: "The giver didn't answer in time.",
+  no_show: "The giver marked it not picked up.",
+};
+// null when the badge (Canceled, Picked up) already says it all.
+export function pastReason(claim) {
+  if (claim.status === "declined") return "The giver declined.";
+  if (claim.status !== "ended") return null;
+  return Object.hasOwn(ENDED_BECAUSE, claim.end_reason) ? ENDED_BECAUSE[claim.end_reason] : "This claim ended.";
+}
+
 // "Hold ends in 3 days", "Hold ends today" (under a day left) or "Hold has ended", from the claim's held_until.
 export function holdLine(heldUntil, now = new Date()) {
   const hours = (new Date(heldUntil) - now) / (60 * 60 * 1000);
@@ -66,6 +79,7 @@ function ClaimCard({ claim, onChanged }) {
         </>
       )}
       {claim.status === "waiting" && <p>The giver hasn&apos;t answered yet. Exact pickup details appear after approval.</p>}
+      {!active && pastReason(claim) && <p>{pastReason(claim)}</p>}
       {active &&
         (confirming ? (
           <div className="stack">

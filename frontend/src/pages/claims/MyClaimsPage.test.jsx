@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import * as api from "../../api/client.js";
 import * as auth from "../../context/AuthContext.jsx";
 import { ROUTES } from "../../routes.js";
-import MyClaimsPage, { holdLine } from "./MyClaimsPage.jsx";
+import MyClaimsPage, { holdLine, pastReason } from "./MyClaimsPage.jsx";
 
 const IN_3_DAYS = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 - 60000).toISOString();
 const ITEM = {
@@ -35,6 +35,18 @@ describe("holdLine", () => {
     expect(holdLine("2030-10-21T14:00:00Z", now)).toBe("Hold ends in 1 day");
     expect(holdLine("2030-10-20T14:00:00Z", now)).toBe("Hold ends today");
     expect(holdLine("2030-10-20T11:00:00Z", now)).toBe("Hold has ended");
+  });
+});
+
+describe("pastReason", () => {
+  it("says why each claim ended", () => {
+    expect(pastReason({ status: "ended", end_reason: "hold_ended" })).toBe("The hold ended.");
+    expect(pastReason({ status: "ended", end_reason: "no_answer" })).toBe("The giver didn't answer in time.");
+    expect(pastReason({ status: "ended", end_reason: "no_show" })).toBe("The giver marked it not picked up.");
+    expect(pastReason({ status: "ended", end_reason: "constructor" })).toBe("This claim ended.");
+    expect(pastReason({ status: "declined" })).toBe("The giver declined.");
+    expect(pastReason({ status: "canceled" })).toBeNull();
+    expect(pastReason({ status: "picked_up" })).toBeNull();
   });
 });
 

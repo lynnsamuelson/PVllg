@@ -66,7 +66,9 @@ class ClaimTests(APITestCase):
         self.assertEqual(data["status"], "approved")
         self.assertEqual(data["item"]["exact_address"], "100 Sample Way, Nashville, TN 37206")
         held = timezone.datetime.fromisoformat(data["held_until"].replace("Z", "+00:00"))
-        self.assertAlmostEqual((held - timezone.now()).total_seconds(), timedelta(days=3).total_seconds(), delta=60)
+        # 3 days, or to the end of the pickup day when that's later (Size 1 diapers is picked up in 3 days).
+        self.assertGreaterEqual(held, timezone.now() + timedelta(days=3) - timedelta(minutes=1))
+        self.assertEqual(held, actions.hold_until(self.diapers))
         self.assertEqual(self.left(self.diapers), 11)
 
     def test_person_item_waits_and_keeps_the_place_private(self):
@@ -250,3 +252,94 @@ class GiverAnswerTests(APITestCase):
         self.answer("approve", user=self.family, expect=404)
         self.answer("decline", user=person("jordan@example.com"), expect=404)
         self.assertEqual(Claim.objects.get(pk=self.claim.pk).status, Claim.WAITING)
+
+
+class MissedClaimTests(APITestCase):
+    """KAN-14: a hold that passes, a request with no answer, and Family didn't come all end the claim once."""
+
+    def setUp(self):
+        self.diapers = demo("Size 1 diapers")
+        self.bundle = demo("Baby clothes bundle, 0-3 mo")
+        self.family = person("taylor@example.com")
+        self.client.force_authenticate(self.family)
+
+    def make(self, item, status, created_days_ago=0, held_days=3):
+        claim = Claim.objects.create(
+            item=item, claimant=self.family, status=status, held_until=timezone.now() + timedelta(days=held_days)
+        )
+        Claim.objects.filter(pk=claim.pk).update(created_at=timezone.now() - timedelta(days=created_days_ago))
+        return claim
+
+    def left(self, item):
+        return Item.objects.with_counts().get(pk=item.pk).left
+
+    def past(self):
+        return self.client.get("/api/claims/?tab=past").json()
+
+    def test_a_passed_hold_ends_and_puts_the_item_back_once(self):
+        claim = self.make(self.diapers, Claim.APPROVED, held_days=-1.1)  # a day of grace has passed too
+        self.assertEqual(self.left(self.diapers), 11)
+        with self.assertLogs("claims.actions", "INFO"):
+            past = self.past()
+        self.assertEqual((past[0]["status"], past[0]["end_reason"]), ("ended", "hold_ended"))
+        self.assertEqual(self.left(self.diapers), 12)
+        actions.expire_overdue()  # again: nothing more to end
+        self.assertFalse(actions.end_claim(Claim.objects.get(pk=claim.pk), Claim.ENDED))
+        self.assertEqual(self.left(self.diapers), 12)
+
+    def test_a_request_with_no_answer_for_2_days_ends(self):
+        self.make(self.bundle, Claim.WAITING, created_days_ago=2.1)
+        with self.assertLogs("claims.actions", "INFO"):
+            past = self.past()
+        self.assertEqual(past[0]["end_reason"], "no_answer")
+        self.assertEqual(self.left(self.bundle), 1)
+
+    def test_an_approved_hold_gets_a_day_of_grace_to_mark_picked_up(self):
+        claim = self.make(self.diapers, Claim.APPROVED, held_days=-0.5)
+        actions.expire_overdue()
+        self.assertEqual(Claim.objects.get(pk=claim.pk).status, Claim.APPROVED)
+
+    def test_approving_restarts_the_hold(self):
+        claim = self.make(self.bundle, Claim.WAITING, created_days_ago=1.9, held_days=1.1)
+        with self.assertLogs("claims.actions", "INFO"):
+            self.assertTrue(actions.approve_claim(claim))
+        self.assertGreater(Claim.objects.get(pk=claim.pk).held_until, timezone.now() + timedelta(days=2.9))
+
+    def test_cancel_after_the_hold_passed_reads_as_ended(self):
+        claim = self.make(self.diapers, Claim.APPROVED, held_days=-1.1)
+        with self.assertLogs("claims.actions", "INFO"):
+            resp = self.client.post(f"/api/claims/{claim.pk}/cancel/")
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(Claim.objects.get(pk=claim.pk).end_reason, "hold_ended")
+
+    def test_current_claims_stay(self):
+        self.make(self.diapers, Claim.APPROVED, created_days_ago=2.5, held_days=1)
+        self.make(self.bundle, Claim.WAITING, created_days_ago=1)
+        self.assertEqual(len(self.client.get("/api/claims/").json()), 2)
+
+    def test_picked_up_claims_never_go_back(self):
+        self.make(self.diapers, Claim.PICKED_UP, created_days_ago=10, held_days=-7)
+        actions.expire_overdue()
+        self.assertEqual(self.left(self.diapers), 11)
+
+    def test_search_and_item_pages_expire_first(self):
+        self.make(self.bundle, Claim.APPROVED, held_days=-1.1)
+        with self.assertLogs("claims.actions", "INFO"):
+            self.assertEqual(self.client.get(f"/api/items/{self.bundle.pk}/").json()["left"], 1)
+
+    def test_family_didnt_come(self):
+        claim = self.make(self.bundle, Claim.WAITING)
+        casey = User.objects.get(username="casey@demo.example")
+        self.client.force_authenticate(casey)
+        self.assertEqual(self.client.post(f"/api/claims/{claim.pk}/didnt-come/").status_code, 400)  # not approved
+        Claim.objects.filter(pk=claim.pk).update(status=Claim.APPROVED)
+        self.assertEqual(self.client.post(f"/api/claims/{claim.pk}/didnt-come/").status_code, 400)  # before pickup day
+        Item.objects.filter(pk=self.bundle.pk).update(pickup_date=local_today())
+        with self.assertLogs("claims.actions", "INFO"):
+            resp = self.client.post(f"/api/claims/{claim.pk}/didnt-come/")
+        self.assertEqual(resp.json()["status"], "ended")
+        self.assertEqual(self.left(self.bundle), 1)
+        self.assertEqual(self.client.post(f"/api/claims/{claim.pk}/didnt-come/").status_code, 400)  # only once
+        self.client.force_authenticate(self.family)
+        self.assertEqual(self.past()[0]["end_reason"], "no_show")
+        self.assertEqual(self.client.post(f"/api/claims/{claim.pk}/didnt-come/").status_code, 404)  # not the giver

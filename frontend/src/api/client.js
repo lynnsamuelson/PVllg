@@ -91,6 +91,7 @@ export const cancelClaim = (id) => post(`/claims/${id}/cancel/`);
 export const approveClaim = (id) => post(`/claims/${id}/approve/`);
 export const declineClaim = (id) => post(`/claims/${id}/decline/`);
 export const markPickedUp = (id) => post(`/claims/${id}/picked-up/`);
+export const familyDidntCome = (id) => post(`/claims/${id}/didnt-come/`);
 
 // My items (KAN-10): the giver's own items, with exact_address and counts (left, requested, claimed).
 export const listMyItems = () => request("/items/mine/");

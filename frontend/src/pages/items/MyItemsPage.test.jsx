@@ -124,6 +124,21 @@ describe("MyItemsPage", () => {
     expect(decline).toHaveBeenCalledWith(30);
   });
 
+  it("ends an approved claim when the family didn't come", async () => {
+    vi.spyOn(api, "listMyItems").mockResolvedValueOnce([STROLLER]).mockResolvedValueOnce([
+      { ...STROLLER, claimed: 0, left: 1, claims: [] },
+    ]);
+    const didntCome = vi.spyOn(api, "familyDidntCome").mockResolvedValue({ id: 31, status: "ended" });
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Family didn't come" }));
+    fireEvent.click(screen.getByRole("button", { name: "Keep it" }));
+    expect(didntCome).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Family didn't come" }));
+    fireEvent.click(screen.getByRole("button", { name: "Yes, they didn't come" }));
+    expect(await screen.findByText("1 left")).toBeInTheDocument();
+    expect(didntCome).toHaveBeenCalledWith(31);
+  });
+
   it("marks an approved claim picked up, and says when an answer fails", async () => {
     vi.spyOn(api, "listMyItems").mockResolvedValue([STROLLER]);
     vi.spyOn(api, "markPickedUp").mockRejectedValue(new Error("This claim isn't approved."));

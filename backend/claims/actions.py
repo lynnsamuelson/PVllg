@@ -1,20 +1,29 @@
 """Claim actions shared by every screen that changes a claim (KAN-12). Cancel claim uses end_claim now; Decline
 (KAN-13), missed pickups (KAN-14) and pickup problems (KAN-20) use it too, so a claim always ends the same way."""
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 from django.db import transaction
 from django.utils import timezone
 
 from config.log import get_logger
 from items import privacy
-from items.models import Item, local_today
+from items.models import LOCAL_TZ, Item, local_today
 
 from .models import Claim
 
 logger = get_logger(__name__)
 
 HOLD = timedelta(days=3)  # proposed in KAN-12; the PO still has to confirm it
+ANSWER_WITHIN = timedelta(days=2)  # a request with no answer ends after this (proposed in KAN-14)
+GRACE = timedelta(days=1)  # an Approved claim stays a day past its hold, so the giver can still mark it picked up
 ENDINGS = {Claim.DECLINED, Claim.CANCELED, Claim.ENDED}  # each puts the item back for other families
+
+
+def hold_until(item):
+    """When a hold made now ends: 3 days from now, or the end of the pickup day if that's later, so a family never
+    loses an item before they could pick it up."""
+    end_of_pickup_day = datetime.combine(item.pickup_date + timedelta(days=1), time.min, tzinfo=LOCAL_TZ)
+    return max(timezone.now() + HOLD, end_of_pickup_day)
 
 
 class ClaimRefused(Exception):
@@ -42,7 +51,7 @@ def claim_item(user, item_id):
             item=item,
             claimant=user,
             status=Claim.APPROVED if privacy.from_organization(item) else Claim.WAITING,
-            held_until=timezone.now() + HOLD,
+            held_until=hold_until(item),
         )
     logger.info("claim made user_id=%s item_id=%s claim_id=%s status=%s", user.pk, item.pk, claim.pk, claim.status)
     return claim
@@ -55,9 +64,11 @@ def approve_claim(claim):
     live = Item.objects.live().filter(pk=claim.item_id, pickup_date__gte=local_today())
     if not live.exists():
         return False
-    approved = Claim.objects.filter(pk=claim.pk, status=Claim.WAITING).update(status=Claim.APPROVED)
+    held = hold_until(live.get())  # the family's hold starts again at approval
+    approved = Claim.objects.filter(pk=claim.pk, status=Claim.WAITING).update(status=Claim.APPROVED, held_until=held)
     if approved:
         claim.status = Claim.APPROVED
+        claim.held_until = held
         logger.info("claim approved claim_id=%s", claim.pk)
     return bool(approved)
 
@@ -72,18 +83,48 @@ def mark_picked_up(claim):
     return bool(done)
 
 
+def family_didnt_come(claim):
+    """The giver says the family never came (KAN-14): an Approved claim ends now and the item goes back. Only once
+    the pickup day has come; before that the family hasn't missed anything."""
+    if claim.item.pickup_date > local_today():
+        return False
+    return end_claim(claim, Claim.ENDED, only_from=[Claim.APPROVED], reason=Claim.NO_SHOW)
+
+
+def expire_overdue():
+    """Ends every claim whose time ran out (KAN-14): a request with no answer for 2 days, or an Approved hold that
+    passed a day ago with no pickup. There's no scheduler on the server, so the views that show claims or counts call
+    this first; when nothing is overdue it's two indexed queries that match nothing."""
+    now = timezone.now()
+    end_claims(
+        Claim.objects.filter(status=Claim.WAITING, created_at__lt=now - ANSWER_WITHIN), Claim.ENDED, Claim.NO_ANSWER
+    )
+    end_claims(Claim.objects.filter(status=Claim.APPROVED, held_until__lt=now - GRACE), Claim.ENDED, Claim.HOLD_ENDED)
+
+
 def decline_claim(claim):
     """The giver says no (KAN-13): ends a Waiting request as Declined. An Approved claim can't be declined."""
     return end_claim(claim, Claim.DECLINED, only_from=[Claim.WAITING])
 
 
-def end_claim(claim, status, only_from=Claim.ACTIVE):
-    """Ends a claim that is in one of `only_from` as declined, canceled or ended, which puts its item back. Returns
-    False if the claim wasn't (for example it already ended, or two taps at once), True otherwise."""
-    if status not in ENDINGS:
-        raise ValueError(f"end_claim can't end a claim as {status!r}")
-    ended = Claim.objects.filter(pk=claim.pk, status__in=only_from).update(status=status)
+def end_claim(claim, status, only_from=Claim.ACTIVE, reason=""):
+    """Ends a claim that is in one of `only_from` as declined, canceled or ended (with a `reason`, see
+    Claim.REASONS), which puts its item back. The update only matches a claim that hasn't ended, so ending it twice
+    puts the item back once. Returns False if the claim wasn't in `only_from`, True otherwise. A picked-up claim
+    never goes back."""
+    ended = end_claims(Claim.objects.filter(pk=claim.pk, status__in=only_from), status, reason)
     if ended:
         claim.status = status
-        logger.info("claim ended claim_id=%s status=%s", claim.pk, status)
+        claim.end_reason = reason
     return bool(ended)
+
+
+def end_claims(claims, status, reason=""):
+    """end_claim for many claims at once, in one UPDATE that only touches active ones. Returns how many ended."""
+    if status not in ENDINGS:
+        raise ValueError(f"end_claim can't end a claim as {status!r}")
+    ids = list(claims.filter(status__in=Claim.ACTIVE).values_list("pk", flat=True))
+    ended = Claim.objects.filter(pk__in=ids, status__in=Claim.ACTIVE).update(status=status, end_reason=reason)
+    if ended:
+        logger.info("claims ended ids=%s status=%s reason=%s", ids, status, reason)
+    return ended

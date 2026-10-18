@@ -53,7 +53,8 @@ backend/
                      data/sample-data.json: made-up demo accounts and sample items (KAN-26, migration 0003);
                      demo.py refreshes their pickup dates (admin action)
   claims/            Claim model (Waiting, Approved, Declined, Canceled, Ended, Picked up); /api/claims/ (claim, My
-                     claims, cancel: KAN-12; approve, decline, picked up: KAN-13); actions.py holds every claim change
+                     claims, cancel: KAN-12; approve, decline, picked up: KAN-13; didn't come, expiry: KAN-14); actions.py
+                     holds every claim change
   api/               /api/health/ (public) and the Notes demo
   requirements.txt   what the VM installs
   requirements-dev.txt  + test tools (coverage); use this locally and in CI
@@ -158,7 +159,10 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   Take down sets `Item.taken_down_at` instead of deleting, so list and search items with `Item.objects.live()`.
 - **Claims change only through `claims/actions.py`.** `claim_item` locks the item so two families can't get the last
   one; `approve_claim`, `decline_claim` and `mark_picked_up` are the giver's answers; `end_claim` ends a claim as declined, canceled or
-  ended. A giver sees a family by first name only (`claims.giver.RequestSerializer`). "Left" is never stored: it's the number listed minus
+  ended (with `Claim.end_reason`). There is no scheduler: views that show claims or counts call
+  `actions.expire_overdue()` first, which ends requests unanswered for 2 days and Approved holds a day after they
+  pass. A hold lasts 3 days or to the end of the pickup day, whichever is later, and restarts when approved. A giver
+  sees a family by first name only (`claims.giver.RequestSerializer`). "Left" is never stored: it's the number listed minus
   Waiting, Approved and Picked-up claims (`Item.objects.with_counts()`), so ending a claim puts the item back.
 - **The address privacy rule lives only in `items/privacy.py`** (KAN-11). Anything that shows an item to someone
   other than its giver (search, item details, My claims, calendar files, messages) uses `PublicItemSerializer` or
