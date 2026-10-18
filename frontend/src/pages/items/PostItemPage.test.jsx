@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as api from "../../api/client.js";
 import { ApiError } from "../../api/client.js";
@@ -145,5 +145,59 @@ describe("PostItemPage", () => {
     fillStep1();
     expect(screen.getByRole("link", { name: "Organization profile" })).toHaveAttribute("href", ROUTES.orgProfile);
     expect(screen.getByRole("button", { name: "Post item" })).toBeDisabled();
+  });
+});
+
+describe("PostItemPage editing", () => {
+  const SAVED = {
+    id: 7, name: "Crib", category: "furniture", details: "Graco", quantity: 2, pickup_date: "2030-10-21",
+    pickup_start: "17:00:00", pickup_end: "19:00:00", general_area: "East Nashville",
+    exact_address: "12 Sample Ave, Nashville, TN 37206", where_to_go: "", what_to_bring: "",
+  };
+
+  function renderEdit(user = PERSON) {
+    vi.spyOn(auth, "useAuth").mockReturnValue({ user });
+    render(
+      <MemoryRouter initialEntries={[ROUTES.editItem(7)]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Routes>
+          <Route path={ROUTES.editItem()} element={<PostItemPage />} />
+          <Route path={ROUTES.give} element={<p>My items list</p>} />
+        </Routes>
+      </MemoryRouter>
+    );
+  }
+
+  it("fills in the saved answers, without photos, and saves changes", async () => {
+    vi.spyOn(api, "getMyItem").mockResolvedValue(SAVED);
+    const edit = vi.spyOn(api, "editItem").mockResolvedValue({ ...SAVED, quantity: 3 });
+    renderEdit();
+    expect(await screen.findByRole("heading", { name: "Edit item" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Item name")).toHaveValue("Crib");
+    expect(screen.queryByLabelText(/Photos/)).not.toBeInTheDocument();
+    type("How many?", "3");
+    click("button", "Next: pickup details");
+    expect(screen.getByLabelText("From")).toHaveValue("17:00");
+    expect(screen.getByLabelText("Exact address (private until you approve)")).toHaveValue(SAVED.exact_address);
+    click("button", "Save changes");
+    expect(await screen.findByText("My items list")).toBeInTheDocument();
+    expect(edit).toHaveBeenCalledWith("7", expect.objectContaining({ quantity: "3", good_condition: true }));
+  });
+
+  it("keeps what was typed when saving fails", async () => {
+    vi.spyOn(api, "getMyItem").mockResolvedValue(SAVED);
+    vi.spyOn(api, "editItem").mockRejectedValue(new Error("Failed to fetch"));
+    renderEdit();
+    await screen.findByRole("heading", { name: "Edit item" });
+    click("button", "Next: pickup details");
+    type("General area (shown to everyone)", "Downtown");
+    click("button", "Save changes");
+    expect(await screen.findByText("Your changes weren't saved. Failed to fetch")).toBeInTheDocument();
+    expect(screen.getByLabelText("General area (shown to everyone)")).toHaveValue("Downtown");
+  });
+
+  it("says when the item couldn't load", async () => {
+    vi.spyOn(api, "getMyItem").mockRejectedValue(new ApiError("Not found.", {}, 404));
+    renderEdit();
+    expect(await screen.findByText("This item couldn't load. Not found.")).toBeInTheDocument();
   });
 });

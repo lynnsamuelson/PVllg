@@ -11,6 +11,8 @@ from django.db import DatabaseError
 from django.utils import timezone
 from rest_framework.test import APIClient, APITestCase
 
+from items.models import Item
+
 from .models import Organization, Profile
 
 User = get_user_model()
@@ -513,6 +515,25 @@ class OrganizationProfileTests(APITestCase):
         self.assertEqual((org["about"], org["serves"], org["public_contact"]), ("", [], "+1 (615) 555-0100"))
         self.org.refresh_from_db()
         self.assertEqual(self.org.zip_code, "37208")
+
+    def test_items_follow_a_new_address(self):
+        Item.objects.create(
+            owner=self.user, name="Crib", category="furniture", details="x", quantity=1,
+            pickup_date="2030-01-01", pickup_start="10:00", pickup_end="11:00", general_area="East Nashville",
+            exact_address="old 37206", zip_code="37206",
+        )
+        with self.assertLogs("accounts.views", "INFO"):
+            self.save(pickup_address="9 Sample Ave, Nashville, TN 37208")
+        self.assertEqual(
+            Item.objects.values_list("exact_address", "zip_code").get(), ("9 Sample Ave, Nashville, TN 37208", "37208")
+        )
+
+    def test_failed_item_update_keeps_the_old_address(self):
+        with mock.patch("django.db.models.QuerySet.update", side_effect=DatabaseError("boom")), \
+                self.assertRaises(DatabaseError), self.assertLogs("django.request", "ERROR"):
+            self.save()
+        self.org.refresh_from_db()
+        self.assertEqual(self.org.pickup_address, "")
 
     def test_address_and_contact_required(self):
         self.assert_field_error("pickup_address", pickup_address="")

@@ -10,6 +10,7 @@ from .models import CATEGORIES, Item
 MAX_PHOTOS = 4
 MAX_PHOTO_BYTES = 5 * 1024 * 1024
 TICKS = "Check both boxes to post."
+NO_ORG_ADDRESS = "Add your public pickup address to your organization profile first."
 LOCAL_TZ = ZoneInfo("America/Chicago")  # the demo area is Middle Tennessee; the server runs in UTC
 
 
@@ -66,6 +67,8 @@ class ItemSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"pickup_end": ["End the window after it starts."]})
         org = self.context["organization"]
         if org:
+            if not address_zip(org.pickup_address):
+                raise serializers.ValidationError(NO_ORG_ADDRESS)
             attrs["exact_address"] = org.pickup_address
             attrs["zip_code"] = address_zip(org.pickup_address)
         else:
@@ -81,6 +84,26 @@ class ItemSerializer(serializers.ModelSerializer):
         attrs.pop("good_condition")
         attrs.pop("not_recalled")
         return attrs
+
+
+class OwnItemSerializer(ItemSerializer):
+    """An item as its giver sees it on My items and Edit (KAN-10): with the exact address and the counts.
+    Claims arrive in KAN-12; until then nothing is requested or claimed and every item is left."""
+
+    exact_address = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    left = serializers.IntegerField(source="quantity", read_only=True)
+    requested = serializers.SerializerMethodField()
+    claimed = serializers.SerializerMethodField()
+
+    class Meta(ItemSerializer.Meta):
+        # No photos: My items doesn't show them, and listing them costs a query per item.
+        fields = [*(f for f in ItemSerializer.Meta.fields if f != "photos"), "left", "requested", "claimed"]
+
+    def get_requested(self, item):
+        return 0
+
+    def get_claimed(self, item):
+        return 0
 
 
 def check_photos(files):

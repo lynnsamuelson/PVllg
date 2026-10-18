@@ -102,7 +102,7 @@ class PostItemTests(APITestCase):
     def test_org_needs_its_profile_address_first(self):
         resp = self.post(make_org(address=""), item())
         self.assertEqual(resp.status_code, 400)
-        self.assertIn("organization profile", resp.json()["detail"])
+        self.assertIn("organization profile", resp.json()["non_field_errors"][0])
 
     def test_org_address_without_zip_is_refused(self):
         self.assertEqual(self.post(make_org(address="123 Example St, Nashville"), item()).status_code, 400)
@@ -159,3 +159,76 @@ class PostItemTests(APITestCase):
                 self.assertRaises(DatabaseError), self.assertLogs("django.request", "ERROR"):
             self.post(user, {**item(), "photos": [SimpleUploadedFile("a.png", PNG)]}, "multipart")
         self.assertFalse(Item.objects.exists())
+
+
+class MyItemsTests(APITestCase):
+    def setUp(self):
+        self.user = make_person()
+        self.client.force_authenticate(self.user)
+        with self.assertLogs("items.views", "INFO"):
+            self.id = self.client.post("/api/items/", item(quantity=2), format="json").json()["id"]
+
+    def test_logged_out_is_401(self):
+        client = APIClient()
+        self.assertEqual(client.get("/api/items/mine/").status_code, 401)
+        self.assertEqual(client.delete(f"/api/items/mine/{self.id}/").status_code, 401)
+
+    def test_after_turning_give_off_can_still_see_and_take_down_but_not_edit(self):
+        self.user.profile.usage = "get"
+        self.user.profile.save()
+        url = f"/api/items/mine/{self.id}/"
+        self.assertEqual(len(self.client.get("/api/items/mine/").json()), 1)
+        self.assertEqual(self.client.put(url, item(), format="json").status_code, 403)
+        with self.assertLogs("items.views", "INFO"):
+            self.assertEqual(self.client.delete(url).status_code, 204)
+
+    def test_org_edit_without_profile_address_is_a_400(self):
+        org = make_org()
+        self.client.force_authenticate(org)
+        with self.assertLogs("items.views", "INFO"):
+            pk = self.client.post("/api/items/", item(), format="json").json()["id"]
+        org.organization.pickup_address = ""
+        org.organization.save()
+        resp = self.client.put(f"/api/items/mine/{pk}/", item(), format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("organization profile", resp.json()["non_field_errors"][0])
+
+    def test_lists_own_items_with_counts_and_address(self):
+        other = make_person("other@example.com")
+        self.client.force_authenticate(other)
+        with self.assertLogs("items.views", "INFO"):
+            self.client.post("/api/items/", item(name="Not mine"), format="json")
+        self.client.force_authenticate(self.user)
+        data = self.client.get("/api/items/mine/").json()
+        self.assertEqual([i["name"] for i in data], ["Baby clothes bundle, 0-3 mo"])
+        self.assertEqual((data[0]["left"], data[0]["requested"], data[0]["claimed"]), (2, 0, 0))
+        self.assertEqual(data[0]["exact_address"], "12 Sample Ave, Nashville, TN 37206")
+        self.assertNotIn("photos", data[0])
+
+    def test_cannot_see_or_change_someone_elses_item(self):
+        self.client.force_authenticate(make_person("other@example.com"))
+        url = f"/api/items/mine/{self.id}/"
+        self.assertEqual(self.client.get(url).status_code, 404)
+        self.assertEqual(self.client.put(url, item(), format="json").status_code, 404)
+        self.assertEqual(self.client.delete(url).status_code, 404)
+
+    def test_edit(self):
+        url = f"/api/items/mine/{self.id}/"
+        self.assertEqual(self.client.get(url).json()["quantity"], 2)
+        with self.assertLogs("items.views", "INFO"):
+            resp = self.client.put(url, item(quantity=5, details="Now 8 pieces", general_area="Downtown"), format="json")
+        self.assertEqual(resp.status_code, 200, resp.content)
+        saved = Item.objects.get(pk=self.id)
+        self.assertEqual((saved.quantity, saved.details, saved.general_area), (5, "Now 8 pieces", "Downtown"))
+
+    def test_edit_is_validated(self):
+        resp = self.client.put(f"/api/items/mine/{self.id}/", item(quantity=0), format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(Item.objects.get(pk=self.id).quantity, 2)
+
+    def test_take_down(self):
+        with self.assertLogs("items.views", "INFO"):
+            self.assertEqual(self.client.delete(f"/api/items/mine/{self.id}/").status_code, 204)
+        self.assertIsNotNone(Item.objects.get(pk=self.id).taken_down_at)
+        self.assertEqual(self.client.get("/api/items/mine/").json(), [])
+        self.assertEqual(self.client.get(f"/api/items/mine/{self.id}/").status_code, 404)

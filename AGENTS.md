@@ -44,7 +44,8 @@ backend/
   accounts/          signup/login/logout/me + CSRF; SessionAuthentication401
   resources/         Resource model, read-only API, admin, seed migration;
                      matching.py ranks resources for a profile (GET /api/resources/matches/, KAN-16)
-  items/             Item + ItemPhoto models; POST /api/items/ (Post an item, KAN-9), photos served by
+  items/             Item + ItemPhoto models; POST /api/items/ (Post an item, KAN-9), /api/items/mine/ (My items,
+                     edit, take down: KAN-10), photos served by
                      GET /api/items/photos/<id>/ (stored in the database, so the VM needs no media folder)
   api/               /api/health/ (public) and the Notes demo
   requirements.txt   what the VM installs
@@ -148,7 +149,8 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   (which must end with it) for search to measure distance from. Email goes through `django.core.mail` (`EMAIL_*` settings; the console without `EMAIL_HOST`).
 - **Givers** are a Verified organization or a person with Give support or Both on (`user.gives`). Only they can post
   items (`items.views.IsGiver`; `<RequireGiver>` on the frontend). An item's exact address is private and stored apart
-  from its public general area; an organization's items use its profile address.
+  from its public general area; an organization's items use its profile address, and follow it when it changes.
+  Take down sets `Item.taken_down_at` instead of deleting, so list and search items with `Item.objects.live()`.
 - **More than one write per request goes in `transaction.atomic()`** (for example a `User` plus its `Profile`), so a
   failure halfway can't leave a half-made record. Test it: make the second write fail and assert nothing was saved.
 - **Migrations run against the shared production database on deploy.** Avoid destructive changes (dropping or

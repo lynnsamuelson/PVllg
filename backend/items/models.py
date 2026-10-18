@@ -11,6 +11,12 @@ CATEGORIES = {
 }
 
 
+class ItemQuerySet(models.QuerySet):
+    def live(self):
+        """Items families may find: not taken down (KAN-10). Use this in every list or search of items."""
+        return self.filter(taken_down_at__isnull=True)
+
+
 class Item(models.Model):
     """Something a giver posted (KAN-9). The exact address is private; KAN-11 decides who may see it."""
 
@@ -28,6 +34,9 @@ class Item(models.Model):
     where_to_go = models.CharField(max_length=200, blank=True)
     what_to_bring = models.CharField(max_length=500, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    taken_down_at = models.DateTimeField(null=True, blank=True)  # set by Take down (KAN-10); hidden from search
+
+    objects = ItemQuerySet.as_manager()
 
     class Meta:
         ordering = ["-created_at"]
