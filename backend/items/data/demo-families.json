@@ -1,0 +1,140 @@
+{
+  "_readme": [
+    "PVill demo families, part 2. Adds to sample-data.json (KAN-26); nothing here changes or removes what it loaded.",
+    "EVERYTHING in this file is made up. No real person, organization, or address. Emails use .example.",
+    "Givers and items named by id (casey, sample-community-closet, item-02...) are the ones in sample-data.json.",
+    "Each family's story is told by the profile answers the app asks for. The app stores no story text.",
+    "Claims put each family's My claims in a set state so every claim screen has something to show on first open.",
+    "createdDaysAgo dates a claim back. Active claims (approved, waiting) are re-timed by Refresh demo pickup dates.",
+    "Photos are simple drawings in demo-photos/. They show no house numbers, street signs or people."
+  ],
+  "families": [
+    {
+      "id": "jade",
+      "firstName": "Jade",
+      "demoEmail": "jade@demo.example",
+      "story": "19 and aging out of foster care, with a newborn. Needs the basics and somewhere stable to live.",
+      "zip": "37208",
+      "journey": "Parenting",
+      "childAgeGroups": ["Under 3 mo"],
+      "roles": ["Parent"],
+      "needs": ["Diapers and Everyday Essentials", "Housing and Family Stability", "Parenting and Newborn Support"],
+      "howToUse": "Get support",
+      "tryThis": "Log in as Jade. My claims shows an Approved hold on Size 3 diapers with the pickup place and Add to calendar. Past shows a Picked up bottle kit. Home shows housing help."
+    },
+    {
+      "id": "pat",
+      "firstName": "Pat",
+      "demoEmail": "pat@demo.example",
+      "story": "A grandparent raising two grandchildren, a toddler and a preschooler.",
+      "zip": "37216",
+      "journey": "Parenting",
+      "childAgeGroups": ["1-2 yrs", "3-5 yrs"],
+      "roles": ["Kinship caregiver", "Guardian"],
+      "needs": ["Diapers and Everyday Essentials", "Food and Feeding Support", "Parenting and Newborn Support"],
+      "howToUse": "Get support",
+      "tryThis": "Log in as Pat. My claims shows an Approved hold on the pack and play. Past shows a clothing bundle whose hold ended, so it went back on the list. Kinship resources rank high."
+    },
+    {
+      "id": "andre",
+      "firstName": "Andre",
+      "demoEmail": "andre@demo.example",
+      "story": "A single dad with a baby, learning feeding and the first year on his own.",
+      "zip": "37209",
+      "journey": "Parenting",
+      "childAgeGroups": ["3-12 mo"],
+      "roles": ["Parent"],
+      "needs": ["Food and Feeding Support", "Parenting and Newborn Support"],
+      "howToUse": "Get support",
+      "tryThis": "Log in as Andre. My claims shows a Waiting request for Morgan's baby bath tub, with no address yet. Log in as Morgan to approve it, then back as Andre to see the place."
+    },
+    {
+      "id": "sam",
+      "firstName": "Sam",
+      "demoEmail": "sam@demo.example",
+      "story": "A two-parent family with a toddler and a second baby on the way. They get help and give back.",
+      "zip": "37215",
+      "journey": "Both",
+      "arrivalMonthOffset": 4,
+      "childAgeGroups": ["1-2 yrs"],
+      "roles": ["Parent"],
+      "needs": ["Parenting and Newborn Support", "Diapers and Everyday Essentials"],
+      "howToUse": "Both",
+      "tryThis": "Log in as Sam. My claims shows an Approved claim on Casey's baby carrier, with Casey's exact pickup place because Casey approved it. Sam can also post items."
+    }
+  ],
+  "items": [
+    {
+      "id": "item-11",
+      "giver": "casey",
+      "giverType": "person",
+      "name": "Soft baby carrier",
+      "category": "Other approved item",
+      "details": "Front carrier for babies 8 to 25 pounds. Washed. All buckles work. Checked for recalls.",
+      "quantity": 1,
+      "pickupDayOffset": 3,
+      "pickupWindow": "5:00 pm - 7:00 pm",
+      "generalArea": "East Nashville",
+      "exactAddress": "400 Fictional St, Nashville, TN 37207",
+      "whereToGo": "Front porch. Look for the blue bin.",
+      "whatToBring": "Please arrive in the time window.",
+      "photo": "baby-carrier.png"
+    },
+    {
+      "id": "item-12",
+      "giver": "morgan",
+      "giverType": "person",
+      "name": "Board books, set of 6",
+      "category": "Other approved item",
+      "details": "Sturdy board books for babies and toddlers. Wiped clean. No torn pages.",
+      "quantity": 1,
+      "pickupDayOffset": 4,
+      "pickupWindow": "4:00 pm - 6:00 pm",
+      "generalArea": "Donelson",
+      "exactAddress": "500 Imaginary Rd, Nashville, TN 37214",
+      "whereToGo": "Driveway table by the mailbox.",
+      "whatToBring": "Nothing needed.",
+      "photo": "board-books.png"
+    },
+    {
+      "id": "item-13",
+      "giver": "example-family-pantry",
+      "name": "Toddler winter coats, 2T-3T",
+      "category": "Clothes and gear",
+      "details": "Warm hooded coats. Washed. Zippers work.",
+      "quantity": 6,
+      "pickupDayOffset": 2,
+      "pickupWindow": "1:00 pm - 5:00 pm",
+      "generalArea": "South Nashville",
+      "whereToGo": "Side door by the loading dock.",
+      "whatToBring": "Bring a bag.",
+      "photo": "toddler-coat.png"
+    },
+    {
+      "id": "item-14",
+      "giver": "demo-baby-basics-hub",
+      "name": "Bottle drying rack",
+      "category": "Feeding supplies",
+      "details": "Holds 8 bottles and parts. New in box.",
+      "quantity": 5,
+      "pickupDayOffset": 3,
+      "pickupWindow": "9:00 am - 12:00 pm",
+      "generalArea": "Near Nolensville Pike",
+      "whereToGo": "Main entrance. Ask the front table.",
+      "whatToBring": "Nothing needed.",
+      "photo": "bottle-drying-rack.png"
+    }
+  ],
+  "photosForExistingItems": [
+    {"giver": "morgan", "name": "Baby bath tub", "photo": "baby-bath-tub.png"}
+  ],
+  "claims": [
+    {"family": "jade", "giver": "example-family-pantry", "item": "Size 3 diapers", "status": "approved"},
+    {"family": "jade", "giver": "demo-baby-basics-hub", "item": "Bottle starter kit", "status": "picked_up", "createdDaysAgo": 8},
+    {"family": "pat", "giver": "example-family-pantry", "item": "Pack and play", "status": "approved"},
+    {"family": "pat", "giver": "example-family-pantry", "item": "Infant clothing bundle, 0-3 mo", "status": "ended", "endReason": "hold_ended", "createdDaysAgo": 6},
+    {"family": "andre", "giver": "morgan", "item": "Baby bath tub", "status": "waiting"},
+    {"family": "andre", "giver": "demo-baby-basics-hub", "item": "Umbrella stroller", "status": "canceled", "createdDaysAgo": 3},
+    {"family": "sam", "giver": "casey", "item": "Soft baby carrier", "status": "approved"}
+  ]
+}
