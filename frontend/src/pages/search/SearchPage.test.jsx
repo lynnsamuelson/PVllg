@@ -9,11 +9,11 @@ import SearchPage from "./SearchPage.jsx";
 const PROFILE = { zip: "37206", stage: "parenting", ages: ["3_12mo"], roles: [], needs: ["essentials"] };
 const CLOSET_DIAPERS = {
   id: 1, name: "Size 1 diapers", giver: "Sample Community Closet", from_organization: true, demo: true,
-  distance_miles: 1, quantity: 12,
+  distance_miles: 1, quantity: 12, left: 12,
 };
 const CASEY_BUNDLE = {
   id: 2, name: "Baby clothes bundle", giver: "A parent nearby", from_organization: false, demo: false, distance_miles: 4,
-  quantity: 1,
+  quantity: 1, left: 1,
 };
 
 function Where() {

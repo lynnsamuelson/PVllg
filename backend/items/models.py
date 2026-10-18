@@ -3,6 +3,10 @@ from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Count, F, IntegerField, Q
+from django.db.models.functions import Cast
+
+from claims.models import Claim
 
 LOCAL_TZ = ZoneInfo("America/Chicago")  # the demo area is Middle Tennessee; the server runs in UTC
 
@@ -25,10 +29,29 @@ class ItemQuerySet(models.QuerySet):
         """Items families may find: not taken down (KAN-10). Use this in every list or search of items."""
         return self.filter(taken_down_at__isnull=True)
 
+    def with_counts(self):
+        """Adds `requested` (Waiting claims), `claimed` (Approved), `picked_up` and `left`: the number listed minus
+        every claim that holds one. Canceled, declined and ended claims put theirs back (KAN-12)."""
+        def claims(statuses):
+            return Count("claims", filter=Q(claims__status__in=statuses))
+
+        holding = [s for s in Claim.HOLDING if s not in (Claim.WAITING, Claim.APPROVED)]
+        # quantity is unsigned on MySQL, which refuses a subtraction that goes below zero; cast it to signed first.
+        return self.annotate(
+            requested=claims([Claim.WAITING]), claimed=claims([Claim.APPROVED]), picked_up=claims(holding)
+        ).annotate(
+            left=Cast("quantity", IntegerField()) - F("requested") - F("claimed") - F("picked_up")
+        )
+
     def public(self):
-        """live() with what the privacy rule reads about the giver, so lists don't query per item."""
+        """live() with counts and what the privacy rule reads about the giver, so lists don't query per item."""
         photo_ids = models.Prefetch("photos", queryset=ItemPhoto.objects.only("pk", "item_id"))
-        return self.live().select_related("owner__profile", "owner__organization").prefetch_related(photo_ids)
+        return (
+            self.live()
+            .with_counts()
+            .select_related("owner__profile", "owner__organization")
+            .prefetch_related(photo_ids)
+        )
 
 
 class Item(models.Model):

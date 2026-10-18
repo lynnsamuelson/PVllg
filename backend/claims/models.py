@@ -12,6 +12,8 @@ class Claim(models.Model):
     CANCELED = "canceled"
     ENDED = "ended"  # expired or the family didn't come (KAN-14)
     PICKED_UP = "picked_up"
+    ACTIVE = [WAITING, APPROVED]  # current claims (My claims: Active)
+    HOLDING = [WAITING, APPROVED, PICKED_UP]  # claims that use up one of the item; the others put it back
     STATUSES = [
         (WAITING, "Waiting"),
         (APPROVED, "Approved"),
@@ -25,6 +27,7 @@ class Claim(models.Model):
     claimant = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="claims")
     status = models.CharField(max_length=10, choices=STATUSES, default=WAITING)
     created_at = models.DateTimeField(auto_now_add=True)
+    held_until = models.DateTimeField(null=True, blank=True)  # end of the 3-day hold (KAN-12; the PO may change it)
 
     class Meta:
         ordering = ["-created_at"]

@@ -97,19 +97,23 @@ class PublicItemSerializer(serializers.ModelSerializer):
     photos = serializers.SerializerMethodField()
     available = serializers.SerializerMethodField()
     mine = serializers.SerializerMethodField()
+    left = serializers.IntegerField(read_only=True)  # from Item.objects.public()
 
     class Meta:
         model = Item
         fields = [
-            "id", "name", "category", "details", "quantity", "photos", "pickup_date", "pickup_start", "pickup_end",
+            "id", "name", "category", "details", "quantity", "left", "photos", "pickup_date", "pickup_start",
+            "pickup_end",
             "general_area", "what_to_bring", "giver", "from_organization", "demo", "distance_miles", "exact_address",
             "where_to_go", "private_note", "available", "mine",
         ]
 
     def to_representation(self, item):
         user = self.context["request"].user
-        if not hasattr(self, "_approved"):  # one claims query for a whole list
-            self._approved = privacy.approved_item_ids(user)
+        if not hasattr(self, "_approved"):  # one claims query for a whole list, or the caller's
+            self._approved = self.context.get("approved_item_ids")
+            if self._approved is None:
+                self._approved = privacy.approved_item_ids(user)
         self._visible = privacy.can_see_exact_address(user, item, approved=self._approved)
         return super().to_representation(item)
 
@@ -138,7 +142,7 @@ class PublicItemSerializer(serializers.ModelSerializer):
 
     def get_available(self, item):
         """Can it still be claimed: some left and its pickup day hasn't passed."""
-        return item.quantity > 0 and item.pickup_date >= local_today()
+        return item.left > 0 and item.pickup_date >= local_today()
 
     def get_mine(self, item):
         return item.owner_id == self.context["request"].user.pk
@@ -164,23 +168,23 @@ class ItemSearchSerializer(serializers.Serializer):
 
 
 class OwnItemSerializer(ItemSerializer):
-    """An item as its giver sees it on My items and Edit (KAN-10): with the exact address and the counts.
-    Claims arrive in KAN-12; until then nothing is requested or claimed and every item is left."""
+    """An item as its giver sees it on My items and Edit (KAN-10): with the exact address and the counts from
+    Item.objects.with_counts()."""
 
     exact_address = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    left = serializers.IntegerField(source="quantity", read_only=True)
-    requested = serializers.SerializerMethodField()
-    claimed = serializers.SerializerMethodField()
+    left = serializers.IntegerField(read_only=True)
+    requested = serializers.IntegerField(read_only=True)
+    claimed = serializers.IntegerField(read_only=True)
 
     class Meta(ItemSerializer.Meta):
         # No photos: My items doesn't show them, and listing them costs a query per item.
         fields = [*(f for f in ItemSerializer.Meta.fields if f != "photos"), "left", "requested", "claimed"]
 
-    def get_requested(self, item):
-        return 0
-
-    def get_claimed(self, item):
-        return 0
+    def validate_quantity(self, value):
+        held = self.instance and self.instance.requested + self.instance.claimed + self.instance.picked_up
+        if held and value < held:
+            raise serializers.ValidationError(f"{held} are already claimed or requested, so list at least {held}.")
+        return value
 
 
 def check_photos(files):

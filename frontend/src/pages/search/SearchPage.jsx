@@ -45,7 +45,7 @@ function ItemCard({ item }) {
           )}
         </p>
         <p className="result-card-line">
-          {about(item.distance_miles)} · {item.quantity} left
+          {about(item.distance_miles)} · {item.left} left
         </p>
       </Link>
     </li>

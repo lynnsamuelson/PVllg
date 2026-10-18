@@ -683,3 +683,24 @@ button.text-link {
 .text-link.centered {
   align-self: center;
 }
+
+/* My claims (Mock Up 15). An Approved claim looks like a selected card: sage tint, green outline. */
+.claim-card {
+  background: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+.claim-card.approved {
+  background: var(--color-sage-tint);
+  border: 2px solid var(--color-green);
+}
+.claim-card h2 {
+  font-size: var(--text-card-title);
+  margin: 0;
+}
+.claim-card p {
+  color: var(--color-plum-muted);
+  margin: 0;
+}

@@ -11,6 +11,9 @@ import {
   verifyOrgCode,
   getResourceMatches,
   postItem,
+  claimItem,
+  listClaims,
+  cancelClaim,
   searchItems,
   editItem,
   takeDownItem,
@@ -62,6 +65,21 @@ describe("api client", () => {
     vi.stubGlobal("fetch", fetch);
     await searchItems({ q: "diapers", category: "", radius: "25" });
     expect(fetch.mock.calls[0][0]).toBe("/api/items/search/?q=diapers&radius=25");
+  });
+
+  it("claims, lists and cancels claims", async () => {
+    document.cookie = "csrftoken=abc123";
+    const fetch = vi.fn(async () => jsonResponse(200, []));
+    vi.stubGlobal("fetch", fetch);
+    await claimItem(5);
+    expect(fetch.mock.calls[0][0]).toBe("/api/claims/");
+    expect(fetch.mock.calls[0][1].body).toBe('{"item":5}');
+    await listClaims("past");
+    expect(fetch.mock.calls[1][0]).toBe("/api/claims/?tab=past");
+    await listClaims("active");
+    expect(fetch.mock.calls[2][0]).toBe("/api/claims/");
+    await cancelClaim(5);
+    expect(fetch.mock.calls[3][0]).toBe("/api/claims/5/cancel/");
   });
 
   it("edits an item as JSON and takes one down", async () => {
