@@ -5,13 +5,15 @@ import * as auth from "../context/AuthContext.jsx";
 import { ROUTES } from "../routes.js";
 import RequireVerifiedOrg from "./RequireVerifiedOrg.jsx";
 
-function renderAs(user, props = {}) {
+const NOTES = { title: "Organization profile", pendingNote: "Confirm your email first.", othersNote: "Only verified organizations." };
+
+function renderAs(user, props = NOTES) {
   vi.spyOn(auth, "useAuth").mockReturnValue({ user });
   render(
-    <MemoryRouter initialEntries={[ROUTES.postItem]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={[ROUTES.orgProfile]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         <Route element={<RequireVerifiedOrg {...props} />}>
-          <Route path={ROUTES.postItem} element={<p>Post form</p>} />
+          <Route path={ROUTES.orgProfile} element={<p>Profile form</p>} />
         </Route>
       </Routes>
     </MemoryRouter>
@@ -23,13 +25,14 @@ const org = (organization) => ({ account_type: "organization", organization });
 describe("RequireVerifiedOrg", () => {
   it("lets a verified organization through", () => {
     renderAs(org({ status: "verified" }));
-    expect(screen.getByText("Post form")).toBeInTheDocument();
+    expect(screen.getByText("Profile form")).toBeInTheDocument();
   });
 
-  it("tells a pending organization why it can't post and links to the code screen", () => {
+  it("tells a pending organization why and links to the code screen", () => {
     renderAs(org({ status: "pending" }));
-    expect(screen.queryByText("Post form")).not.toBeInTheDocument();
-    expect(screen.getByText(/once your organization's email is confirmed/)).toBeInTheDocument();
+    expect(screen.queryByText("Profile form")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Organization profile" })).toBeInTheDocument();
+    expect(screen.getByText("Confirm your email first.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Confirm your email" })).toHaveAttribute("href", ROUTES.orgVerify);
   });
 
@@ -38,15 +41,9 @@ describe("RequireVerifiedOrg", () => {
     expect(screen.getByRole("link", { name: "Confirm your email" })).toHaveAttribute("href", ROUTES.orgSignup);
   });
 
-  it("takes a title and notes for other screens", () => {
-    renderAs(org({ status: "pending" }), { title: "Organization profile", pendingNote: "Confirm first." });
-    expect(screen.getByRole("heading", { name: "Organization profile" })).toBeInTheDocument();
-    expect(screen.getByText("Confirm first.")).toBeInTheDocument();
-  });
-
   it("keeps people out", () => {
     renderAs({ account_type: "person", organization: null });
-    expect(screen.getByText("Only verified organizations can post here.")).toBeInTheDocument();
+    expect(screen.getByText("Only verified organizations.")).toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 });

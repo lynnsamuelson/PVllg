@@ -202,7 +202,8 @@ a {
   font-size: var(--text-label);
 }
 .field input,
-.field textarea {
+.field textarea,
+.field select {
   background: var(--color-white);
   border: 1px solid var(--color-rose);
   border-radius: var(--radius-button);
@@ -219,7 +220,8 @@ a {
 }
 input,
 button,
-textarea {
+textarea,
+select {
   font: inherit;
   padding: 0.4rem 0.6rem;
 }
@@ -283,6 +285,47 @@ textarea {
 }
 .ok { color: #1a7f37; }
 .bad { color: #cf222e; }
+
+/* "← Back" and the screen title on one line (Mock Ups 19-20). */
+.back-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.back-header .back-link {
+  margin-bottom: 0;
+}
+.back-header h1 {
+  margin: 8px 0 16px;
+}
+
+/* "+ Add photos" box that opens the file picker; the real input is hidden but still focusable. */
+.photo-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  cursor: pointer;
+}
+.photo-picker-box {
+  background: var(--color-white);
+  border: 1px solid var(--color-rose);
+  border-radius: var(--radius-button);
+  color: var(--color-plum-muted);
+  padding: 10px 12px;
+}
+.photo-picker input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.photo-picker:focus-within .photo-picker-box {
+  outline: 2px solid var(--color-green);
+}
+.photo-list {
+  margin: 0;
+  padding-left: 1rem;
+}
 
 /* Small leaf mark and title at the top left (Mock Ups 9, 10, 21). */
 .app-header {

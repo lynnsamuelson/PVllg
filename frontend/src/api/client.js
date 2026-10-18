@@ -30,7 +30,9 @@ function toApiError(data, fallback, status) {
 
 async function request(path, options = {}) {
   const method = (options.method || "GET").toUpperCase();
-  const headers = { "Content-Type": "application/json", ...options.headers };
+  // FormData (photo uploads) sets its own multipart Content-Type.
+  const json = !(options.body instanceof FormData);
+  const headers = { ...(json && { "Content-Type": "application/json" }), ...options.headers };
   if (method !== "GET") {
     if (!getCookie("csrftoken")) await fetch("/api/auth/csrf/", { credentials: "same-origin" });
     headers["X-CSRFToken"] = getCookie("csrftoken");
@@ -62,6 +64,14 @@ export const resendOrgCode = () => post("/auth/org/resend/").then((d) => d.user)
 export const verifyOrgCode = (code) => post("/auth/org/verify/", { code }).then((d) => d.user);
 // Organization profile (KAN-8), Verified only. profile = { about, serves[], pickup_address, public_contact }.
 export const saveOrgProfile = (profile) => post("/auth/org/profile/", profile).then((d) => d.user);
+
+// Post an item (KAN-9). fields = the form's answers; photos = up to 4 image Files. Returns the saved item.
+export function postItem(fields, photos = []) {
+  const body = new FormData();
+  for (const [key, value] of Object.entries(fields)) body.append(key, value);
+  for (const photo of photos) body.append("photos", photo);
+  return request("/items/", { method: "POST", body });
+}
 
 // Resources (login required)
 export const listResources = () => request("/resources/");

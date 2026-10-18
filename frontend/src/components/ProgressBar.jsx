@@ -1,6 +1,6 @@
-// "STEP n OF total" over a green bar on a line-color track.
-export default function ProgressBar({ step, total }) {
-  const label = `Step ${step} of ${total}`;
+// "STEP n OF total" (plus "· title" when given) over a green bar on a line-color track.
+export default function ProgressBar({ step, total, title }) {
+  const label = `Step ${step} of ${total}${title ? ` · ${title}` : ""}`;
   return (
     <div className="progress">
       <p className="progress-label">{label}</p>

@@ -16,6 +16,13 @@ describe("TextField", () => {
     expect(screen.getByLabelText("Email")).toHaveAttribute("aria-invalid", "true");
   });
 
+  it("is a dropdown with a blank first choice when given options", () => {
+    render(<TextField label="Category" placeholder="Pick one" options={[{ value: "clothes", label: "Clothes & gear" }]} />);
+    const select = screen.getByLabelText("Category");
+    expect(select.tagName).toBe("SELECT");
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Pick one", "Clothes & gear"]);
+  });
+
   it("is a text box when multiline", () => {
     render(<TextField label="About us" multiline />);
     expect(screen.getByLabelText("About us").tagName).toBe("TEXTAREA");

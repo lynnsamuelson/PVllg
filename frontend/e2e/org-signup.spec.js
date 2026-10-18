@@ -44,7 +44,7 @@ test("an organization confirms its domain email and becomes Verified", async ({ 
   await expect(page.getByText("Pending", { exact: true })).toBeVisible();
 
   // A pending organization can't reach Post an item.
-  await page.goto("/org/items/new");
+  await page.goto("/items/new");
   await expect(page.getByText(/once your organization's email is confirmed/)).toBeVisible();
   await page.getByRole("link", { name: "Confirm your email" }).click();
 
@@ -59,7 +59,7 @@ test("an organization confirms its domain email and becomes Verified", async ({ 
   await expect(page.getByText("Verified", { exact: true })).toBeVisible();
   await expect(page.getByText("Pending", { exact: true })).toHaveCount(0);
 
-  await page.goto("/org/items/new");
+  await page.goto("/items/new");
   await expect(page.getByRole("heading", { name: "Post an item" })).toBeVisible();
   await expect(page.getByText(/once your organization's email is confirmed/)).toHaveCount(0);
 });

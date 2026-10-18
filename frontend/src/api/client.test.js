@@ -10,6 +10,7 @@ import {
   startOrgVerification,
   verifyOrgCode,
   getResourceMatches,
+  postItem,
 } from "./client.js";
 
 function jsonResponse(status, body) {
@@ -35,6 +36,22 @@ describe("api client", () => {
       needs: "essentials,feeding",
       category: "essentials",
     });
+  });
+
+  it("posts an item as multipart form data with its photos", async () => {
+    document.cookie = "csrftoken=abc123";
+    const fetch = vi.fn(async () => jsonResponse(201, { id: 1 }));
+    vi.stubGlobal("fetch", fetch);
+    const photo = new File(["x"], "a.png", { type: "image/png" });
+
+    await postItem({ name: "Crib", good_condition: true }, [photo]);
+
+    const [url, options] = fetch.mock.calls[0];
+    expect(url).toBe("/api/items/");
+    expect(options.headers["Content-Type"]).toBeUndefined();
+    expect(options.body.get("name")).toBe("Crib");
+    expect(options.body.get("good_condition")).toBe("true");
+    expect(options.body.getAll("photos")).toHaveLength(1);
   });
 
   it("fetches a CSRF cookie before the first write and sends it as X-CSRFToken", async () => {
