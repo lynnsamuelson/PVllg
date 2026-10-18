@@ -7,6 +7,7 @@ test("a person with Give support posts an item in two steps", async ({ page }) =
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Give" }).click();
   await page.getByRole("link", { name: "Post an item" }).click();
   await expect(page.getByText("Step 1 of 2")).toBeVisible();
+  await expect(page.getByText("Not allowed: car seats, breastmilk, medicine, and other health-sensitive items.")).toBeVisible();
 
   await page.getByRole("button", { name: "Next: pickup details" }).click();
   await expect(page.getByText("Add the item name.")).toBeVisible();

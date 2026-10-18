@@ -307,7 +307,7 @@ function ItemForm({ itemId }) {
               />
               <FieldError messages={errors.boxes || errors.good_condition || errors.not_recalled} />
             </div>
-            <NoteBox>Not allowed: breastmilk, medicine, and other health-sensitive items.</NoteBox>
+            <NoteBox>Not allowed: car seats, breastmilk, medicine, and other health-sensitive items.</NoteBox>
             {saveError && <p className="form-error" role="alert">{saveError}</p>}
             <Button type="submit">Next: pickup details</Button>
           </>

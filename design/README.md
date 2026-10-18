@@ -26,7 +26,7 @@ The "Ticket N" chips printed under each screen in the PDF use an older numbering
 | 16 | Add to calendar | KAN-19 | Both reminders checked by default. No exact address for a person's item before approval. |
 | 17 | Report a pickup problem | KAN-20 | Fixed reasons, no chat. 200-character note. "In an emergency, call 911." |
 | 18 | After a pickup report | KAN-20 | Giver sees only the reason, never the family's name or note. |
-| 19 | Post an item: about the item | KAN-9 | Both condition checkboxes required. No breastmilk, medicine or health-sensitive items. |
+| 19 | Post an item: about the item | KAN-9 | Both condition checkboxes required. No car seats, breastmilk, medicine or health-sensitive items. |
 | 20 | Post an item: pickup details | KAN-9, KAN-11 | General area public; exact address private until approval. Org address prefilled. |
 | 21 | My items and claim requests | KAN-10, KAN-13, KAN-14, KAN-20 | First name only. Counts never below zero. |
 | 22 | Resource details | KAN-18, KAN-21 | "May be a good fit", never "you qualify". Source and last-checked date always shown. |
