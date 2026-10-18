@@ -28,3 +28,26 @@ test("an unknown resource says it wasn't found", async ({ page }) => {
   await page.goto("/resources/99999");
   await expect(page.getByRole("heading", { level: 1, name: "Resource not found" })).toBeVisible();
 });
+
+// KAN-21, Mock Up 23: a demo only. Nothing is sent and nothing is collected.
+test("Reach out shows the demo sheet and sends nothing", async ({ page }) => {
+  await signupPerson(page, { zip: "37206", usage: "Get support" });
+  await page.goto("/search?tab=resources&radius=50");
+  await result(page, "Nashville Diaper Connection").click();
+  await expect(page.getByRole("heading", { level: 1, name: "Nashville Diaper Connection" })).toBeVisible();
+
+  const sent = [];
+  page.on("request", (r) => r.method() !== "GET" && sent.push(r.url()));
+  await page.getByRole("button", { name: /Reach out/ }).click();
+  const sheet = page.getByRole("dialog", { name: "No request will be sent" });
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByText("Demo only", { exact: true })).toBeVisible();
+  await expect(sheet).toContainText("no message is sent and no personal details are collected.");
+  await expect(sheet.getByRole("textbox")).toHaveCount(0);
+  await expect(page.getByText(/Request sent/i)).toHaveCount(0);
+
+  await sheet.getByRole("button", { name: "Back to details" }).click();
+  await expect(sheet).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1, name: "Nashville Diaper Connection" })).toBeVisible();
+  expect(sent).toEqual([]);
+});
