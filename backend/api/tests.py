@@ -15,14 +15,16 @@ class LockdownTests(APITestCase):
     """Everything except the explicitly public endpoints must require login."""
 
     PUBLIC = ["/api/health/", "/api/auth/csrf/", "/api/auth/me/"]
+
     PROTECTED = [
         "/api/notes/",
         "/api/resources/",
         "/api/auth/org/",
         "/api/auth/org/resend/",
         "/api/auth/org/verify/",
+        "/api/resources/matches/",
     ]
-
+    
     def test_public_endpoints_open(self):
         for url in self.PUBLIC:
             self.assertEqual(self.client.get(url).status_code, 200, url)

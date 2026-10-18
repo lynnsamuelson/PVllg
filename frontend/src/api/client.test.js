@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+
 import {
   ApiError,
   getCurrentUser,
@@ -7,6 +8,7 @@ import {
   setUnauthorizedHandler,
   startOrgVerification,
   verifyOrgCode,
+  getResourceMatches,
 } from "./client.js";
 
 function jsonResponse(status, body) {
@@ -14,6 +16,26 @@ function jsonResponse(status, body) {
 }
 
 describe("api client", () => {
+  it("sends profile answers and search options as query params for resource matches", async () => {
+    const fetch = vi.fn(async () => jsonResponse(200, []));
+    vi.stubGlobal("fetch", fetch);
+
+    await getResourceMatches(
+      { zip: "37206", stage: "parenting", ages: ["3_12mo"], roles: [], needs: ["essentials", "feeding"] },
+      { category: "essentials", q: "" },
+    );
+
+    const url = new URL(fetch.mock.calls[0][0], "http://x");
+    expect(url.pathname).toBe("/api/resources/matches/");
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      zip: "37206",
+      stage: "parenting",
+      ages: "3_12mo",
+      needs: "essentials,feeding",
+      category: "essentials",
+    });
+  });
+
   it("fetches a CSRF cookie before the first write and sends it as X-CSRFToken", async () => {
     const fetch = vi.fn(async (url) => {
       if (url === "/api/auth/csrf/") document.cookie = "csrftoken=abc123";
