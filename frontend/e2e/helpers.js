@@ -14,6 +14,9 @@ export function isoDate(days) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+// Today in Nashville (YYYY-MM-DD), the day the backend checks pickup dates against.
+export const nashvilleToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+
 async function signup(page, { name, email, type }) {
   await page.goto(`/signup?type=${type}`);
   await page.getByLabel("Name", { exact: true }).fill(name);
@@ -80,7 +83,7 @@ export async function saveOrgProfile(page, address = "100 Sample Way, Nashville,
 export const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAwS2OUAAAAABJRU5ErkJggg==", "base64");
 
 // Posts an item through both steps and checks the Posted screen. Organizations have no exact address.
-export async function postItem(page, { name, quantity = 1, area = "East Nashville", address = "12 Sample Ave, Nashville, TN 37206", photo = false }) {
+export async function postItem(page, { name, quantity = 1, area = "East Nashville", address = "12 Sample Ave, Nashville, TN 37206", photo = false, date = isoDate(1) }) {
   await page.goto("/items/new");
   await page.getByLabel("Item name").fill(name);
   await page.getByLabel("Category").selectOption({ label: "Furniture" });
@@ -90,7 +93,7 @@ export async function postItem(page, { name, quantity = 1, area = "East Nashvill
   await page.getByRole("checkbox", { name: "This item is in good condition" }).check();
   await page.getByRole("checkbox", { name: "I checked that it is not recalled" }).check();
   await page.getByRole("button", { name: "Next: pickup details" }).click();
-  await page.getByLabel("Date", { exact: true }).fill(isoDate(1));
+  await page.getByLabel("Date", { exact: true }).fill(date);
   await page.getByLabel("From", { exact: true }).fill("17:00");
   await page.getByLabel("To", { exact: true }).fill("19:00");
   await page.getByLabel("General area (shown to everyone)").fill(area);
@@ -106,4 +109,11 @@ export async function myItemId(page, listPath, name) {
   const card = page.getByRole("listitem").filter({ has: page.getByRole("heading", { name }) });
   const href = await card.getByRole("link", { name: "Edit" }).getAttribute("href");
   return href.match(/\/items\/(\d+)\/edit/)[1];
+}
+
+// Claims an item from its details page and lands on My claims.
+export async function claimItem(page, id) {
+  await page.goto(`/items/${id}`);
+  await page.getByRole("button", { name: /^(Claim one \(held for 3 days\)|Request to claim)$/ }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "My claims" })).toBeVisible();
 }
