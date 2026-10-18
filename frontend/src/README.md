@@ -25,7 +25,7 @@ src/
 │   ├── TextField.jsx     Label + input + hint + API errors
 │   ├── ChoiceCard.jsx    Selectable card, one pick per group
 │   ├── NoteBox.jsx       Peach-tint note
-│   ├── Logo.jsx          PVill mark
+│   ├── Logo.jsx          PVill mark (assets/pvill-symbol.png)
 │   ├── BrandHeader.jsx   Logo with "PVill" under it, top of most screens
 │   ├── Badge.jsx         Pill badge (pending, verified)
 │   ├── CodeInput.jsx     Six boxes for an emailed code
@@ -39,6 +39,8 @@ src/
 │   └── AuthContext.jsx   Who is logged in (asks Django on load); login/signup/logout
 ├── api/
 │   └── client.js         Functions that call the Django API (/api/...), handles CSRF
+├── assets/             Brand images: pvill-symbol.png (the mark), pvill-wordmark.png (not used yet).
+│                         The app icon / favicon is frontend/public/pvill-app-icon.png
 ├── styles/
 │   └── index.css         Global styles + design tokens (see AGENTS.md "Design")
 └── test/
