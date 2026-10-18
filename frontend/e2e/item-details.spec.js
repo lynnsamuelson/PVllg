@@ -16,6 +16,7 @@ test("a family opens an organization's item from search and goes back to the sam
   await expect(page.getByText("Giver confirmed: good condition, not recalled")).toBeVisible();
   await expect(page.getByText(/\(organization address\)$/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Claim one (held for 3 days)" })).toBeEnabled();
+  await expect(page.getByText(/^Stay safe at pickup:/)).toHaveCount(0);
 
   await page.getByRole("button", { name: "← Results" }).click();
   await expect(page).toHaveURL(/\/search\?q=diapers$/);
@@ -32,6 +33,7 @@ test("a person's item keeps the giver and the place private, and the giver sees 
   await giver.goto(`/items/${id}`);
   await expect(giver.getByRole("link", { name: "This is your item. Edit it" })).toBeVisible();
   await expect(giver.getByRole("button", { name: "Request to claim" })).toHaveCount(0);
+  await expect(giver.getByText(/^Stay safe at pickup:/)).toHaveCount(0);
 
   const family = await (await browser.newContext()).newPage();
   await signupPerson(family, { name: "Taylor Kim", zip: "37208", usage: "Get support" });
@@ -45,6 +47,7 @@ test("a person's item keeps the giver and the place private, and the giver sees 
   await expect(family.getByText("12 Sample Ave")).toHaveCount(0);
   await expect(family.getByText(/^Private\./)).toBeVisible();
   await expect(family.getByRole("img", { name: `${name}, photo 1` })).toBeVisible();
+  await expect(family.getByText(/^Stay safe at pickup:.*In an emergency, call 911\.$/)).toBeVisible();
   await expect(family.getByRole("button", { name: "Request to claim" })).toBeEnabled();
 
   // Once taken down, the link stops working for families.

@@ -153,9 +153,9 @@ function PersonProfile({ profile }) {
       {confirmGive && (
         <div className="stack">
           <NoteBox>
-            <strong>Before you give:</strong> post only items in good condition that aren&apos;t recalled. No
-            breastmilk, medicine, or other health-sensitive items. Your exact location stays private until you approve
-            a claim.
+            <strong>Before you give:</strong> post only items in good condition that aren&apos;t recalled. No car
+            seats, breastmilk, medicine, or other health-sensitive items. Your exact location stays private until you
+            approve a claim.
           </NoteBox>
           <div className="row">
             <Button

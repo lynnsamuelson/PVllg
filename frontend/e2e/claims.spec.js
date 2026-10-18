@@ -32,6 +32,7 @@ test("a family claims an organization's item, sees where to go, and cancels", as
   await expect(claim).toContainText("Approved");
   await expect(claim).toContainText(/Hold ends in \d+ days?/);
   await expect(claim).toContainText("100 Sample Way, Nashville, TN 37206");
+  await expect(page.getByText(/^Stay safe at pickup:/)).toBeVisible();
 
   await page.goto(`/items/${id}`);
   await expect(page.getByRole("heading", { name: "1 left" })).toBeVisible();
@@ -122,7 +123,7 @@ test("a giver marks that the family didn't come", async ({ browser }) => {
 
 // KAN-12: only one family gets the last one.
 test("when two families try for the last one, the second is told it's gone", async ({ browser }) => {
-  const name = `Car seat ${Date.now()}`;
+  const name = `Baby swing ${Date.now()}`;
   const { id } = await personGiverWithItem(browser, name);
   const first = await family(browser, "Taylor Kim");
   const second = await family(browser, "Morgan Diaz");

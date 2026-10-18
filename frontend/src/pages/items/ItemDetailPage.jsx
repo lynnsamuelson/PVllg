@@ -215,6 +215,12 @@ export default function ItemDetailPage() {
           {org && item.public_contact && <p>{item.public_contact}</p>}
         </div>
         {item.private_note && <NoteBox>{boldLabel(item.private_note)}</NoteBox>}
+        {!org && !item.mine && (
+          <NoteBox>
+            Stay safe at pickup: go in daylight if you can, bring someone or tell a friend where you&apos;re going, and
+            leave if anything feels wrong. In an emergency, call 911.
+          </NoteBox>
+        )}
         {user.account_type === "organization" && !item.mine ? null : item.mine ? (
           <Button variant="outline" to={ROUTES.editItem(item.id)}>
             This is your item. Edit it

@@ -215,6 +215,10 @@ deploy). Use letters and numbers only (`openssl rand -hex 16`). Sign in with it,
   `sam@demo.example` (two parents, a toddler and a baby on the way; an Approved claim on Casey's baby carrier, which
   shows Casey's address). Set their passwords in admin the same way. **Refresh demo pickup dates** also restarts
   their Waiting and Approved claims, which would otherwise end after 2 days unanswered or a day past the hold.
+- **Use the extra demo organizations:** two more Verified organizations, each with three items posted:
+  `team@samplekinshipcare.example` (Sample Kinship Care Collective, North Nashville: toddler clothes, shoes and
+  backpacks) and `team@exampleyoungparents.example` (Example Young Parents Center, West Nashville: sleep sacks,
+  swaddles and a play mat). Set their passwords in admin the same way.
 - **Give someone admin access:** admin → Users → their account → tick **Staff status** and **Superuser status**.
 
 ## VM access for teammates

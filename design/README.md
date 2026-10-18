@@ -21,12 +21,12 @@ The "Ticket N" chips printed under each screen in the PDF use an older numbering
 | 11 | Home | KAN-25 | Built from the person's own answers. "Welcome" with no name if none is known. |
 | 12 | Search near me | KAN-15, KAN-16 | Items/Resources tabs; chips All, Essentials, Feeding, Parenting, **Housing** (missing from the mockup). Rounded distances only. |
 | 13 | Item details: organization | KAN-17, KAN-12 | Public address shown. "Claim one (held for 3 days)". |
-| 14 | Item details: person | KAN-17, KAN-11, KAN-12 | No street address, exact distance or full name. Private note. "Request to claim". |
-| 15 | My claims | KAN-12, KAN-11, KAN-13, KAN-14, KAN-19, KAN-20 | Approved card shows place; Waiting card hides it. Active/Past tabs. |
+| 14 | Item details: person | KAN-17, KAN-11, KAN-12 | No street address, exact distance or full name. Private note. "Stay safe at pickup" note. "Request to claim". |
+| 15 | My claims | KAN-12, KAN-11, KAN-13, KAN-14, KAN-19, KAN-20 | Approved card shows place; Waiting card hides it. Active/Past tabs. "Stay safe at pickup" note on Active. |
 | 16 | Add to calendar | KAN-19 | Both reminders checked by default. No exact address for a person's item before approval. |
 | 17 | Report a pickup problem | KAN-20 | Fixed reasons, no chat. 200-character note. "In an emergency, call 911." |
 | 18 | After a pickup report | KAN-20 | Giver sees only the reason, never the family's name or note. |
-| 19 | Post an item: about the item | KAN-9 | Both condition checkboxes required. No breastmilk, medicine or health-sensitive items. |
+| 19 | Post an item: about the item | KAN-9 | Both condition checkboxes required. No car seats, breastmilk, medicine or health-sensitive items. |
 | 20 | Post an item: pickup details | KAN-9, KAN-11 | General area public; exact address private until approval. Org address prefilled. |
 | 21 | My items and claim requests | KAN-10, KAN-13, KAN-14, KAN-20 | First name only. Counts never below zero. |
 | 22 | Resource details | KAN-18, KAN-21 | "May be a good fit", never "you qualify". Source and last-checked date always shown. |
