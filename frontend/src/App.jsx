@@ -20,6 +20,7 @@ import OrgProfilePage from "./pages/org/OrgProfilePage.jsx";
 import PostItemPage from "./pages/items/PostItemPage.jsx";
 import MyItemsPage from "./pages/items/MyItemsPage.jsx";
 import SearchPage from "./pages/search/SearchPage.jsx";
+import ItemDetailPage from "./pages/items/ItemDetailPage.jsx";
 import StatusPage from "./pages/status/StatusPage.jsx";
 import ComingSoonPage from "./pages/ComingSoonPage.jsx";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
@@ -45,9 +46,9 @@ export default function App() {
           <Route path={ROUTES.orgSignup} element={<OrgSignupPage />} />
           <Route path={ROUTES.orgVerify} element={<OrgVerifyPage />} />
 
-          {/* Filled in by their own tickets: KAN-17, KAN-12, KAN-23 */}
+          {/* Filled in by their own tickets: KAN-12, KAN-23 */}
           <Route path={ROUTES.search} element={<SearchPage />} />
-          <Route path={ROUTES.item()} element={<ComingSoonPage title="Item details" />} />
+          <Route path={ROUTES.item()} element={<ItemDetailPage />} />
           <Route path={ROUTES.claims} element={<ComingSoonPage title="My claims" />} />
 
           <Route path={ROUTES.impact} element={<ComingSoonPage title="Impact" />} />

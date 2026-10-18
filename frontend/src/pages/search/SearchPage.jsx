@@ -7,6 +7,7 @@ import Chip from "../../components/Chip.jsx";
 import NoteBox from "../../components/NoteBox.jsx";
 import Tabs from "../../components/Tabs.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { formatMiles } from "../../format.js";
 import { ROUTES } from "../../routes.js";
 
 const TABS = [
@@ -26,19 +27,15 @@ const TAB_VALUES = new Set(TABS.map((t) => t.value));
 const CHIP_VALUES = new Set(CHIPS.map((c) => c.value));
 const TYPING_PAUSE_MS = 300;
 
-// Whole miles, at least 1, so nothing reads as "About 0 miles".
-const about = (miles) => {
-  const shown = Math.max(1, miles);
-  return `About ${shown} ${shown === 1 ? "mile" : "miles"}`;
-};
+const about = (miles) => formatMiles(miles);
 
 function ItemCard({ item }) {
   return (
     <li>
-      <Link to={ROUTES.item(item.id)} className="card result-card">
+      <Link to={ROUTES.item(item.id)} state={{ fromSearch: true }} className="card result-card">
         <h2>{item.name}</h2>
         <p className="result-card-line">
-          {item.from_organization ? item.giver : "A parent nearby"}{" "}
+          {item.giver}{" "}
           {item.from_organization ? <Badge variant="verified">Verified</Badge> : <Badge variant="person">Person</Badge>}
           {item.demo && (
             <>

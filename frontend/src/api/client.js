@@ -80,6 +80,9 @@ export function searchItems(options = {}) {
   return request(`/items/search/?${params}`);
 }
 
+// Item details (KAN-17): one item with the address privacy rule applied (KAN-11).
+export const getItem = (id) => request(`/items/${id}/`);
+
 // My items (KAN-10): the giver's own items, with exact_address and counts (left, requested, claimed).
 export const listMyItems = () => request("/items/mine/");
 export const getMyItem = (id) => request(`/items/mine/${id}/`);

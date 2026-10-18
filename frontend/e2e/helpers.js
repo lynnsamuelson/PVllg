@@ -76,13 +76,17 @@ export async function saveOrgProfile(page, address = "100 Sample Way, Nashville,
   await expect(page.getByRole("status")).toHaveText("Saved");
 }
 
+// A 1x1 PNG, for posting an item with a photo.
+export const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAwS2OUAAAAABJRU5ErkJggg==", "base64");
+
 // Posts an item through both steps and checks the Posted screen. Organizations have no exact address.
-export async function postItem(page, { name, quantity = 1, area = "East Nashville", address = "12 Sample Ave, Nashville, TN 37206" }) {
+export async function postItem(page, { name, quantity = 1, area = "East Nashville", address = "12 Sample Ave, Nashville, TN 37206", photo = false }) {
   await page.goto("/items/new");
   await page.getByLabel("Item name").fill(name);
   await page.getByLabel("Category").selectOption({ label: "Furniture" });
   await page.getByLabel("Details").fill("Clean, all parts included.");
   await page.getByLabel("How many?").fill(String(quantity));
+  if (photo) await page.getByLabel("Photos (add up to 4)").setInputFiles({ name: "photo.png", mimeType: "image/png", buffer: PNG });
   await page.getByRole("checkbox", { name: "This item is in good condition" }).check();
   await page.getByRole("checkbox", { name: "I checked that it is not recalled" }).check();
   await page.getByRole("button", { name: "Next: pickup details" }).click();

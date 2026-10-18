@@ -161,7 +161,9 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   other than its giver (search, item details, My claims, calendar files, messages) uses `PublicItemSerializer` or
   `privacy.can_see_exact_address`, never its own check, and loads items with `Item.objects.public()`. A person's
   exact address and Where to go reach only the family with an Approved claim, until it ends or the day after pickup;
-  distances are whole miles (`privacy.rounded_miles`); a person giver shows by first name only (`privacy.giver_name`).
+  distances are whole miles (`privacy.rounded_miles`); a person giver is sent as "A parent nearby"
+  (`privacy.giver_name`, Mock Ups 12 and 14), never by name. Photos of live items are visible to anyone signed in, and Post
+  an item tells givers so.
 - **More than one write per request goes in `transaction.atomic()`** (for example a `User` plus its `Profile`), so a
   failure halfway can't leave a half-made record. Test it: make the second write fail and assert nothing was saved.
 - **Demo data is labeled.** Made-up accounts have `Profile.is_demo`; item responses carry `demo: true` for them. Show

@@ -259,6 +259,7 @@ function ItemForm({ itemId }) {
                   <span className="field-label">Photos (add up to 4)</span>
                   <span className="photo-picker-box">+ Add photos</span>
                   <input
+                    aria-describedby="photo-hint"
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     multiple
@@ -266,6 +267,9 @@ function ItemForm({ itemId }) {
                     onChange={addPhotos}
                   />
                 </label>
+                <small id="photo-hint" className="hint">
+                  Anyone signed in can see photos. Leave out house numbers and street signs.
+                </small>
                 {photos.length > 0 && (
                   <ul className="photo-list">
                     {photos.map((p, i) => (

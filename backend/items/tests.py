@@ -138,10 +138,16 @@ class PostItemTests(APITestCase):
         self.assertEqual(len(data["photos"]), 2)
         resp = self.client.get(data["photos"][0])
         self.assertEqual((resp.status_code, resp["Content-Type"], resp.content), (200, "image/png", PNG))
-        self.assertIn("immutable", resp["Cache-Control"])
+        self.assertEqual(resp["Cache-Control"], "private, max-age=3600")
         self.assertEqual(APIClient().get(data["photos"][0]).status_code, 401)
-        self.client.force_authenticate(make_person("other@example.com", "get"))
+        other = make_person("other@example.com", "get")
+        self.client.force_authenticate(other)
+        self.assertEqual(self.client.get(data["photos"][0]).status_code, 200)  # shown on item details
+        self.assertEqual(self.client.get(f"/api/items/{data['id']}/").json()["photos"], data["photos"])
+        Item.objects.filter(pk=data["id"]).update(taken_down_at=timezone.now())
         self.assertEqual(self.client.get(data["photos"][0]).status_code, 404)
+        self.client.force_authenticate(Item.objects.get(pk=data["id"]).owner)
+        self.assertEqual(self.client.get(data["photos"][0]).status_code, 200)  # the giver still can
 
     def test_photo_limits(self):
         user = make_person()
@@ -271,7 +277,7 @@ class AddressPrivacyTests(APITestCase):
         self.assertIsNone(data["where_to_go"])
         self.assertEqual(data["private_note"], privacy.PRIVATE_NOTE)
         self.assertEqual(data["general_area"], "East Nashville")
-        self.assertEqual(data["giver"], "Jordan")
+        self.assertEqual(data["giver"], "A parent nearby")
         self.assertIsInstance(data["distance_miles"], int)
         self.assertGreaterEqual(data["distance_miles"], 1)
         self.assertNotIn("12 Sample Ave", str(data))
@@ -337,7 +343,7 @@ class AddressPrivacyTests(APITestCase):
         self.giver.profile.save()
         data = self.view_as(self.family)
         self.assertIsNone(data["exact_address"])
-        self.assertEqual(data["giver"], "Jordan")
+        self.assertEqual(data["giver"], "A parent nearby")
 
     def test_signed_out_viewer_never_sees_it(self):
         self.assertFalse(privacy.can_see_exact_address(AnonymousUser(), self.item))
@@ -358,10 +364,13 @@ class AddressPrivacyTests(APITestCase):
         with mock.patch("items.privacy.miles_between", return_value=3.49):
             self.assertEqual(privacy.rounded_miles(self.family, self.item), 3)
 
-    def test_giver_without_a_name(self):
-        self.giver.first_name = ""
-        self.giver.save()
-        self.assertEqual(self.view_as(self.family)["giver"], "A neighbor")
+    def test_available_and_mine(self):
+        data = self.view_as(self.family)
+        self.assertTrue(data["available"])
+        self.assertFalse(data["mine"])
+        self.assertTrue(self.view_as(self.giver)["mine"])
+        Item.objects.filter(pk=self.id).update(pickup_date=local_today() - timedelta(days=1))
+        self.assertFalse(self.view_as(self.family)["available"])
 
 
 class DemoDataTests(APITestCase):
@@ -482,7 +491,7 @@ class SearchItemsTests(APITestCase):
     def test_person_items_stay_private(self):
         bundle = next(i for i in self.client.get("/api/items/search/").json() if i["name"].startswith("Baby clothes"))
         self.assertIsNone(bundle["exact_address"])
-        self.assertEqual(bundle["giver"], "Casey")
+        self.assertEqual(bundle["giver"], "A parent nearby")
         self.assertFalse(bundle["from_organization"])
 
     def test_taken_down_and_own_items_and_unknown_distance_dont_show(self):

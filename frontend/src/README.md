@@ -5,6 +5,7 @@ src/
 ├── main.jsx              Entry point: router + auth provider wrap the app
 ├── App.jsx               Route table: which URL shows which page
 ├── routes.js             All URL paths in one place (use ROUTES.x, never hard-code paths)
+├── format.js             Dates and pickup windows as the mockups write them ("Thu, Oct 22 · 10 am - 2 pm")
 ├── logger.js             Logging wrapper: use log.info/warn/error, never console directly
 │
 ├── pages/                One folder per area; one file per page
@@ -15,7 +16,8 @@ src/
 │   ├── profile/          ProfilePage, ProfileSetupPage (4 steps, KAN-6)  (login required)
 │   ├── org/              OrgSignupPage (Mock Up 7), OrgVerifyPage (Mock Up 8), OrgProfilePage (Mock Up 9, Verified only)  (login required)
 │   ├── search/           SearchPage (Mock Up 12): Items and Resources tabs; search state lives in the URL  (login required)
-│   ├── items/            MyItemsPage (Mock Up 21), PostItemPage (2 steps, Mock Ups 19-20; also Edit)  (givers only)
+│   ├── items/            ItemDetailPage (Mock Ups 13-14, anyone signed in); MyItemsPage (Mock Up 21) and
+│   │                     PostItemPage (2 steps, Mock Ups 19-20; also Edit)  (givers only)
 │   ├── status/           StatusPage: dev check of API + database         (public, not in nav)
 │   ├── ComingSoonPage.jsx  Stand-in for tabs whose ticket isn't built yet (login required)
 │   └── NotFoundPage.jsx  Shown for unknown URLs
@@ -95,10 +97,10 @@ The session is an HttpOnly cookie, so the frontend never handles tokens.
 | `POST /api/auth/org/profile/` | `{about, serves[], pickup_address, public_contact}`: a Verified organization's public profile. The address needs a ZIP code (search measures distance from it) |
 | `POST /api/items/` | Post an item (givers only), as multipart form data with up to 4 `photos` (JPEG/PNG/WebP, 5 MB each). A person's `exact_address` must end with a ZIP code; an organization's comes from its profile |
 | `GET /api/items/search/` | Search near me, Items tab: `q`, `category` (essentials, feeding, parenting, housing), `radius` (5, 10, 25, 50; default 10). Live items with a pickup day not yet passed, within the radius of your ZIP, nearest first, shaped like `GET /api/items/:id/` |
-| `GET /api/items/:id/` | One item as others see it: general area, whole-mile `distance_miles`, giver's first name or organization name, `demo` (made-up sample data: show the Demo badge). `exact_address` and `where_to_go` are null with a `private_note` unless the viewer may see them (KAN-11) |
+| `GET /api/items/:id/` | One item as others see it: general area, whole-mile `distance_miles`, `giver` (organization name, or "A parent nearby"), `photos` (URLs), `available` (some left and the pickup day hasn't passed), `mine`, `demo` (made-up sample data: show the Demo badge). `exact_address` and `where_to_go` are null with a `private_note` unless the viewer may see them (KAN-11) |
 | `GET /api/items/mine/` | Your own items (any account, so turning Give off doesn't strand them) that aren't taken down, with `exact_address` and counts `left`, `requested`, `claimed` |
 | `GET`/`PUT`/`DELETE /api/items/mine/:id/` | One of the giver's items: fill in Edit, save it (JSON, photos unchanged; givers only), take it down |
-| `GET /api/items/photos/:id/` | One item photo. Only its giver for now (KAN-17 widens it through the privacy rule) |
+| `GET /api/items/photos/:id/` | One photo of a live item, for anyone signed in (its giver can always see it) |
 | `GET /api/resources/`, `/api/resources/:id/` | Resource list / detail (login required) |
 
 Forgot password is still a placeholder.

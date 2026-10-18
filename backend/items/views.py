@@ -123,9 +123,11 @@ def my_item(request, pk):
 
 @api_view(["GET"])
 def item_photo(request, pk):
-    """Only the giver sees their photos for now: a porch photo can show where someone lives.
-    Item details (KAN-17) decides who else may, through privacy.can_see_exact_address."""
-    photo = get_object_or_404(ItemPhoto, pk=pk, item__owner=request.user)
+    """A photo of a live item, for anyone signed in (item details, KAN-17 shows them), or any photo for its giver.
+    Givers are told on Post an item that photos are public."""
+    photo = get_object_or_404(
+        ItemPhoto.objects.filter(Q(item__taken_down_at__isnull=True) | Q(item__owner=request.user)), pk=pk
+    )
     resp = HttpResponse(bytes(photo.data), content_type=photo.content_type)
-    resp["Cache-Control"] = "private, max-age=31536000, immutable"  # photos never change
+    resp["Cache-Control"] = "private, max-age=3600"  # an hour, so a taken-down item's photos stop showing soon
     return resp

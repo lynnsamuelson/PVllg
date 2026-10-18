@@ -4,7 +4,7 @@ is picked up asks these functions; nothing else decides it.
 - A Verified organization's public address can always be seen.
 - A person's exact address and Where to go are seen only by the giver and by the family with an Approved claim,
   until that claim ends (declined, canceled, ended or picked up) or the day after the pickup date.
-- Everyone else sees the general area, a whole-mile distance and the giver's first name, never a full name.
+- Everyone else sees the general area, a whole-mile distance and "A parent nearby" instead of the giver's name.
 """
 import math
 from datetime import timedelta
@@ -52,12 +52,13 @@ def can_see_exact_address(user, item, approved=None):
     return item.pk in (approved if approved is not None else approved_item_ids(user))
 
 
+PERSON_GIVER = "A parent nearby"  # Mock Ups 12 and 14: a person giver is never named
+
+
 def giver_name(item):
-    """The organization's name, or only a person's first name."""
+    """The organization's name, or "A parent nearby" for a person."""
     org = verified_organization(item)
-    if org:
-        return org.name
-    return (item.owner.first_name.split() or ["A neighbor"])[0]
+    return org.name if org else PERSON_GIVER
 
 
 def user_zip(user):
