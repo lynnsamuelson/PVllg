@@ -194,6 +194,12 @@ export default function MyClaimsPage() {
             ))}
           </ul>
         )}
+        {tab === "active" && claims?.length > 0 && (
+          <NoteBox>
+            Stay safe at pickup: go in daylight if you can, bring someone or tell a friend where you&apos;re going, and
+            leave if anything feels wrong. In an emergency, call 911.
+          </NoteBox>
+        )}
         {tab === "active" && (
           <NoteBox>If you don&apos;t pick up by the deadline, the item goes back on the list for other families.</NoteBox>
         )}

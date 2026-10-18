@@ -68,6 +68,7 @@ describe("MyClaimsPage", () => {
     expect(screen.getAllByRole("button", { name: "Cancel claim" })).toHaveLength(2);
     expect(screen.getByRole("link", { name: "Add to calendar" })).toHaveAttribute("href", ROUTES.claimCalendar(1));
     expect(api.listClaims).toHaveBeenCalledWith("active");
+    expect(screen.getByText(/Stay safe at pickup: go in daylight if you can.*In an emergency, call 911\./)).toBeInTheDocument();
   });
 
   it("offers Problem with pickup inside the window", async () => {
@@ -124,6 +125,7 @@ describe("MyClaimsPage", () => {
     vi.spyOn(api, "listClaims").mockResolvedValue([]);
     renderPage();
     expect(await screen.findByRole("link", { name: "Search near me" })).toHaveAttribute("href", ROUTES.search);
+    expect(screen.queryByText(/Stay safe at pickup/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "Past" }));
     expect(await screen.findByText("Claims you finish or cancel show here.")).toBeInTheDocument();
   });
