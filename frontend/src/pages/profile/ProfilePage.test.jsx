@@ -67,7 +67,7 @@ describe("ProfilePage (person)", () => {
     const spy = vi.spyOn(api, "savePersonProfile").mockResolvedValue({ profile: { ...PROFILE, usage: "both" } });
     renderPage();
     toggle("Give support");
-    expect(screen.getByText(/No breastmilk, medicine/)).toBeInTheDocument();
+    expect(screen.getByText(/No car seats, breastmilk, medicine/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Not now" }));
     expect(screen.getByRole("switch", { name: "Give support" })).not.toBeChecked();
     toggle("Give support");
