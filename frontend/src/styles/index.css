@@ -99,6 +99,9 @@ a {
   width: auto;
   padding: 6px 14px;
 }
+.stack > .btn-small {
+  align-self: flex-start; /* stacked small buttons keep their content width (Mock Up 21) */
+}
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;

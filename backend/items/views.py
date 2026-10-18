@@ -9,6 +9,7 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
 from accounts.models import Profile
+from claims.actions import expire_overdue
 from claims.models import Claim
 from config.log import get_logger
 
@@ -63,6 +64,7 @@ def post_item(request):
 def search_items(request):
     """Search near me, Items tab (KAN-15): live items with some left and a pickup day that hasn't passed, within
     `radius` miles of the viewer's ZIP, nearest first. Items whose distance can't be worked out aren't shown, so nothing out of range reads as nearby."""
+    expire_overdue()
     params = ItemSearchSerializer(data=request.query_params)
     params.is_valid(raise_exception=True)
     opts = params.validated_data
@@ -89,6 +91,7 @@ def search_items(request):
 @api_view(["GET"])
 def item_detail(request, pk):
     """One item as anyone signed in sees it, with the address privacy rule applied (KAN-11; screen in KAN-17)."""
+    expire_overdue()
     item = get_object_or_404(Item.objects.public(), pk=pk)
     return Response(PublicItemSerializer(item, context={"request": request}).data)
 
@@ -105,6 +108,7 @@ def own_items():
 @api_view(["GET"])
 def my_items(request):
     """My items (Mock Up 21): the giver's items that aren't taken down, newest first."""
+    expire_overdue()
     items = own_items().filter(owner=request.user)
     return Response(OwnItemSerializer(items, many=True).data)
 
@@ -113,6 +117,7 @@ def my_items(request):
 def my_item(request, pk):
     """One of the giver's items: GET fills in Edit, PUT saves it (givers only; photos stay as they are),
     DELETE takes it down."""
+    expire_overdue()
     item = get_object_or_404(own_items(), pk=pk, owner=request.user)
     if request.method == "GET":
         return Response(OwnItemSerializer(item).data)

@@ -19,6 +19,7 @@ export function countsLine(item) {
 // claim to mark picked up. Only the family's first name ever shows.
 function ClaimRow({ claim, onAnswered }) {
   const [busy, setBusy] = useState(false);
+  const [confirmingNoShow, setConfirmingNoShow] = useState(false);
   const [error, setError] = useState("");
 
   const answer = async (call) => {
@@ -52,11 +53,30 @@ function ClaimRow({ claim, onAnswered }) {
           </div>
         </>
       ) : (
-        <div className="row claim-row">
-          <span>Approved for {claim.family}</span>
-          <Button small variant="outline" onClick={() => answer(api.markPickedUp)} disabled={busy}>
-            Mark picked up
-          </Button>
+        <div className="stack">
+          <span className="claim-row">Approved for {claim.family}</span>
+          {confirmingNoShow ? (
+            <div className="stack">
+              <p>{claim.family}&apos;s claim ends and the item goes back on the list. This can&apos;t be undone.</p>
+              <div className="row">
+                <Button small onClick={() => answer(api.familyDidntCome)} disabled={busy}>
+                  Yes, they didn&apos;t come
+                </Button>
+                <Button small variant="outline" onClick={() => setConfirmingNoShow(false)} disabled={busy}>
+                  Keep it
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="stack">
+              <Button small variant="outline" onClick={() => answer(api.markPickedUp)} disabled={busy}>
+                Mark picked up
+              </Button>
+              <Button small variant="outline" onClick={() => setConfirmingNoShow(true)} disabled={busy}>
+                Family didn&apos;t come
+              </Button>
+            </div>
+          )}
         </div>
       )}
       {error && (

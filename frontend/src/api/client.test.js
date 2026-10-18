@@ -17,6 +17,7 @@ import {
   approveClaim,
   declineClaim,
   markPickedUp,
+  familyDidntCome,
   searchItems,
   editItem,
   takeDownItem,
@@ -86,10 +87,12 @@ describe("api client", () => {
     await approveClaim(5);
     await declineClaim(5);
     await markPickedUp(5);
+    await familyDidntCome(5);
     expect(fetch.mock.calls.slice(4).map((c) => c[0])).toEqual([
       "/api/claims/5/approve/",
       "/api/claims/5/decline/",
       "/api/claims/5/picked-up/",
+      "/api/claims/5/didnt-come/",
     ]);
   });
 

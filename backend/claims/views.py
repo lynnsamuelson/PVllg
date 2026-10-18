@@ -33,6 +33,7 @@ def context(request):
 def claims(request):
     """GET: My claims (Mock Up 15); ?tab=past for ended claims, otherwise current ones.
     POST {item}: Claim one / Request to claim (Mock Ups 13-14)."""
+    actions.expire_overdue()
     if request.method == "GET":
         mine = my_claims_queryset(request.user)
         if request.query_params.get("tab") == "past":
@@ -53,7 +54,8 @@ def claims(request):
 def answer(request, pk, action, refusal):
     """The giver of the claimed item answers (KAN-13); nobody else can. Replies with the claim as the giver sees it
     (the family's first name only)."""
-    claim = get_object_or_404(Claim.objects.select_related("claimant"), pk=pk, item__owner=request.user)
+    actions.expire_overdue()
+    claim = get_object_or_404(Claim.objects.select_related("claimant", "item"), pk=pk, item__owner=request.user)
     if not action(claim):
         return Response({"detail": refusal}, status=status.HTTP_400_BAD_REQUEST)
     return Response(RequestSerializer(claim).data)
@@ -75,9 +77,17 @@ def picked_up(request, pk):
 
 
 @api_view(["POST"])
+def didnt_come(request, pk):
+    return answer(
+        request, pk, actions.family_didnt_come, "You can say the family didn't come once the pickup day has come."
+    )
+
+
+@api_view(["POST"])
 @permission_classes([IsAuthenticated, IsPerson])
 def cancel_claim(request, pk):
     """Cancel claim: ends the family's own active claim and puts the item back."""
+    actions.expire_overdue()  # a hold that already passed ends as "The hold ended", not as canceled
     claim = get_object_or_404(Claim, pk=pk, claimant=request.user)
     if not actions.end_claim(claim, Claim.CANCELED):
         return Response({"detail": "This claim has already ended."}, status=status.HTTP_400_BAD_REQUEST)

@@ -13,7 +13,7 @@ class ClaimSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Claim
-        fields = ["id", "status", "created_at", "held_until", "item"]
+        fields = ["id", "status", "end_reason", "created_at", "held_until", "item"]
 
     def get_item(self, claim):
         return PublicItemSerializer(claim.item, context=self.context).data
