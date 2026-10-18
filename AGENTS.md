@@ -303,7 +303,7 @@ Apache and systemd config, restarts the app, and checks health.
 | `VM_SSH_KEY`, `VM_KNOWN_HOSTS` | secret | Deploy key + host key for SSH |
 | `DJANGO_SECRET_KEY` | secret | Django secret |
 | `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | secret | HeatWave app user (not admin) |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | secret | First Django admin login, created on deploy if it doesn't exist (`manage.py ensure_admin`). Unset: skipped |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | secret | Main Django admin login. Each deploy creates it or resets its password (`manage.py ensure_admin`). Letters and numbers only: the deploy writes it unquoted into `.env`. Unset: skipped |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` | secret | SMTP for organization codes (e.g. OCI Email Delivery on 587). Unset: emails go to `journalctl` |
 
 **On the VM** (Oracle Linux 9, user `opc`, SELinux enforcing). Paths still use the original placeholder name

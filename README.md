@@ -186,13 +186,14 @@ Apache serves the React build and proxies `/api/` and `/admin/` to gunicorn on `
 | `EMAIL_HOST` | secret | SMTP server for organization codes (e.g. OCI Email Delivery). **Leave unset and codes print to `journalctl`** |
 | `EMAIL_PORT` / `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` | secret | SMTP port (default 587) and credentials |
 | `DEFAULT_FROM_EMAIL` | secret | From address, on a domain approved for sending, e.g. `PVill <no-reply@example.org>` |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | secret | First Django admin login; the next deploy creates it if it doesn't exist |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | secret | Main Django admin login. Each deploy creates it, or resets its password to this. Letters and numbers only (`openssl rand -hex 16`) |
 
 ### Test accounts
 
-Product owners test in the browser, without SSH. You need a Django admin login (`/admin/`). The first one comes
-from the `ADMIN_EMAIL` and `ADMIN_PASSWORD` GitHub secrets: the next deploy creates it if it doesn't exist (and never
-changes it after that). Sign in with it, then give others access from admin.
+Product owners test in the browser, without SSH. You need a Django admin login (`/admin/`). The main one comes
+from the `ADMIN_EMAIL` and `ADMIN_PASSWORD` GitHub secrets. Every deploy creates it or resets its password to the
+secret, so to change or recover it, update the secret and redeploy (changing it in admin lasts only until the next
+deploy). Use letters and numbers only (`openssl rand -hex 16`). Sign in with it, then give others access from admin.
 
 - **Make an account:** sign up on the site as a person or an organization, like a real user.
 - **Verify an organization without the email code:** enter the organization's details on the site (it shows as

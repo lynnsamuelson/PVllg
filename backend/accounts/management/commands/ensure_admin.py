@@ -1,4 +1,4 @@
-"""Creates the first admin login on deploy, so nobody needs SSH to get into Django admin."""
+"""Keeps the main admin login in step with the ADMIN_EMAIL and ADMIN_PASSWORD secrets, so nobody needs SSH."""
 import os
 
 from django.contrib.auth import get_user_model
@@ -8,15 +8,16 @@ User = get_user_model()
 
 
 class Command(BaseCommand):
-    help = "Create a superuser from ADMIN_EMAIL and ADMIN_PASSWORD if it doesn't exist yet. Never changes an existing one."
+    help = "Create or update a superuser from ADMIN_EMAIL and ADMIN_PASSWORD. The password always matches ADMIN_PASSWORD."
 
     def handle(self, *args, **options):
         email = os.environ.get("ADMIN_EMAIL", "").strip().lower()
         password = os.environ.get("ADMIN_PASSWORD", "")
         if not (email and password):
             self.stdout.write("ADMIN_EMAIL or ADMIN_PASSWORD not set; skipping.")
-        elif User.objects.filter(username=email).exists():
-            self.stdout.write(f"{email} already exists; leaving it alone.")
-        else:
-            User.objects.create_superuser(email, email, password)
-            self.stdout.write(f"Created admin {email}.")
+            return
+        user, created = User.objects.get_or_create(username=email, defaults={"email": email})
+        user.is_active = user.is_staff = user.is_superuser = True
+        user.set_password(password)
+        user.save()
+        self.stdout.write(f"{'Created' if created else 'Updated'} admin {email}.")
