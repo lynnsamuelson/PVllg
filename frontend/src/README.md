@@ -90,7 +90,7 @@ The session is an HttpOnly cookie, so the frontend never handles tokens.
 | `POST /api/auth/org/verify/` | `{code}`: right and under 15 minutes old marks the organization Verified; 5 tries per code |
 | `POST /api/auth/org/profile/` | `{about, serves[], pickup_address, public_contact}`: a Verified organization's public profile. The address needs a ZIP code (search measures distance from it) |
 | `POST /api/items/` | Post an item (givers only), as multipart form data with up to 4 `photos` (JPEG/PNG/WebP, 5 MB each). A person's `exact_address` must end with a ZIP code; an organization's comes from its profile |
-| `GET /api/items/:id/` | One item as others see it: general area, whole-mile `distance_miles`, giver's first name or organization name. `exact_address` and `where_to_go` are null with a `private_note` unless the viewer may see them (KAN-11) |
+| `GET /api/items/:id/` | One item as others see it: general area, whole-mile `distance_miles`, giver's first name or organization name, `demo` (made-up sample data: show the Demo badge). `exact_address` and `where_to_go` are null with a `private_note` unless the viewer may see them (KAN-11) |
 | `GET /api/items/mine/` | Your own items (any account, so turning Give off doesn't strand them) that aren't taken down, with `exact_address` and counts `left`, `requested`, `claimed` |
 | `GET`/`PUT`/`DELETE /api/items/mine/:id/` | One of the giver's items: fill in Edit, save it (JSON, photos unchanged; givers only), take it down |
 | `GET /api/items/photos/:id/` | One item photo. Only its giver for now (KAN-17 widens it through the privacy rule) |

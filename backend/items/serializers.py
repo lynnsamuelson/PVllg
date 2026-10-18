@@ -89,6 +89,7 @@ class PublicItemSerializer(serializers.ModelSerializer):
 
     giver = serializers.SerializerMethodField()
     from_organization = serializers.SerializerMethodField()
+    demo = serializers.SerializerMethodField()
     distance_miles = serializers.SerializerMethodField()
     exact_address = serializers.SerializerMethodField()
     where_to_go = serializers.SerializerMethodField()
@@ -98,7 +99,7 @@ class PublicItemSerializer(serializers.ModelSerializer):
         model = Item
         fields = [
             "id", "name", "category", "details", "quantity", "pickup_date", "pickup_start", "pickup_end",
-            "general_area", "what_to_bring", "giver", "from_organization", "distance_miles", "exact_address",
+            "general_area", "what_to_bring", "giver", "from_organization", "demo", "distance_miles", "exact_address",
             "where_to_go", "private_note",
         ]
 
@@ -114,6 +115,11 @@ class PublicItemSerializer(serializers.ModelSerializer):
 
     def get_from_organization(self, item):
         return privacy.from_organization(item)
+
+    def get_demo(self, item):
+        """Made-up sample data (KAN-26): show it with a Demo badge."""
+        profile = getattr(item.owner, "profile", None)
+        return bool(profile and profile.is_demo)
 
     def get_distance_miles(self, item):
         return privacy.rounded_miles(self.context["request"].user, item)

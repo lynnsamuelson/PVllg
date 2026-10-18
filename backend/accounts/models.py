@@ -22,6 +22,8 @@ class Profile(models.Model):
     needs = models.JSONField(default=list, blank=True)
     usage = models.CharField(max_length=4, choices=USAGES, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    # Made-up demo account (KAN-26). Screens label its items and profile "Demo" so nobody mistakes them for real.
+    is_demo = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.user.username} ({self.account_type})"

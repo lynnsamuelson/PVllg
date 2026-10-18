@@ -42,12 +42,15 @@ Live site: http://207.211.189.5 · Repo: https://github.com/lynnsamuelson/PVllg
 backend/
   config/            settings.py (all config via env vars), urls.py, wsgi.py, log.py (logging wrapper)
   accounts/          signup/login/logout/me + CSRF; SessionAuthentication401
-  resources/         Resource model, read-only API, admin, seed migration;
+  resources/         Resource model, read-only API, admin; data/organization-profiles.json is the 12 real, checked
+                     programs (KAN-26), loaded by migration 0005;
                      matching.py ranks resources for a profile (GET /api/resources/matches/, KAN-16)
   items/             Item + ItemPhoto models; POST /api/items/ (Post an item, KAN-9), /api/items/mine/ (My items,
                      edit, take down: KAN-10), photos served by
                      GET /api/items/photos/<id>/ (stored in the database, so the VM needs no media folder)
                      privacy.py is the address privacy rule (KAN-11); GET /api/items/<id>/ applies it
+                     data/sample-data.json: made-up demo accounts and sample items (KAN-26, migration 0003);
+                     demo.py refreshes their pickup dates (admin action)
   claims/            Claim model (Waiting, Approved, Declined, Canceled, Ended, Picked up); endpoints in KAN-12/13
   api/               /api/health/ (public) and the Notes demo
   requirements.txt   what the VM installs
@@ -158,6 +161,11 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   distances are whole miles (`privacy.rounded_miles`); a person giver shows by first name only (`privacy.giver_name`).
 - **More than one write per request goes in `transaction.atomic()`** (for example a `User` plus its `Profile`), so a
   failure halfway can't leave a half-made record. Test it: make the second write fail and assert nothing was saved.
+- **Demo data is labeled.** Made-up accounts have `Profile.is_demo`; item responses carry `demo: true` for them. Show
+  the Demo badge wherever their items or profiles appear (Words: label made-up data). The two KAN-26 JSON files are
+  migration inputs: don't edit them to change shipped data, add a migration or edit in admin.
+- **Tests run on a database that already has the starter resources and demo accounts** (loaded by migrations), so
+  assert on your own rows (`filter(owner=...)`, `filter(username=...)`), not on `.count()` or `.exists()` of a table.
 - **Migrations run against the shared production database on deploy.** Avoid destructive changes (dropping or
   renaming columns that hold data) without a plan. Seed data goes in a data migration with a reverse function.
 

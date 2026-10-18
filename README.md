@@ -202,6 +202,12 @@ deploy). Use letters and numbers only (`openssl rand -hex 16`). Sign in with it,
   it goes back to entering its details.
 - **Sign in as an existing account:** admin → Users → the account → **change password** (under Password), then sign
   in with it in a private window.
+- **Use the demo accounts (KAN-26):** migrations load made-up accounts and 10 sample items, all on `.example`
+  emails: families `taylor@demo.example` and `jordan@demo.example`, people giving `casey@demo.example` and
+  `morgan@demo.example`, and Verified organizations `team@samplecommunitycloset.example`,
+  `team@examplefamilypantry.example` and `team@demobabybasicshub.example`. They have no password until you set one
+  (see "Sign in as an existing account"). Sample pickup dates are a few days out; when they pass, admin → Items →
+  select all → **Refresh demo pickup dates**.
 - **Give someone admin access:** admin → Users → their account → tick **Staff status** and **Superuser status**.
 
 ## VM access for teammates

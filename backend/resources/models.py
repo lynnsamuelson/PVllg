@@ -39,6 +39,21 @@ class Resource(models.Model):
     zip_code = models.CharField(max_length=5, blank=True)  # where distance is measured from (local only)
     limits = models.CharField(max_length=200, blank=True)  # main limit, shown on cards
 
+    # Card facts (KAN-26). Blank means the official page doesn't list it: show "Not listed", never a guess.
+    org_type = models.CharField(max_length=50, blank=True)  # Nonprofit, Government program, Company program
+    area_served = models.CharField(max_length=200, blank=True)
+    who_we_serve = models.CharField(max_length=300, blank=True)
+    age_text = models.CharField(max_length=100, blank=True)  # e.g. "Under 2 years"
+    referral = models.CharField(max_length=200, blank=True)  # whether a referral or appointment is needed
+    next_step = models.CharField(max_length=300, blank=True)
+    public_address = models.CharField(max_length=255, blank=True)
+    public_phone = models.CharField(max_length=30, blank=True)
+    public_email = models.EmailField(blank=True)
+    contact_note = models.CharField(max_length=300, blank=True)  # other ways to reach them
+    source_url = models.URLField(blank=True)  # the official page the facts came from
+    last_checked = models.DateField(null=True, blank=True)
+    radius_miles = models.PositiveSmallIntegerField(null=True, blank=True)  # demo approximation, not published
+
     class Meta:
         ordering = ["title"]
 
