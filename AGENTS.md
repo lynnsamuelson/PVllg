@@ -40,7 +40,8 @@ Live site: http://207.211.189.5 · Repo: https://github.com/lynnsamuelson/PVllg
 
 ```
 backend/
-  config/            settings.py (all config via env vars), urls.py, wsgi.py, log.py (logging wrapper)
+  config/            settings.py (all config via env vars), urls.py, wsgi.py, log.py (logging wrapper),
+                     sqlite/ (local and CI SQLite that locks at the start of a transaction)
   accounts/          signup/login/logout/me + CSRF; SessionAuthentication401
   resources/         Resource model, read-only API, admin; data/organization-profiles.json is the 12 real, checked
                      programs (KAN-26), loaded by migration 0005;
