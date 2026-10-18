@@ -21,7 +21,7 @@ export default defineConfig({
       exclude: ["src/test/**", "src/**/*.test.{js,jsx}", "src/main.jsx"],
       reporter: ["text", "html"],
       // Floor just under the current coverage so it can only go up; raise it when coverage rises.
-      thresholds: { lines: 91 },
+      thresholds: { lines: 95 },
     },
   },
 });

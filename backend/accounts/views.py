@@ -6,6 +6,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.core.mail import send_mail
+from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -22,6 +23,7 @@ from .serializers import (
     LoginSerializer,
     OrganizationCodeSerializer,
     OrganizationSerializer,
+    PersonProfileSerializer,
     SignupSerializer,
     UserSerializer,
 )
@@ -92,6 +94,15 @@ CODE_TTL = timedelta(minutes=15)  # proposed in KAN-7; the PO still has to confi
 RESEND_COOLDOWN = timedelta(seconds=30)
 MAX_CODE_ATTEMPTS = 5  # tries per code, so 6 digits can't be guessed
 MAX_SENDS_PER_DAY = 5  # codes per account per day, so PVill's sender can't be used to flood an inbox
+
+
+class IsPerson(BasePermission):
+    message = "Only personal accounts can do this."
+
+    def has_permission(self, request, view):
+        # No Profile means an account from before account types, which signed up as a person.
+        profile = getattr(request.user, "profile", None)
+        return profile is None or profile.account_type == Profile.PERSON
 
 
 class IsOrganization(BasePermission):
@@ -241,4 +252,26 @@ def organization_verify(request):
     ):
         return code_expired()
     logger.info("org verified user_id=%s", request.user.pk)
+    return user_response(request.user)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsPerson])
+def person_profile(request):
+    """Saves a person's profile setup answers (Mock Ups 3-6)."""
+    serializer = PersonProfileSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    answers = serializer.validated_data
+    with transaction.atomic():
+        profile, _ = Profile.objects.get_or_create(user=request.user, defaults={"account_type": Profile.PERSON})
+        profile.zip_code = answers["zip"]
+        profile.stage = answers["stage"]
+        profile.arrival_month = answers.get("arrival_month", "")
+        profile.ages = answers["ages"]
+        profile.roles = answers["roles"]
+        profile.needs = answers["needs"]
+        profile.usage = answers["usage"]
+        profile.completed_at = timezone.now()
+        profile.save()
+    logger.info("profile saved user_id=%s", request.user.pk)
     return user_response(request.user)

@@ -24,6 +24,7 @@
   --radius-button: 12px;
   --radius-card: 14px;
   --radius-pill: 999px; /* chips and badges */
+  --radius-checkbox: 3px;
 
   /* Type sizes as drawn on the 300px-wide mockups; KAN-4 (Figma) may revise. */
   --font-brand: Arial, sans-serif; /* placeholder until the team picks a font */
@@ -335,4 +336,126 @@ button {
   font-weight: bold;
   font-size: var(--text-card-title);
   margin-bottom: 4px;
+}
+
+/* Bold label above a group of chips or checkboxes, same as .field label. */
+.field-label {
+  font-weight: bold;
+  font-size: var(--text-label);
+  margin: 0;
+  padding: 0;
+}
+button.back-link,
+button.text-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.text-link {
+  align-self: flex-start;
+  color: var(--color-plum-muted);
+  font-size: var(--text-small);
+  text-decoration: none;
+}
+
+/* Choice chips: rose outline when off, plum fill when picked. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  padding: 6px 10px;
+  border: 1px solid var(--color-rose);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--color-plum);
+  font-size: var(--text-label);
+  cursor: pointer;
+}
+.chip.selected {
+  background: var(--color-plum);
+  border-color: var(--color-plum);
+  color: var(--color-white);
+}
+
+/* Checkbox rows: green filled box with a white check when on. */
+.checkbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.checkbox-list legend {
+  margin-bottom: 8px;
+  padding: 0;
+}
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.checkbox-row label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.checkbox-row input {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-plum);
+  border-radius: var(--radius-checkbox);
+  background: var(--color-white);
+  cursor: pointer;
+}
+.checkbox-row input:checked {
+  background: var(--color-green);
+  border-color: var(--color-green);
+}
+.checkbox-row input:checked::after {
+  content: "✓";
+  color: var(--color-white);
+  font-size: var(--text-body);
+  line-height: 1;
+}
+.info-button {
+  background: none;
+  border: 0;
+  padding: 0 4px;
+  color: var(--color-plum);
+  cursor: pointer;
+}
+
+/* Progress bar: STEP n OF 4 above a green fill on a line-color track. */
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.progress-label {
+  margin: 0;
+  color: var(--color-plum-muted);
+  font-size: var(--text-small);
+  font-weight: bold;
+  text-transform: uppercase;
+}
+.progress-track {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-line);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--color-green);
 }

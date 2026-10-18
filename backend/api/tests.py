@@ -19,6 +19,7 @@ class LockdownTests(APITestCase):
     PROTECTED = [
         "/api/notes/",
         "/api/resources/",
+        "/api/auth/profile/",
         "/api/auth/org/",
         "/api/auth/org/resend/",
         "/api/auth/org/verify/",

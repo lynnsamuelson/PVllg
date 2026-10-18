@@ -7,6 +7,7 @@ from unittest import mock
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.management import call_command
+from django.db import DatabaseError
 from django.utils import timezone
 from rest_framework.test import APIClient, APITestCase
 
@@ -335,6 +336,124 @@ class OrganizationVerificationTests(APITestCase):
         self.assertEqual(self.verify_result.json()["code"], ["That code has expired. Send a new code."])
         org = self.org()
         self.assertEqual((org.domain, org.status), ("victimfoodbank.org", "pending"))
+
+
+ANSWERS = {
+    "zip": "37206",
+    "stage": "both",
+    "arrival_month": "2027-03",
+    "ages": ["3_12mo", "1_2yrs"],
+    "roles": ["parent", "kinship"],
+    "needs": ["essentials", "feeding"],
+    "usage": "both",
+}
+
+
+class PersonProfileTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="ada@example.com", password=GOOD_PASSWORD)
+        Profile.objects.create(user=self.user, account_type=Profile.PERSON)
+        self.client.force_authenticate(self.user)
+
+    def save(self, **overrides):
+        body = {**ANSWERS, **overrides}
+        body = {k: v for k, v in body.items() if v is not None}
+        return self.client.post("/api/auth/profile/", body, format="json")
+
+    def assert_field_error(self, field, **overrides):
+        resp = self.save(**overrides)
+        self.assertEqual(resp.status_code, 400, resp.content)
+        self.assertIn(field, resp.json())
+
+    def test_logged_out_is_401(self):
+        self.assertEqual(APIClient().post("/api/auth/profile/", ANSWERS, format="json").status_code, 401)
+
+    def test_organizations_are_refused(self):
+        org = User.objects.create_user(username="lead@example.com", password=GOOD_PASSWORD)
+        Profile.objects.create(user=org, account_type=Profile.ORGANIZATION)
+        self.client.force_authenticate(org)
+        self.assertEqual(self.save().status_code, 403)
+
+    def test_profile_is_null_before_setup(self):
+        user = self.client.get("/api/auth/me/").json()["user"]
+        self.assertIsNone(user["profile"])
+        self.assertFalse(user["gives"])
+
+    def test_saves_answers_and_keeps_them_after_signing_in_again(self):
+        with self.assertLogs("accounts.views", "INFO") as logs:
+            resp = self.save()
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertIn("profile saved user_id=", logs.output[0])
+        self.assertEqual(resp.json()["user"]["profile"], ANSWERS)
+        self.assertTrue(resp.json()["user"]["gives"])
+
+        client = APIClient()
+        with self.assertLogs("accounts.views", "INFO"):
+            client.post("/api/auth/login/", {"email": "ada@example.com", "password": GOOD_PASSWORD}, format="json")
+        self.assertEqual(client.get("/api/auth/me/").json()["user"]["profile"], ANSWERS)
+
+    def test_get_support_only_does_not_give(self):
+        with self.assertLogs("accounts.views", "INFO"):
+            resp = self.save(usage="get")
+        self.assertFalse(resp.json()["user"]["gives"])
+
+    def test_parenting_drops_arrival_month(self):
+        with self.assertLogs("accounts.views", "INFO"):
+            resp = self.save(stage="parenting")
+        self.assertEqual(resp.json()["user"]["profile"]["arrival_month"], "")
+
+    def test_expecting_needs_no_children_or_roles(self):
+        with self.assertLogs("accounts.views", "INFO"):
+            resp = self.save(stage="expecting", ages=[], roles=None)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertEqual(resp.json()["user"]["profile"]["roles"], [])
+
+    def test_older_account_without_profile_gets_one(self):
+        user = User.objects.create_user(username="old@example.com", password=GOOD_PASSWORD)
+        self.client.force_authenticate(user)
+        with self.assertLogs("accounts.views", "INFO"):
+            self.assertEqual(self.save().status_code, 200)
+        self.assertEqual(Profile.objects.get(user=user).account_type, Profile.PERSON)
+
+    def test_required_answers(self):
+        self.assert_field_error("zip", zip=None)
+        self.assert_field_error("stage", stage=None)
+        self.assert_field_error("needs", needs=[])
+        self.assert_field_error("needs", needs=None)
+        self.assert_field_error("usage", usage=None)
+        self.assert_field_error("ages", stage="parenting", ages=[])
+        self.assert_field_error("ages", stage="both", ages=None)
+
+    def test_rejects_bad_values(self):
+        self.assert_field_error("zip", zip="3720")
+        self.assert_field_error("zip", zip="37206-1234")
+        self.assert_field_error("arrival_month", arrival_month="2027-13")
+        self.assert_field_error("ages", ages=["newborn"])
+        self.assert_field_error("roles", roles=["custodian"])
+        self.assert_field_error("needs", needs=["medical"])
+        self.assert_field_error("usage", usage="sell")
+
+    def test_prefer_not_to_say_cannot_be_mixed(self):
+        self.assert_field_error("roles", roles=["prefer_not", "parent"])
+        with self.assertLogs("accounts.views", "INFO"):
+            self.assertEqual(self.save(roles=["prefer_not"]).status_code, 200)
+
+    def test_failed_save_leaves_nothing_behind(self):
+        user = User.objects.create_user(username="old@example.com", password=GOOD_PASSWORD)
+        self.client.force_authenticate(user)
+        real_save = Profile.save
+        calls = []
+
+        def fail_second_write(profile, *args, **kwargs):
+            calls.append(1)
+            if len(calls) > 1:
+                raise DatabaseError("boom")
+            return real_save(profile, *args, **kwargs)
+
+        with mock.patch.object(Profile, "save", fail_second_write), self.assertRaises(DatabaseError), \
+                self.assertLogs("django.request", "ERROR"):
+            self.save()
+        self.assertFalse(Profile.objects.filter(user=user).exists())
 
 
 class EnsureAdminTests(APITestCase):
