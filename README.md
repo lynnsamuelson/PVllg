@@ -112,8 +112,6 @@ describes, update them in the same PR. The PR checklist asks you to confirm it. 
 | `npm run e2e` says `Executable doesn't exist` | Run `npx playwright install chromium` in `frontend/`. |
 | `npm run e2e` can't start the backend | It uses `backend/.venv/bin/python`. Create the venv (step 3) first. |
 
-Want ready-made accounts? Run `python manage.py seed_test_accounts` in `backend/` (see [Test accounts](#test-accounts)).
-
 Want the Django admin locally? Run `python manage.py createsuperuser` in `backend/`, then open http://localhost:5173/admin/.
 
 ---
@@ -190,13 +188,6 @@ Apache serves the React build and proxies `/api/` and `/admin/` to gunicorn on `
 | `DEFAULT_FROM_EMAIL` | secret | From address, on a domain approved for sending, e.g. `PVill <no-reply@example.org>` |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | secret | First Django admin login; the next deploy creates it if it doesn't exist |
 
-To create a Django admin user on the VM:
-
-```bash
-ssh opc@207.211.189.5
-cd /opt/hackathon-app/backend && ENV_FILE=../.env ../venv/bin/python manage.py createsuperuser
-```
-
 ### Test accounts
 
 Product owners test in the browser, without SSH. You need a Django admin login (`/admin/`). The first one comes
@@ -211,10 +202,6 @@ changes it after that). Sign in with it, then give others access from admin.
 - **Sign in as an existing account:** admin → Users → the account → **change password** (under Password), then sign
   in with it in a private window.
 - **Give someone admin access:** admin → Users → their account → tick **Staff status** and **Superuser status**.
-
-`python manage.py seed_test_accounts` also creates `person@pvill.test`, `org@pvill.test` (verified) and
-`neworg@pvill.test` with one password (from `TEST_ACCOUNT_PASSWORD`, or it asks), and resets them when run again.
-It's handy locally; on the VM it needs SSH.
 
 ## VM access for teammates
 

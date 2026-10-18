@@ -80,7 +80,6 @@ python manage.py runserver        # http://127.0.0.1:8000
 python manage.py test             # quick test run
 coverage run manage.py test && coverage report   # what CI runs; fails below fail_under
 python manage.py makemigrations   # commit the generated files
-python manage.py seed_test_accounts  # create/reset the product owners' test accounts (README → Test accounts)
 ```
 
 **Frontend** (from `frontend/`, Node 20+):
@@ -133,8 +132,9 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   test output stays clean.
 - **Coverage** can't drop below `fail_under` in `.coveragerc`. When you raise coverage, raise the floor too.
 - **Organizations are Pending until they confirm a work email** on their website's domain (`accounts.Organization`,
-  `user.organization.status` in the API: `pending` or `verified`, `null` before they start). Anything only Verified
-  organizations may do must check `organization.verified_at` on the backend; on the frontend, wrap the route in
+  `user.organization.status` in the API: `pending` or `verified`, `null` before they start). For testing, admin →
+  Organizations → **Mark verified** skips the code (README → Test accounts). Anything only Verified organizations may
+  do must check `organization.verified_at` on the backend; on the frontend, wrap the route in
   `<RequireVerifiedOrg>`. Email goes through `django.core.mail` (`EMAIL_*` settings; the console without `EMAIL_HOST`).
 - **More than one write per request goes in `transaction.atomic()`** (for example a `User` plus its `Profile`), so a
   failure halfway can't leave a half-made record. Test it: make the second write fail and assert nothing was saved.
