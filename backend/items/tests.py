@@ -2,14 +2,17 @@ from datetime import timedelta
 from unittest import mock
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError
 from django.utils import timezone
 from rest_framework.test import APIClient, APITestCase
 
 from accounts.models import Organization, Profile
+from claims.models import Claim
 
-from .models import Item, ItemPhoto
+from . import privacy
+from .models import Item, ItemPhoto, local_today
 
 User = get_user_model()
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 20
@@ -232,3 +235,127 @@ class MyItemsTests(APITestCase):
         self.assertIsNotNone(Item.objects.get(pk=self.id).taken_down_at)
         self.assertEqual(self.client.get("/api/items/mine/").json(), [])
         self.assertEqual(self.client.get(f"/api/items/mine/{self.id}/").status_code, 404)
+
+
+class AddressPrivacyTests(APITestCase):
+    """KAN-11: who sees a person's exact address, and what everyone else sees."""
+
+    def setUp(self):
+        self.giver = make_person()
+        self.giver.first_name = "Jordan Lee"
+        self.giver.save()
+        self.client.force_authenticate(self.giver)
+        with self.assertLogs("items.views", "INFO"):
+            self.id = self.client.post("/api/items/", item(), format="json").json()["id"]
+        self.item = Item.objects.get(pk=self.id)
+        self.family = make_person("family@example.com", "get")
+        self.family.profile.zip_code = "37208"
+        self.family.profile.save()
+
+    def view_as(self, user):
+        self.client.force_authenticate(user)
+        return self.client.get(f"/api/items/{self.id}/").json()
+
+    def claim(self, status):
+        return Claim.objects.create(item=self.item, claimant=self.family, status=status)
+
+    def test_logged_out_is_401(self):
+        self.assertEqual(APIClient().get(f"/api/items/{self.id}/").status_code, 401)
+
+    def test_others_see_area_rounded_distance_first_name_and_the_note(self):
+        data = self.view_as(self.family)
+        self.assertIsNone(data["exact_address"])
+        self.assertIsNone(data["where_to_go"])
+        self.assertEqual(data["private_note"], privacy.PRIVATE_NOTE)
+        self.assertEqual(data["general_area"], "East Nashville")
+        self.assertEqual(data["giver"], "Jordan")
+        self.assertIsInstance(data["distance_miles"], int)
+        self.assertGreaterEqual(data["distance_miles"], 1)
+        self.assertNotIn("12 Sample Ave", str(data))
+        self.assertNotIn("zip_code", data)
+
+    def test_waiting_claim_still_hides_it(self):
+        self.claim(Claim.WAITING)
+        self.assertIsNone(self.view_as(self.family)["exact_address"])
+
+    def test_approved_claim_shows_it_until_the_claim_ends(self):
+        claim = self.claim(Claim.APPROVED)
+        data = self.view_as(self.family)
+        self.assertEqual(data["exact_address"], "12 Sample Ave, Nashville, TN 37206")
+        self.assertEqual(data["where_to_go"], "Front porch. Look for the blue bin.")
+        self.assertIsNone(data["private_note"])
+        for ended in (Claim.DECLINED, Claim.CANCELED, Claim.ENDED, Claim.PICKED_UP):
+            claim.status = ended
+            claim.save()
+            self.assertIsNone(self.view_as(self.family)["exact_address"], ended)
+
+    def test_approved_claim_on_a_taken_down_item_hides_it(self):
+        self.claim(Claim.APPROVED)
+        self.item.taken_down_at = timezone.now()
+        self.item.save()
+        self.assertFalse(privacy.can_see_exact_address(self.family, self.item))
+
+    def test_someone_elses_approval_doesnt_count(self):
+        self.claim(Claim.APPROVED)
+        stranger = make_person("stranger@example.com", "get")
+        self.assertIsNone(self.view_as(stranger)["exact_address"])
+
+    def test_giver_sees_their_own(self):
+        self.assertEqual(self.view_as(self.giver)["exact_address"], "12 Sample Ave, Nashville, TN 37206")
+
+    def test_organization_address_is_public(self):
+        org = make_org()
+        self.client.force_authenticate(org)
+        with self.assertLogs("items.views", "INFO"):
+            pk = self.client.post("/api/items/", item(), format="json").json()["id"]
+        self.client.force_authenticate(self.family)
+        data = self.client.get(f"/api/items/{pk}/").json()
+        self.assertEqual(data["exact_address"], "123 Example St, Nashville, TN 37206")
+        self.assertEqual(data["giver"], "Sample Community Closet")
+        self.assertTrue(data["from_organization"])
+        self.assertIsNone(data["private_note"])
+
+    def test_unknown_zip_has_no_distance_and_taken_down_items_are_gone(self):
+        self.family.profile.zip_code = ""
+        self.family.profile.save()
+        self.assertIsNone(self.view_as(self.family)["distance_miles"])
+        self.item.taken_down_at = timezone.now()
+        self.item.save()
+        self.client.force_authenticate(self.family)
+        self.assertEqual(self.client.get(f"/api/items/{self.id}/").status_code, 404)
+
+    def test_distance_is_whole_miles_and_at_least_one(self):
+        self.family.profile.zip_code = "37206"  # same ZIP as the item: 0 miles reads as about 1
+        self.family.profile.save()
+        self.assertEqual(self.view_as(self.family)["distance_miles"], 1)
+
+    def test_organization_must_be_verified_for_a_public_address(self):
+        self.giver.profile.account_type = Profile.ORGANIZATION  # e.g. flipped in admin, no Organization row
+        self.giver.profile.save()
+        data = self.view_as(self.family)
+        self.assertIsNone(data["exact_address"])
+        self.assertEqual(data["giver"], "Jordan")
+
+    def test_signed_out_viewer_never_sees_it(self):
+        self.assertFalse(privacy.can_see_exact_address(AnonymousUser(), self.item))
+        self.assertEqual(privacy.approved_item_ids(AnonymousUser()), set())
+
+    def test_approval_ends_the_day_after_pickup(self):
+        self.claim(Claim.APPROVED)
+        self.item.pickup_date = local_today() - timedelta(days=1)
+        self.item.save()
+        self.assertTrue(privacy.can_see_exact_address(self.family, self.item))
+        self.item.pickup_date = local_today() - timedelta(days=2)
+        self.item.save()
+        self.assertFalse(privacy.can_see_exact_address(self.family, self.item))
+
+    def test_half_miles_round_up(self):
+        with mock.patch("items.privacy.miles_between", return_value=2.5):
+            self.assertEqual(privacy.rounded_miles(self.family, self.item), 3)
+        with mock.patch("items.privacy.miles_between", return_value=3.49):
+            self.assertEqual(privacy.rounded_miles(self.family, self.item), 3)
+
+    def test_giver_without_a_name(self):
+        self.giver.first_name = ""
+        self.giver.save()
+        self.assertEqual(self.view_as(self.family)["giver"], "A neighbor")

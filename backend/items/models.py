@@ -1,5 +1,14 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from django.conf import settings
 from django.db import models
+
+LOCAL_TZ = ZoneInfo("America/Chicago")  # the demo area is Middle Tennessee; the server runs in UTC
+
+
+def local_today():
+    return datetime.now(LOCAL_TZ).date()
 
 # Item categories on Post an item (Mock Up 19).
 CATEGORIES = {
@@ -15,6 +24,10 @@ class ItemQuerySet(models.QuerySet):
     def live(self):
         """Items families may find: not taken down (KAN-10). Use this in every list or search of items."""
         return self.filter(taken_down_at__isnull=True)
+
+    def public(self):
+        """live() with what the privacy rule reads about the giver, so lists don't query per item."""
+        return self.live().select_related("owner__profile", "owner__organization")
 
 
 class Item(models.Model):

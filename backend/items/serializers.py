@@ -1,17 +1,14 @@
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
 from rest_framework import serializers
 
 from accounts.serializers import address_zip
 
-from .models import CATEGORIES, Item
+from . import privacy
+from .models import CATEGORIES, Item, local_today
 
 MAX_PHOTOS = 4
 MAX_PHOTO_BYTES = 5 * 1024 * 1024
 TICKS = "Check both boxes to post."
 NO_ORG_ADDRESS = "Add your public pickup address to your organization profile first."
-LOCAL_TZ = ZoneInfo("America/Chicago")  # the demo area is Middle Tennessee; the server runs in UTC
 
 
 def photo_type(head):
@@ -58,7 +55,7 @@ class ItemSerializer(serializers.ModelSerializer):
         return value
 
     def validate_pickup_date(self, value):
-        if value < datetime.now(LOCAL_TZ).date():
+        if value < local_today():
             raise serializers.ValidationError("Pick a date that hasn't passed.")
         return value
 
@@ -84,6 +81,51 @@ class ItemSerializer(serializers.ModelSerializer):
         attrs.pop("good_condition")
         attrs.pop("not_recalled")
         return attrs
+
+
+class PublicItemSerializer(serializers.ModelSerializer):
+    """An item as anyone signed in sees it (search, item details). Applies the privacy rule (items.privacy):
+    `exact_address` and `where_to_go` are null unless the viewer may see them. Needs context["request"]."""
+
+    giver = serializers.SerializerMethodField()
+    from_organization = serializers.SerializerMethodField()
+    distance_miles = serializers.SerializerMethodField()
+    exact_address = serializers.SerializerMethodField()
+    where_to_go = serializers.SerializerMethodField()
+    private_note = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Item
+        fields = [
+            "id", "name", "category", "details", "quantity", "pickup_date", "pickup_start", "pickup_end",
+            "general_area", "what_to_bring", "giver", "from_organization", "distance_miles", "exact_address",
+            "where_to_go", "private_note",
+        ]
+
+    def to_representation(self, item):
+        user = self.context["request"].user
+        if not hasattr(self, "_approved"):  # one claims query for a whole list
+            self._approved = privacy.approved_item_ids(user)
+        self._visible = privacy.can_see_exact_address(user, item, approved=self._approved)
+        return super().to_representation(item)
+
+    def get_giver(self, item):
+        return privacy.giver_name(item)
+
+    def get_from_organization(self, item):
+        return privacy.from_organization(item)
+
+    def get_distance_miles(self, item):
+        return privacy.rounded_miles(self.context["request"].user, item)
+
+    def get_exact_address(self, item):
+        return item.exact_address if self._visible else None
+
+    def get_where_to_go(self, item):
+        return item.where_to_go if self._visible else None
+
+    def get_private_note(self, item):
+        return None if self._visible else privacy.PRIVATE_NOTE
 
 
 class OwnItemSerializer(ItemSerializer):

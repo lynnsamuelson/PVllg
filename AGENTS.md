@@ -47,6 +47,8 @@ backend/
   items/             Item + ItemPhoto models; POST /api/items/ (Post an item, KAN-9), /api/items/mine/ (My items,
                      edit, take down: KAN-10), photos served by
                      GET /api/items/photos/<id>/ (stored in the database, so the VM needs no media folder)
+                     privacy.py is the address privacy rule (KAN-11); GET /api/items/<id>/ applies it
+  claims/            Claim model (Waiting, Approved, Declined, Canceled, Ended, Picked up); endpoints in KAN-12/13
   api/               /api/health/ (public) and the Notes demo
   requirements.txt   what the VM installs
   requirements-dev.txt  + test tools (coverage); use this locally and in CI
@@ -149,6 +151,11 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   items (`items.views.IsGiver`; `<RequireGiver>` on the frontend). An item's exact address is private and stored apart
   from its public general area; an organization's items use its profile address, and follow it when it changes.
   Take down sets `Item.taken_down_at` instead of deleting, so list and search items with `Item.objects.live()`.
+- **The address privacy rule lives only in `items/privacy.py`** (KAN-11). Anything that shows an item to someone
+  other than its giver (search, item details, My claims, calendar files, messages) uses `PublicItemSerializer` or
+  `privacy.can_see_exact_address`, never its own check, and loads items with `Item.objects.public()`. A person's
+  exact address and Where to go reach only the family with an Approved claim, until it ends or the day after pickup;
+  distances are whole miles (`privacy.rounded_miles`); a person giver shows by first name only (`privacy.giver_name`).
 - **More than one write per request goes in `transaction.atomic()`** (for example a `User` plus its `Profile`), so a
   failure halfway can't leave a half-made record. Test it: make the second write fail and assert nothing was saved.
 - **Migrations run against the shared production database on deploy.** Avoid destructive changes (dropping or
