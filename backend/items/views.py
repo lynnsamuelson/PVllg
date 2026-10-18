@@ -14,9 +14,10 @@ from claims.models import Claim
 from config.log import get_logger
 
 from . import privacy
-from .models import CATEGORIES, Item, ItemPhoto, local_today
+from .models import CATEGORIES, Item, ItemPhoto, ItemReport, local_today
 from .serializers import (
     CHIP_CATEGORIES,
+    ItemReportSerializer,
     ItemSearchSerializer,
     ItemSerializer,
     OwnItemSerializer,
@@ -86,6 +87,20 @@ def search_items(request):
     nearby.sort(key=lambda m: (m[0], m[1]))
     serializer = PublicItemSerializer([item for _, _, item in nearby], many=True, context={"request": request})
     return Response(serializer.data)
+
+
+@api_view(["POST"])
+def report_item(request, pk):
+    """Report a problem on an item page (Mock Up 24): {reason}. Saved for the PVill team; the item doesn't change."""
+    body = ItemReportSerializer(data=request.data)
+    body.is_valid(raise_exception=True)
+    item = get_object_or_404(Item.objects.live(), pk=pk)
+    if item.owner_id == request.user.pk:
+        return Response({"detail": "You posted this item."}, status=status.HTTP_400_BAD_REQUEST)
+    reason = body.validated_data["reason"]
+    ItemReport.objects.get_or_create(item=item, reporter=request.user, reason=reason)  # the same report once
+    logger.info("item reported user_id=%s item_id=%s reason=%s", request.user.pk, item.pk, reason)
+    return Response(status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET"])

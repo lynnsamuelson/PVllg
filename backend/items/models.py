@@ -98,3 +98,29 @@ class ItemPhoto(models.Model):
 
     class Meta:
         ordering = ["id"]
+
+
+class ItemReport(models.Model):
+    """Someone's report that an item looks wrong, before claiming it (KAN-22, Mock Up 24). It doesn't change the item;
+    the PVill team reads reports in the Django admin."""
+
+    REASONS = [
+        ("not_as_described", "Item isn't as described"),
+        ("recalled_or_unsafe", "Item may be recalled or unsafe"),
+        ("asked_personal_info", "Asked me to share personal information"),
+        ("other", "Something else"),
+    ]
+
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name="reports")
+    # Kept if the reporter's account is deleted, so the team doesn't lose a safety report.
+    reporter = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="item_reports"
+    )
+    reason = models.CharField(max_length=30, choices=REASONS)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_reason_display()} ({self.item})"

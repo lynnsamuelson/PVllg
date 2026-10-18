@@ -82,6 +82,8 @@ export function searchItems(options = {}) {
 
 // Item details (KAN-17): one item with the address privacy rule applied (KAN-11).
 export const getItem = (id) => request(`/items/${id}/`);
+// Report a problem on an item page (KAN-22). reason = not_as_described | recalled_or_unsafe | asked_personal_info | other.
+export const reportItem = (id, reason) => post(`/items/${id}/report/`, { reason });
 
 // Claims (KAN-12). Each claim has { id, status, held_until, item } with the item shaped like getItem's.
 export const claimItem = (itemId) => post("/claims/", { item: itemId });

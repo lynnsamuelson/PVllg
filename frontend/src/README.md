@@ -40,6 +40,7 @@ src/
 │   ├── AppHeader.jsx     Small logo with the screen title beside it, top left (Mock Ups 9, 10, 21)
 │   ├── Badge.jsx         Pill badge (pending, verified, person, demo)
 │   ├── BackToResults.jsx "← Results" on details screens: back to the list that opened it (state fromList), else a fallback
+│   ├── BottomSheet.jsx   Sheet from the bottom over a faded page, with its title (Report a problem)
 │   ├── Toggle.jsx        On/off switch, green when on (Get / Give support)
 │   ├── Tabs.jsx          Text tabs with a green underline on the active one
 │   ├── CodeInput.jsx     Six boxes for an emailed code
@@ -110,6 +111,7 @@ The session is an HttpOnly cookie, so the frontend never handles tokens.
 | `POST /api/items/mine/:id/available/` | The giver puts a paused item back in search |
 | `POST /api/claims/:id/cancel/` | Cancel your claim; the item goes back on the list |
 | `POST /api/claims/:id/approve/`, `/decline/`, `/picked-up/`, `/didnt-come/` | The item's giver answers a Waiting request, or marks an Approved claim picked up or not (Family didn't come). Returns `{id, status, held_until, family}` (first name only) |
+| `POST /api/items/:id/report/` | `{reason}`: Report a problem on an item page. Saved for the PVill team (admin → Item reports); the item doesn't change |
 | `GET /api/items/:id/` | One item as others see it: general area, whole-mile `distance_miles`, `giver` (organization name, or "A parent nearby"), `left` (listed minus current claims), `photos` (URLs), `available` (some left, the pickup day hasn't passed, and not paused by a problem report), `mine`, `demo` (made-up sample data: show the Demo badge). `exact_address` and `where_to_go` are null with a `private_note` unless the viewer may see them (KAN-11) |
 | `GET /api/items/mine/` | Your own items (any account, so turning Give off doesn't strand them) that aren't taken down, with `exact_address` and counts `left`, `requested`, `claimed`, and `claims` (current ones: `{id, status, held_until, family}`), and `paused` (the reported reason, or null) |
 | `GET`/`PUT`/`DELETE /api/items/mine/:id/` | One of the giver's items: fill in Edit, save it (JSON, photos unchanged; givers only), take it down |
