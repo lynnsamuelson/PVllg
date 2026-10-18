@@ -14,6 +14,8 @@ from accounts.models import Organization, Profile
 from claims.models import Claim
 from resources.models import Resource
 
+from claims import actions as claims_actions
+
 from . import demo, privacy
 from .models import Item, ItemPhoto, local_today
 
@@ -584,3 +586,78 @@ class ItemReportTests(APITestCase):
         self.client.force_login(User.objects.create_superuser(username="admin@example.com", password="x"))
         self.assertContains(self.client.get("/admin/items/itemreport/"), "Size 1 diapers")
         self.assertEqual(self.client.get("/admin/items/itemreport/add/").status_code, 403)
+
+
+class ImpactTests(APITestCase):
+    """KAN-23: an organization's Impact numbers come from its real items and claims."""
+
+    def setUp(self):
+        self.org = User.objects.get(username="team@samplecommunitycloset.example")
+        self.org.profile.is_demo = False  # real numbers, not the demo organization's Example data
+        self.org.profile.save()
+        self.client.force_authenticate(self.org)
+        self.diapers = Item.objects.get(name="Size 1 diapers")  # 12, diapers
+        self.wipes = Item.objects.get(name="Baby wipes multipack")  # 10, diapers
+
+    def claim(self, item, family, status, reason="", approved=True, days_ago=0):
+        at = timezone.now() - timedelta(days=days_ago)
+        return Claim.objects.create(
+            item=item, claimant=family, status=status, end_reason=reason, held_until=at + timedelta(days=3),
+            approved_at=at if approved else None, picked_up_at=at if status == Claim.PICKED_UP else None,
+        )
+
+    def get(self):
+        return self.client.get("/api/items/impact/").json()
+
+    def test_logged_out_is_401_and_people_are_refused(self):
+        self.assertEqual(APIClient().get("/api/items/impact/").status_code, 401)
+        self.client.force_authenticate(make_person())
+        self.assertEqual(self.client.get("/api/items/impact/").status_code, 403)
+
+    def test_counts_match_the_claims_and_a_family_counts_once(self):
+        taylor, jordan, sam = (make_person(f"{n}@example.com", "get") for n in ("taylor", "jordan", "sam"))
+        self.claim(self.diapers, taylor, Claim.PICKED_UP)
+        self.claim(self.wipes, taylor, Claim.PICKED_UP)  # same family again
+        self.claim(self.diapers, jordan, Claim.APPROVED)
+        self.claim(self.wipes, sam, Claim.ENDED, Claim.NO_SHOW)
+        self.claim(self.diapers, jordan, Claim.CANCELED)  # an organization's claim is approved, then canceled
+        self.claim(self.wipes, jordan, Claim.ENDED, Claim.NO_ANSWER, approved=False)  # never claimed
+        self.claim(self.diapers, sam, Claim.DECLINED, approved=False)
+        data = self.get()
+        self.assertEqual(data["organization"], "Sample Community Closet")
+        self.assertFalse(data["demo"])
+        self.assertEqual(data["families_helped"], 1)
+        self.assertEqual(data["items_posted"], 30)  # 12 + 8 + 10 from the KAN-26 sample items
+        self.assertEqual(data["items_claimed"], 5)
+        self.assertEqual(data["items_picked_up"], 2)
+        self.assertEqual(data["returned_to_list"], 2)  # the no-show and the cancel
+        self.assertEqual(data["estimated_savings"], 30)  # 2 diaper items at $15
+
+    def test_marking_picked_up_and_approving_record_when(self):
+        family = make_person("family@example.com", "get")
+        with self.assertLogs("claims.actions", "INFO"):
+            claim = claims_actions.claim_item(family, self.diapers.pk)  # organization item: approved at once
+            claims_actions.mark_picked_up(claim)
+        claim.refresh_from_db()
+        self.assertIsNotNone(claim.approved_at)
+        self.assertIsNotNone(claim.picked_up_at)
+        self.assertEqual(self.get()["items_picked_up"], 1)
+
+    def test_a_recent_pickup_on_an_older_claim_counts(self):
+        old = self.claim(self.diapers, make_person("old@example.com", "get"), Claim.PICKED_UP, days_ago=40)
+        Claim.objects.filter(pk=old.pk).update(picked_up_at=timezone.now())
+        self.assertEqual(self.get()["items_picked_up"], 1)
+
+    def test_only_the_last_30_days_and_only_this_organization(self):
+        self.claim(self.diapers, make_person("old@example.com", "get"), Claim.PICKED_UP, days_ago=31)
+        Item.objects.filter(owner=self.org).update(created_at=timezone.now() - timedelta(days=31))
+        data = self.get()
+        self.assertEqual((data["items_posted"], data["items_picked_up"], data["items_claimed"]), (0, 0, 0))
+
+    def test_demo_organizations_show_example_data(self):
+        pantry = User.objects.get(username="team@examplefamilypantry.example")
+        self.client.force_authenticate(pantry)
+        data = self.get()
+        self.assertTrue(data["demo"])
+        self.assertEqual((data["organization"], data["families_helped"], data["estimated_savings"]),
+                         ("Example Family Pantry", 18, 620))

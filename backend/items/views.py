@@ -9,11 +9,13 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
 from accounts.models import Profile
+from accounts.views import IsOrganization
 from claims.actions import expire_overdue
 from claims.models import Claim
 from config.log import get_logger
 
 from . import privacy
+from .impact import EXAMPLE, impact
 from .models import CATEGORIES, Item, ItemPhoto, ItemReport, local_today
 from .serializers import (
     CHIP_CATEGORIES,
@@ -87,6 +89,18 @@ def search_items(request):
     nearby.sort(key=lambda m: (m[0], m[1]))
     serializer = PublicItemSerializer([item for _, _, item in nearby], many=True, context={"request": request})
     return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsOrganization])
+def impact_numbers(request):
+    """The Impact tab (Mock Up 10): an organization's last 30 days. `demo` is true for the made-up demo
+    organizations, whose numbers the screen labels Example data."""
+    expire_overdue()
+    profile = request.user.profile
+    org = getattr(request.user, "organization", None)
+    numbers = EXAMPLE if profile.is_demo else impact(request.user)
+    return Response({"organization": org.name if org else request.user.first_name, "demo": profile.is_demo, **numbers})
 
 
 @api_view(["POST"])

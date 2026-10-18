@@ -29,6 +29,7 @@
   /* Type sizes as drawn on the 300px-wide mockups; KAN-4 (Figma) may revise. */
   --font-brand: Arial, sans-serif; /* placeholder until the team picks a font */
   --text-display: 30px; /* bold, the PVill name on Welcome */
+  --text-stat: 20px; /* bold, the numbers on Impact tiles (Figma 26) */
   --text-title: 19px; /* bold */
   --text-card-title: 15px; /* bold, choice card titles */
   --text-body: 13px;
@@ -835,4 +836,32 @@ button.text-link {
 }
 .sheet-badge {
   margin-bottom: -6px; /* the badge sits close above its sheet's title (Mock Up 23) */
+}
+
+/* Impact (Mock Up 10): the header with its Example data badge, then six number tiles in two columns. */
+.app-header-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.impact-tiles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-card-gap);
+}
+.impact-tile {
+  background: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+.impact-tile strong {
+  font-size: var(--text-stat);
+}
+.impact-tile span {
+  color: var(--color-plum-muted);
 }

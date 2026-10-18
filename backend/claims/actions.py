@@ -47,11 +47,13 @@ def claim_item(user, item_id):
             raise ClaimRefused("You already have a claim on this item. See My claims.")
         if Item.objects.with_counts().get(pk=item.pk).left <= 0:
             raise ClaimRefused("Someone just claimed the last one. Try searching for another.", 409)
+        approved = privacy.from_organization(item)
         claim = Claim.objects.create(
             item=item,
             claimant=user,
-            status=Claim.APPROVED if privacy.from_organization(item) else Claim.WAITING,
+            status=Claim.APPROVED if approved else Claim.WAITING,
             held_until=hold_until(item),
+            approved_at=timezone.now() if approved else None,
         )
     logger.info("claim made user_id=%s item_id=%s claim_id=%s status=%s", user.pk, item.pk, claim.pk, claim.status)
     return claim
@@ -65,7 +67,9 @@ def approve_claim(claim):
     if not live.exists():
         return False
     held = hold_until(live.get())  # the family's hold starts again at approval
-    approved = Claim.objects.filter(pk=claim.pk, status=Claim.WAITING).update(status=Claim.APPROVED, held_until=held)
+    approved = Claim.objects.filter(pk=claim.pk, status=Claim.WAITING).update(
+        status=Claim.APPROVED, held_until=held, approved_at=timezone.now()
+    )
     if approved:
         claim.status = Claim.APPROVED
         claim.held_until = held
@@ -76,7 +80,9 @@ def approve_claim(claim):
 def mark_picked_up(claim):
     """The giver confirms the family came (KAN-13): an Approved claim is done and its item counts as picked up.
     Returns False if the claim wasn't Approved."""
-    done = Claim.objects.filter(pk=claim.pk, status=Claim.APPROVED).update(status=Claim.PICKED_UP)
+    done = Claim.objects.filter(pk=claim.pk, status=Claim.APPROVED).update(
+        status=Claim.PICKED_UP, picked_up_at=timezone.now()
+    )
     if done:
         claim.status = Claim.PICKED_UP
         logger.info("claim picked up claim_id=%s", claim.pk)
