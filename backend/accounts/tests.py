@@ -443,16 +443,7 @@ class PersonProfileTests(APITestCase):
     def test_failed_save_leaves_nothing_behind(self):
         user = User.objects.create_user(username="old@example.com", password=GOOD_PASSWORD)
         self.client.force_authenticate(user)
-        real_save = Profile.save
-        calls = []
-
-        def fail_second_write(profile, *args, **kwargs):
-            calls.append(1)
-            if len(calls) > 1:
-                raise DatabaseError("boom")
-            return real_save(profile, *args, **kwargs)
-
-        with mock.patch.object(Profile, "save", fail_second_write), self.assertRaises(DatabaseError), \
+        with mock.patch.object(Profile, "save", side_effect=DatabaseError("boom")), self.assertRaises(DatabaseError), \
                 self.assertLogs("django.request", "ERROR"):
             self.save()
         self.assertFalse(Profile.objects.filter(user=user).exists())
