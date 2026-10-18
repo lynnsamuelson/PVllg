@@ -208,6 +208,13 @@ deploy). Use letters and numbers only (`openssl rand -hex 16`). Sign in with it,
   `team@examplefamilypantry.example` and `team@demobabybasicshub.example`. They have no password until you set one
   (see "Sign in as an existing account"). Sample pickup dates are a few days out; when they pass, admin → Items →
   select all → **Refresh demo pickup dates**.
+- **Use the demo families:** four more made-up families, each with a different journey and My claims already in a
+  set state: `jade@demo.example` (19, aging out of foster care, with a newborn; an Approved hold and a pickup in
+  Past), `pat@demo.example` (grandparent raising grandchildren; an Approved hold and a hold that ended),
+  `andre@demo.example` (single dad; a Waiting request for Morgan's bath tub, so sign in as Morgan to approve it) and
+  `sam@demo.example` (two parents, a toddler and a baby on the way; an Approved claim on Casey's baby carrier, which
+  shows Casey's address). Set their passwords in admin the same way. **Refresh demo pickup dates** also restarts
+  their Waiting and Approved claims, which would otherwise end after 2 days unanswered or a day past the hold.
 - **Give someone admin access:** admin → Users → their account → tick **Staff status** and **Superuser status**.
 
 ## VM access for teammates

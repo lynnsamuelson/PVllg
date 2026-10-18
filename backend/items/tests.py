@@ -389,7 +389,7 @@ class DemoDataTests(APITestCase):
         jordan = User.objects.get(username="jordan@demo.example")
         self.assertEqual(jordan.profile.roles, ["parent", "kinship"])
         demo_items = Item.objects.filter(owner__username__endswith=".example")
-        self.assertEqual(demo_items.count(), 10)
+        self.assertEqual(demo_items.count(), 14)  # 10 from KAN-26, 4 from the demo families (0007)
         diapers = demo_items.get(name="Size 1 diapers")
         self.assertEqual((diapers.quantity, diapers.zip_code), (12, "37206"))
         self.assertEqual(diapers.exact_address, "100 Sample Way, Nashville, TN 37206")
@@ -407,7 +407,7 @@ class DemoDataTests(APITestCase):
         with self.assertLogs("items.views", "INFO"):
             own = self.client.post("/api/items/", item(), format="json").json()["id"]
         Item.objects.update(pickup_date="2020-01-01")
-        self.assertEqual(demo.refresh_dates(Item.objects.all()), 10)
+        self.assertEqual(demo.refresh_dates(Item.objects.all()), 14)
         self.assertEqual(Item.objects.get(name="Pack and play").pickup_date, local_today() + timedelta(days=5))
         self.assertEqual(str(Item.objects.get(pk=own).pickup_date), "2020-01-01")
 
@@ -424,15 +424,15 @@ class DemoDataTests(APITestCase):
         resp = self.client.post(
             "/admin/items/item/", {"action": "refresh_demo_dates", "_selected_action": ids}, follow=True
         )
-        self.assertContains(resp, "Moved 10 demo item(s)")
+        self.assertContains(resp, "Moved 14 demo item(s)")
 
     def test_loading_twice_leaves_existing_accounts_alone(self):
         import_module("items.migrations.0003_demo_data").load(apps, None)
-        self.assertEqual(Item.objects.filter(owner__username__endswith=".example").count(), 10)
+        self.assertEqual(Item.objects.filter(owner__username__endswith=".example").count(), 14)
 
     def test_unload_removes_the_demo_accounts(self):
-        migration = import_module("items.migrations.0003_demo_data")
-        migration.unload(apps, None)
+        import_module("items.migrations.0007_demo_families").unload(apps, None)  # migrations reverse newest first
+        import_module("items.migrations.0003_demo_data").unload(apps, None)
         self.assertFalse(User.objects.filter(username__endswith=".example").exists())
         self.assertFalse(Item.objects.filter(owner__username__endswith=".example").exists())
 
@@ -488,8 +488,8 @@ class SearchItemsTests(APITestCase):
         self.assertEqual(
             set(self.names("q=diapers")), {"Size 1 diapers", "Size 2 diapers", "Size 3 diapers", "Baby wipes multipack"}
         )
-        self.assertEqual(self.names("q=bottle"), ["Bottle starter kit"])
-        self.assertEqual(self.names("category=feeding"), ["Bottle starter kit"])
+        self.assertEqual(set(self.names("q=bottle")), {"Bottle starter kit", "Bottle drying rack"})
+        self.assertEqual(set(self.names("category=feeding")), {"Bottle starter kit", "Bottle drying rack"})
         self.assertEqual(self.names("category=parenting&radius=50"), ["Pack and play"])
         self.assertEqual(self.names("category=housing"), [])
 
@@ -514,7 +514,7 @@ class SearchItemsTests(APITestCase):
 
     def test_words_match_category_labels(self):
         self.assertLessEqual({"Umbrella stroller", "Baby clothes bundle, 0-3 mo"}, set(self.names("q=gear&radius=50")))
-        self.assertEqual(self.names("q=supplies"), ["Bottle starter kit"])
+        self.assertEqual(set(self.names("q=supplies")), {"Bottle starter kit", "Bottle drying rack"})
 
     def test_no_zip_means_no_results(self):
         self.family.profile.zip_code = ""
