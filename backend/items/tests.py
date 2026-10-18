@@ -527,3 +527,60 @@ class SearchItemsTests(APITestCase):
     def test_bad_options(self):
         self.assertEqual(self.client.get("/api/items/search/?radius=7").status_code, 400)
         self.assertEqual(self.client.get("/api/items/search/?category=toys").status_code, 400)
+
+
+class ItemReportTests(APITestCase):
+    """KAN-22: Report a problem on an item page."""
+
+    def setUp(self):
+        self.viewer = make_person("viewer@example.com", "get")
+        self.client.force_authenticate(self.viewer)
+        self.item = Item.objects.get(name="Size 1 diapers")
+
+    def test_logged_out_is_401(self):
+        self.assertEqual(APIClient().post(f"/api/items/{self.item.pk}/report/", {"reason": "other"}).status_code, 401)
+
+    def test_saves_the_report_and_leaves_the_item_alone(self):
+        before = Item.objects.with_counts().get(pk=self.item.pk)
+        with self.assertLogs("items.views", "INFO"):
+            resp = self.client.post(f"/api/items/{self.item.pk}/report/", {"reason": "recalled_or_unsafe"}, format="json")
+        self.assertEqual(resp.status_code, 201)
+        report = self.item.reports.get()
+        self.assertEqual((report.reporter, report.reason), (self.viewer, "recalled_or_unsafe"))
+        after = Item.objects.with_counts().get(pk=self.item.pk)
+        self.assertEqual((after.left, after.paused_at, after.taken_down_at), (before.left, None, None))
+
+    def test_needs_a_known_reason_and_a_live_item(self):
+        self.assertEqual(self.client.post(f"/api/items/{self.item.pk}/report/", {}, format="json").status_code, 400)
+        self.assertEqual(
+            self.client.post(f"/api/items/{self.item.pk}/report/", {"reason": ["other"]}, format="json").status_code, 400
+        )
+        self.assertEqual(
+            self.client.post(f"/api/items/{self.item.pk}/report/", {"reason": "spam"}, format="json").status_code, 400
+        )
+        Item.objects.filter(pk=self.item.pk).update(taken_down_at=timezone.now())
+        self.assertEqual(
+            self.client.post(f"/api/items/{self.item.pk}/report/", {"reason": "other"}, format="json").status_code, 404
+        )
+
+    def test_the_same_report_counts_once_and_not_on_your_own_item(self):
+        with self.assertLogs("items.views", "INFO"):
+            for _ in range(2):
+                self.client.post(f"/api/items/{self.item.pk}/report/", {"reason": "other"}, format="json")
+        self.assertEqual(self.item.reports.count(), 1)
+        self.client.force_authenticate(self.item.owner)
+        resp = self.client.post(f"/api/items/{self.item.pk}/report/", {"reason": "other"}, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_reports_outlive_the_reporter(self):
+        with self.assertLogs("items.views", "INFO"):
+            self.client.post(f"/api/items/{self.item.pk}/report/", {"reason": "other"}, format="json")
+        self.viewer.delete()
+        self.assertIsNone(self.item.reports.get().reporter)
+
+    def test_admin_list_is_read_only(self):
+        with self.assertLogs("items.views", "INFO"):
+            self.client.post(f"/api/items/{self.item.pk}/report/", {"reason": "other"}, format="json")
+        self.client.force_login(User.objects.create_superuser(username="admin@example.com", password="x"))
+        self.assertContains(self.client.get("/admin/items/itemreport/"), "Size 1 diapers")
+        self.assertEqual(self.client.get("/admin/items/itemreport/add/").status_code, 403)

@@ -3,12 +3,89 @@ import { useNavigate, useParams } from "react-router-dom";
 import * as api from "../../api/client.js";
 import BackToResults from "../../components/BackToResults.jsx";
 import Badge from "../../components/Badge.jsx";
+import BottomSheet from "../../components/BottomSheet.jsx";
 import BrandHeader from "../../components/BrandHeader.jsx";
 import Button from "../../components/Button.jsx";
+import FieldError from "../../components/FieldError.jsx";
 import NoteBox from "../../components/NoteBox.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { formatMiles, formatPickup } from "../../format.js";
 import { ROUTES } from "../../routes.js";
+
+// Keys match items.models.ItemReport.REASONS.
+const REPORT_REASONS = [
+  { value: "not_as_described", label: "Item isn't as described" },
+  { value: "recalled_or_unsafe", label: "Item may be recalled or unsafe" },
+  { value: "asked_personal_info", label: "Asked me to share personal information" },
+  { value: "other", label: "Something else" },
+];
+
+// Mock Up 24: what's wrong with this item, in a bottom sheet over the item page. Sending doesn't change the item.
+function ReportSheet({ itemId, onClose }) {
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const send = async (e) => {
+    e.preventDefault();
+    if (!reason) {
+      setFieldErrors({ reason: ["Pick what's wrong."] });
+      return;
+    }
+    setFieldErrors({});
+    setError("");
+    setSending(true);
+    try {
+      await api.reportItem(itemId, reason);
+      setSent(true);
+    } catch (err) {
+      setFieldErrors(err.fields || {});
+      setError(err.status ? `Your report wasn't sent. ${err.message}` : "Your report wasn't sent. Check your connection and try again.");
+    }
+    setSending(false);
+  };
+
+  return (
+    <BottomSheet title="What's wrong?" onClose={onClose}>
+      {sent ? (
+        <p role="status" tabIndex={-1} ref={(el) => el?.focus()}>
+          Thanks. Our team will review this.
+        </p>
+      ) : (
+        <form onSubmit={send} className="stack" noValidate>
+          <fieldset className="checkbox-list">
+            <legend className="sr-only">What&apos;s wrong</legend>
+            {REPORT_REASONS.map((r) => (
+              <div key={r.value} className="checkbox-row">
+                <label>
+                  <input
+                    type="radio"
+                    name="report-reason"
+                    value={r.value}
+                    checked={reason === r.value}
+                    onChange={() => setReason(r.value)}
+                  />
+                  {r.label}
+                </label>
+              </div>
+            ))}
+          </fieldset>
+          <FieldError messages={fieldErrors.reason} />
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+          <Button type="submit" disabled={sending}>
+            Send report
+          </Button>
+        </form>
+      )}
+    </BottomSheet>
+  );
+}
 
 // "Private. The exact pickup place..." with its first sentence ("Private.") in bold, as on Mock Up 14.
 function boldLabel(note) {
@@ -31,12 +108,14 @@ export default function ItemDetailPage() {
   const [error, setError] = useState("");
   const [claiming, setClaiming] = useState(false);
   const [claimError, setClaimError] = useState("");
+  const [reporting, setReporting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     let current = true;
     setItem(null);
     setError("");
+    setReporting(false);
     api
       .getItem(itemId)
       .then((data) => current && setItem(data))
@@ -149,13 +228,13 @@ export default function ItemDetailPage() {
             <Button disabled={!available || claiming} onClick={claim}>
               {org ? "Claim one (held for 3 days)" : "Request to claim"}
             </Button>
-            {/* The Report sheet is built in KAN-22; until then the link shows but does nothing. */}
-            <button type="button" className="text-link centered">
+            <button type="button" className="text-link centered" onClick={() => setReporting(true)}>
               Report a problem
             </button>
           </>
         )}
       </div>
+      {reporting && <ReportSheet itemId={item.id} onClose={() => setReporting(false)} />}
     </section>
   );
 }

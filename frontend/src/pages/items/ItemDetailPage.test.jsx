@@ -96,6 +96,24 @@ describe("ItemDetailPage", () => {
     expect(screen.queryByRole("button", { name: /Claim/ })).not.toBeInTheDocument();
   });
 
+  it("reports a problem in a sheet without leaving the item", async () => {
+    const report = vi.spyOn(api, "reportItem").mockRejectedValueOnce(new Error("Failed to fetch")).mockResolvedValueOnce(null);
+    renderPage(PERSON_ITEM);
+    fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
+    expect(screen.getByRole("dialog", { name: "What's wrong?" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Send report" }));
+    expect(screen.getByText("Pick what's wrong.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("radio", { name: "Item may be recalled or unsafe" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send report" }));
+    expect(await screen.findByText("Your report wasn't sent. Check your connection and try again.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Send report" }));
+    expect(await screen.findByText("Thanks. Our team will review this.")).toHaveFocus();
+    expect(report).toHaveBeenLastCalledWith(1, "recalled_or_unsafe");
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Baby clothes bundle" })).toBeInTheDocument();
+  });
+
   it("turns the button off when it can't be claimed anymore", async () => {
     renderPage({ ...ORG_ITEM, quantity: 0, available: false });
     expect(await screen.findByRole("heading", { name: "Not available" })).toBeInTheDocument();

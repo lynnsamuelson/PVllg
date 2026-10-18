@@ -7,7 +7,7 @@ from claims.giver import RequestSerializer
 from claims.models import PickupReport
 
 from . import privacy
-from .models import CATEGORIES, PICKUP_FIELDS, Item, local_today
+from .models import CATEGORIES, PICKUP_FIELDS, Item, ItemReport, local_today
 
 MAX_PHOTOS = 4
 MAX_PHOTO_BYTES = 5 * 1024 * 1024
@@ -163,6 +163,10 @@ CHIP_CATEGORIES = {
     "parenting": ["furniture"],
     "housing": [],
 }
+
+
+class ItemReportSerializer(serializers.Serializer):
+    reason = serializers.ChoiceField(choices=ItemReport.REASONS, error_messages={"invalid_choice": "Pick what's wrong."})
 
 
 class ItemSearchSerializer(serializers.Serializer):

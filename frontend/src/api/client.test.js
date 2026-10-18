@@ -11,6 +11,7 @@ import {
   verifyOrgCode,
   getResourceMatches,
   postItem,
+  reportItem,
   claimItem,
   listClaims,
   cancelClaim,
@@ -108,6 +109,15 @@ describe("api client", () => {
     expect(fetch.mock.calls[0][1].body).toBe('{"reason":"not_there","note":""}');
     await markAvailable(7);
     expect(fetch.mock.calls[1][0]).toBe("/api/items/mine/7/available/");
+  });
+
+  it("reports an item", async () => {
+    document.cookie = "csrftoken=abc123";
+    const fetch = vi.fn(async () => ({ ok: true, status: 201, statusText: "", json: () => Promise.resolve(null) }));
+    vi.stubGlobal("fetch", fetch);
+    await reportItem(3, "other");
+    expect(fetch.mock.calls[0][0]).toBe("/api/items/3/report/");
+    expect(fetch.mock.calls[0][1].body).toBe('{"reason":"other"}');
   });
 
   it("builds the calendar file URL", () => {

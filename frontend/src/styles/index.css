@@ -802,3 +802,34 @@ button.text-link {
   font-weight: bold;
   cursor: pointer;
 }
+
+/* Bottom sheet: the page fades behind a white sheet with a rounded, peach-edged top (Mock Ups 23-24). */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-ivory) 70%, transparent); /* the page shows through, faded */
+}
+.sheet {
+  width: 100%;
+  max-width: 390px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 16px var(--space-side) 24px;
+  background: var(--color-white);
+  border-top: 3px solid var(--color-peach);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  outline: none;
+}
+.sheet h2 {
+  font-size: var(--text-title);
+  margin: 0;
+}
+.sheet-close {
+  align-self: flex-end;
+}

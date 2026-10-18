@@ -45,7 +45,7 @@ backend/
   resources/         Resource model, read-only API, admin; data/organization-profiles.json is the 12 real, checked
                      programs (KAN-26), loaded by migration 0005;
                      matching.py ranks resources for a profile (GET /api/resources/matches/, KAN-16)
-  items/             Item + ItemPhoto models; POST /api/items/ (Post an item, KAN-9), /api/items/mine/ (My items,
+  items/             Item + ItemPhoto + ItemReport (Report a problem, KAN-22; read in admin) models; POST /api/items/ (Post an item, KAN-9), /api/items/mine/ (My items,
                      edit, take down: KAN-10), photos served by
                      GET /api/items/photos/<id>/ (stored in the database, so the VM needs no media folder)
                      privacy.py is the address privacy rule (KAN-11); GET /api/items/<id>/ and
@@ -65,7 +65,7 @@ frontend/
     App.jsx          route table
     routes.js        every URL path; always use ROUTES.x
     pages/<area>/    one folder per area, one file per page
-    components/      shared UI (Layout, BottomNav, Button, TextField, ChoiceCard, Chip, Checkbox, ProgressBar, NoteBox, Logo, BrandHeader, AppHeader, Badge, Tabs, BackToResults, Toggle, CodeInput, ProtectedRoute, RequireVerifiedOrg, RequireGiver, FieldError, Placeholder)
+    components/      shared UI (Layout, BottomNav, Button, TextField, ChoiceCard, Chip, Checkbox, ProgressBar, NoteBox, Logo, BrandHeader, AppHeader, Badge, Tabs, BackToResults, Toggle, BottomSheet, CodeInput, ProtectedRoute, RequireVerifiedOrg, RequireGiver, FieldError, Placeholder)
     context/         AuthContext (current user, login/signup/logout)
     api/client.js    the ONLY place that calls fetch(); handles CSRF + 401
     logger.js        the ONLY place that calls console; use log.info/warn/error
