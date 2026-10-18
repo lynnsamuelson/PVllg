@@ -139,7 +139,7 @@ jobs:
             fi
             # Leave the EMAIL_HOST secret unset and emails (org codes) print to journalctl instead. Blank secrets
             # are left out so they can't override the defaults in settings.py with empty values.
-            # ADMIN_EMAIL/ADMIN_PASSWORD: first Django admin login, created once by manage.py ensure_admin.
+            # ADMIN_EMAIL/ADMIN_PASSWORD: main Django admin login, created or reset on every deploy by manage.py ensure_admin.
             for name in EMAIL_HOST EMAIL_PORT EMAIL_HOST_USER EMAIL_HOST_PASSWORD DEFAULT_FROM_EMAIL ADMIN_EMAIL ADMIN_PASSWORD; do
               if [ -n "${!name}" ]; then echo "$name=${!name}"; fi
             done

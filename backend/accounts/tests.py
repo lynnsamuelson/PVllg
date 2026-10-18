@@ -342,13 +342,17 @@ class EnsureAdminTests(APITestCase):
         with mock.patch.dict(os.environ, env):
             call_command("ensure_admin", stdout=mock.Mock())
 
-    def test_creates_admin_once(self):
+    def test_creates_admin_then_resets_its_password(self):
         self.run_it(ADMIN_EMAIL=" Owner@Example.com ", ADMIN_PASSWORD=GOOD_PASSWORD)
         admin = User.objects.get(username="owner@example.com")
         self.assertTrue(admin.is_superuser and admin.is_staff)
+        admin.is_superuser = admin.is_staff = False
+        admin.save()
         self.run_it(ADMIN_EMAIL="owner@example.com", ADMIN_PASSWORD="a-different-password-9")
         admin.refresh_from_db()
-        self.assertTrue(admin.check_password(GOOD_PASSWORD))
+        self.assertTrue(admin.check_password("a-different-password-9"))
+        self.assertTrue(admin.is_superuser and admin.is_staff)
+        self.assertEqual(User.objects.count(), 1)
 
     def test_skips_without_settings(self):
         self.run_it(ADMIN_EMAIL="owner@example.com", ADMIN_PASSWORD="")
