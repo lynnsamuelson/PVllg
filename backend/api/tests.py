@@ -28,6 +28,8 @@ class LockdownTests(APITestCase):
         "/api/items/1/",
         "/api/items/search/",
         "/api/claims/",
+        "/api/claims/1/",
+        "/api/claims/1/calendar.ics",
         "/api/claims/1/cancel/",
         "/api/claims/1/approve/",
         "/api/claims/1/decline/",

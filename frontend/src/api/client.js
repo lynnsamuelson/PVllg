@@ -87,6 +87,15 @@ export const getItem = (id) => request(`/items/${id}/`);
 export const claimItem = (itemId) => post("/claims/", { item: itemId });
 export const listClaims = (tab) => request(`/claims/${tab === "past" ? "?tab=past" : ""}`);
 export const cancelClaim = (id) => post(`/claims/${id}/cancel/`);
+export const getClaim = (id) => request(`/claims/${id}/`);
+// Add to calendar (KAN-19): the .ics file's URL. reminders = ["day", "hour"]; download saves it instead of opening it.
+export function calendarUrl(id, { reminders = [], download = false } = {}) {
+  const params = new URLSearchParams();
+  if (reminders.length) params.set("reminders", reminders.join(","));
+  if (download) params.set("download", "1");
+  const query = params.toString();
+  return `/api/claims/${id}/calendar.ics${query ? `?${query}` : ""}`;
+}
 // The giver's answers (KAN-13). Each returns { id, status, held_until, family } with the family's first name only.
 export const approveClaim = (id) => post(`/claims/${id}/approve/`);
 export const declineClaim = (id) => post(`/claims/${id}/decline/`);

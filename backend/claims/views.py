@@ -1,4 +1,6 @@
 from django.db.models import Prefetch
+from django.http import HttpResponse
+from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -9,7 +11,7 @@ from accounts.views import IsPerson
 from items import privacy
 from items.models import Item, ItemPhoto
 
-from . import actions
+from . import actions, calendar
 from .models import Claim
 from .giver import RequestSerializer
 from .serializers import ClaimSerializer, NewClaimSerializer
@@ -81,6 +83,35 @@ def didnt_come(request, pk):
     return answer(
         request, pk, actions.family_didnt_come, "You can say the family didn't come once the pickup day has come."
     )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsPerson])
+def claim_detail(request, pk):
+    """One of the family's own Approved claims, for Add to calendar (Mock Up 16), with the event's place and notes."""
+    actions.expire_overdue()
+    claim = get_object_or_404(my_claims_queryset(request.user), pk=pk, status=Claim.APPROVED)
+    where, notes = calendar.event_details(claim, request.user)
+    return Response({**ClaimSerializer(claim, context=context(request)).data, "event": {"where": where, "notes": notes}})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsPerson])
+def claim_calendar(request, pk):
+    """The calendar file for an Approved claim (KAN-19); the button is only on Approved cards (Mock Up 15). ?reminders=day,hour adds alarms; ?download=1 saves it as a file
+    instead of opening it in the calendar app. Adding it clears the "Pickup details changed" notice."""
+    actions.expire_overdue()
+    claim = get_object_or_404(
+        Claim.objects.select_related("item__owner__profile", "item__owner__organization"),
+        pk=pk, claimant=request.user, status=Claim.APPROVED,
+    )
+    reminders = [r for r in request.query_params.get("reminders", "").split(",") if r in calendar.REMINDERS]
+    now = timezone.now()
+    resp = HttpResponse(calendar.ics(claim, request.user, reminders, now), content_type="text/calendar; charset=utf-8")
+    disposition = "attachment" if request.query_params.get("download") else "inline"
+    resp["Content-Disposition"] = f'{disposition}; filename="pvill-pickup-{claim.pk}.ics"'
+    Claim.objects.filter(pk=claim.pk).update(calendar_added_at=now)
+    return resp
 
 
 @api_view(["POST"])

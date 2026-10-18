@@ -273,7 +273,9 @@ def organization_profile(request):
     with transaction.atomic():
         org.save(update_fields=list(profile))
         # The organization's items are picked up at its public address, so they follow it (KAN-9).
-        request.user.items.update(exact_address=profile["pickup_address"], zip_code=profile["zip_code"])
+        request.user.items.exclude(exact_address=profile["pickup_address"]).update(
+            exact_address=profile["pickup_address"], zip_code=profile["zip_code"], pickup_changed_at=timezone.now()
+        )
     logger.info("org profile saved user_id=%s", request.user.pk)
     return user_response(request.user)
 
