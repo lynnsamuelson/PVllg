@@ -132,8 +132,9 @@ If you change a model, commit its migration, or `makemigrations --check` fails t
   test output stays clean.
 - **Coverage** can't drop below `fail_under` in `.coveragerc`. When you raise coverage, raise the floor too.
 - **Organizations are Pending until they confirm a work email** on their website's domain (`accounts.Organization`,
-  `user.organization.status` in the API: `pending` or `verified`, `null` before they start). Anything only Verified
-  organizations may do must check `organization.verified_at` on the backend; on the frontend, wrap the route in
+  `user.organization.status` in the API: `pending` or `verified`, `null` before they start). For testing, admin →
+  Organizations → **Mark verified** skips the code (README → Test accounts). Anything only Verified organizations may
+  do must check `organization.verified_at` on the backend; on the frontend, wrap the route in
   `<RequireVerifiedOrg>`. Email goes through `django.core.mail` (`EMAIL_*` settings; the console without `EMAIL_HOST`).
 - **More than one write per request goes in `transaction.atomic()`** (for example a `User` plus its `Profile`), so a
   failure halfway can't leave a half-made record. Test it: make the second write fail and assert nothing was saved.
@@ -291,7 +292,7 @@ approval (KAN-11).
 
 **Pipeline** (`.github/workflows/ci-deploy.yml`, deploy job): builds React, tars `backend/`, `deploy/` and
 `frontend/dist`, writes a `.env` from secrets, copies both to the VM over SSH, and runs `deploy/remote-deploy.sh`.
-That script installs Python deps, runs `migrate` and `collectstatic`, publishes the React build, installs the
+That script installs Python deps, runs `migrate`, `ensure_admin` and `collectstatic`, publishes the React build, installs the
 Apache and systemd config, restarts the app, and checks health.
 
 **GitHub configuration.** Never put these values in code.
@@ -302,6 +303,7 @@ Apache and systemd config, restarts the app, and checks health.
 | `VM_SSH_KEY`, `VM_KNOWN_HOSTS` | secret | Deploy key + host key for SSH |
 | `DJANGO_SECRET_KEY` | secret | Django secret |
 | `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | secret | HeatWave app user (not admin) |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | secret | First Django admin login, created on deploy if it doesn't exist (`manage.py ensure_admin`). Unset: skipped |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` | secret | SMTP for organization codes (e.g. OCI Email Delivery on 587). Unset: emails go to `journalctl` |
 
 **On the VM** (Oracle Linux 9, user `opc`, SELinux enforcing). Paths still use the original placeholder name

@@ -29,6 +29,7 @@ echo "==> Django migrate + collectstatic"
 cd "$APP/backend"
 export ENV_FILE="$APP/.env"
 "$APP/venv/bin/python" manage.py migrate --noinput
+"$APP/venv/bin/python" manage.py ensure_admin
 "$APP/venv/bin/python" manage.py collectstatic --noinput -v 0
 
 echo "==> Frontend"

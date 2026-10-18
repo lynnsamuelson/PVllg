@@ -119,6 +119,8 @@ jobs:
           EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
           EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
           DEFAULT_FROM_EMAIL: ${{ secrets.DEFAULT_FROM_EMAIL }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
         run: |
           tar --exclude='__pycache__' --exclude='.env' --exclude='*.sqlite3' \
               -czf release.tgz backend deploy frontend/dist
@@ -137,7 +139,8 @@ jobs:
             fi
             # Leave the EMAIL_HOST secret unset and emails (org codes) print to journalctl instead. Blank secrets
             # are left out so they can't override the defaults in settings.py with empty values.
-            for name in EMAIL_HOST EMAIL_PORT EMAIL_HOST_USER EMAIL_HOST_PASSWORD DEFAULT_FROM_EMAIL; do
+            # ADMIN_EMAIL/ADMIN_PASSWORD: first Django admin login, created once by manage.py ensure_admin.
+            for name in EMAIL_HOST EMAIL_PORT EMAIL_HOST_USER EMAIL_HOST_PASSWORD DEFAULT_FROM_EMAIL ADMIN_EMAIL ADMIN_PASSWORD; do
               if [ -n "${!name}" ]; then echo "$name=${!name}"; fi
             done
           } > app.env
